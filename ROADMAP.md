@@ -88,16 +88,33 @@ These are the choices baked into the reports that must live in code with a test,
 they are exactly where a naive rebuild goes silently wrong.
 
 ### Trading (revenue) — the reconciliation contract
-- **Revenue = gross sales, ex-VAT.** Returns are reported separately and never netted
-  into the headline.
-- **Country is the reconciliation key**, not channel. `uk + us + row` must equal the
-  headline total within **0.1%**. D2C/B2B do **not** partition the total (ROW is carried
-  inconsistently across channels) — never reconcile from the channel split.
-- **ROW must exist** (even if legitimately zero) and must be derived from **ship-to
-  country/store**, because the raw order-line country field only holds UK/US.
-- **VAT asymmetry:** GBP RRP is stored **inc-VAT**, USD RRP is **ex-tax**, revenue is
-  reported **ex-VAT**. Handle explicitly; keep a toggle + warning until the UK per-line
-  basis is confirmed.
+
+> **✔ Revenue definition — CONFIRMED (Lena, Aug 2026).** Plank revenue = **sales net of returns,
+> ex-VAT** (net of discounts too, per Shopify "net sales"). This intentionally **redefines** the
+> earlier contract wording (*"gross sales; returns never netted"*) — that phrasing is retired for
+> trading. It matches the live sheet's `AB` formula `(net_sales_incVAT − tax − returns) / FX`, so
+> month-over-month history stays comparable. Returns are still handled separately in the *returns*
+> report. **Action:** update the glossary to this definition and never label the headline "gross."
+
+- **Revenue basis = reproduce `AB` exactly:** `(Total Product Sales inc-VAT − Shopify Net Sales
+  Tax − Returns) ÷ FX`, per line, excluding shipping lines; includes the zero-net edge branch.
+  Net of discounts, net of in-window returns, ex-VAT.
+- **VAT = subtract Shopify's per-line tax, NOT `/1.2`.** There is no `/1.2` in the real revenue
+  path. **Retire the `UK_SALES_ARE_INC_VAT` toggle for trading.** (Caveat: this trusts Shopify's
+  per-line tax config; a `/1.2` assumption would diverge on zero-/mixed-rate lines.)
+- **FX must be made deterministic.** The sheet uses **live `GOOGLEFINANCE`** for US→GBP, so the
+  same month reprints differently over time. Replace with a **frozen, dated GBP/USD table stored
+  in the repo**, keyed by order date. This is the one deliberate deviation from the sheet.
+- **Country is the reconciliation key**, not channel. `uk + us + row` must equal the headline
+  total within **0.1%** (verified 0.0000% on 2026-04/05/06). D2C/B2B do **not** partition the
+  total — never reconcile from the channel split.
+- **ROW** is derived from **ship-to country** (GB→UK, US→US, else→ROW) with a **store fallback**
+  (PH→UK, P US→US) when country is `N/A`. It reconciles by construction (one country per line).
+- **Order+SKU is the only join key** (no stable Shopify line-item id surfaced) — the **same
+  double-count trap as returns**: sum/de-dupe on order+SKU, or pull a real `line_item.id` via the
+  Admin API / Matrixify.
+- **"Weeks Cover" is really months** (`inventory ÷ monthly units`) — reproduce the value; keep the
+  dashboard's ×52/12 correction; name it correctly in code.
 
 ### Returns — confirmed from the Q1 proof
 
@@ -143,8 +160,11 @@ they are exactly where a naive rebuild goes silently wrong.
 ## 5. The reconciliation gate (runs on every build; aborts on failure)
 
 - **Trading:** assert `uk + us + row == total` within 0.1% (relative); assert a ROW
-  bucket is present; assert returns are not netted into revenue; assert the VAT basis
-  applied matches the configured toggle.
+  bucket is present; assert revenue reproduces the sheet's `AB` basis (net-of-discount,
+  net-of-in-window-returns, ex-VAT) — **do NOT** assert returns are excluded, that was the old
+  misreading; assert VAT was removed by **subtracting Shopify tax** (no `/1.2`); assert FX came
+  from the **frozen dated table**, not a live source; assert pulled row counts tie to Shopify
+  order totals (guards the fixed-height feed-truncation risk).
 - **Returns:** assert Total == sum of the status/category block **for additive measures
   only (units, cash)**; order counts are **distinct** and are recomputed at each grouping —
   they legitimately do **not** sum to the Total (one order can span statuses/categories), so
@@ -178,15 +198,23 @@ A failed gate prints the offending figures and the gap, and writes **no output**
       template-fill step (headline = orders-based rate; flag still-maturing recent months)
 - [ ] Lock Q1 (and any other closed period) as a regression fixture
 
-### Phase B — Monthly Trading builder
-- [ ] Confirm the trading feed shape (see §7): ship-to country for ROW, channel for
-      D2C/B2B, per-SKU cost + inventory for GM% / cover
-- [ ] Build per-SKU + per-country aggregates; apply the VAT toggle
-- [ ] Emit the values-only Monthly Trading workbook in the predecessor layout
-      (Monthly Summary / By Collection / By SKU)
-- [ ] Reconciliation gate: `uk + us + row` within 0.1%, ROW present
-- [ ] Feed the existing monthly dashboard template-fill step (Option B)
-- [ ] Lock a recent closed month (Apr/May/Jun 2026) as a regression fixture
+### Phase B — Monthly Trading builder *(sheet reverse-engineered; ready to build — see `TRADING_logic_spec.md`)*
+- [x] Investigate the trading Google Sheet (Cowork, 3 Aug) — logic fully reverse-engineered;
+      **Path B confirmed** (port to code; retire Supermetrics; sheet stays as spec + oracle)
+- [ ] Build the revenue engine from **ShopifyQL** (`run-analytics-query`), reproducing `AB`:
+      `(net_sales_incVAT − tax − returns)/FX`, exclude shipping lines, include the zero-net branch
+- [ ] Country UK/US/ROW from ship-to (store fallback); channel D2C/B2B from company/flag
+- [ ] Add GM (Shopify variant `unit_cost`, Line Detail fallback) and inventory (on-hand, excl.
+      flagged group); reproduce sell-through and months-cover
+- [ ] Recompute vs-LM / vs-LY live from shifted-window pulls (not hand-carried)
+- [ ] **Freeze FX**: committed dated GBP/USD table keyed by order date (the one deviation)
+- [ ] De-dupe on **order+SKU** (no line-item id) — same trap as returns — or pull `line_item.id`
+      via Admin API / Matrixify
+- [ ] Emit the values-only Monthly Trading workbook (Monthly Summary / By Collection / By SKU),
+      feed the existing `trading/dashboard/` template-fill step
+- [ ] Gate: `uk + us + row` within 0.1%, ROW present, VAT-by-tax, frozen FX, row-count tie
+- [ ] Regress against a committed month (Apr/May/Jun 2026) before shipping; **relabel the
+      headline honestly** (not "gross") and update the glossary
 
 ### Phase C — Quarterly Trading builder
 - [ ] Roll the three monthly builds into the quarter (the returns model already shows the
@@ -205,19 +233,24 @@ A failed gate prints the offending figures and the gap, and writes **no output**
 
 ---
 
-## 7. Open confirmations (blockers to resolve before / during Phase B)
+## 7. Open confirmations
 
-- **Line Detail source:** activate the Dropbox fetch path (the `LINE_DETAIL_SOURCE`
-  `local | dropbox` switch) — was gated on credentials being set up on Mon 3 Aug.
-- **UK VAT basis:** are UK Shopify per-line sales values ex-VAT or inc-VAT? Until
-  confirmed, keep the `UK_SALES_ARE_INC_VAT` toggle (default: divide UK lines by 1.20)
-  with a prominent warning.
-- **ROW derivation:** confirm the order export exposes **ship-to country** so ROW is
-  derivable (not the UK/US-only order-line field).
-- **Channel:** confirm the export carries D2C/B2B channel for the channel view.
-- **Cost + inventory:** confirm per-SKU cost and inventory are available for GM% and cover.
-- **Primary key:** confirm Shopify exposes a stable line-item ID.
-- **Sales value basis:** confirm the trading sales figure is pre-returns.
+Most trading unknowns were **resolved by the Cowork sheet investigation** (`TRADING_logic_spec.md`):
+- ~~UK VAT basis~~ → **resolved:** subtract Shopify per-line tax (no `/1.2`); toggle retired.
+- ~~ROW derivation~~ → **resolved:** ship-to country (GB→UK/US→US/else→ROW), store fallback.
+- ~~Channel~~ → **resolved:** B2B if company present else the B2B flag; does not partition total.
+- ~~Cost + inventory~~ → **resolved:** Cost-for-Trade / Line-Detail cost; Supermetrics inventory
+  (replaceable by Shopify `unit_cost` + `get-inventory-levels`).
+- ~~Primary key~~ → **resolved (negatively):** no line-item id; join on order+SKU, de-dupe.
+- ~~Sales value basis~~ → **resolved:** net of discounts and in-window returns (kept by decision).
+
+Still open:
+- **Line Detail source:** activate the Dropbox fetch path (`LINE_DETAIL_SOURCE = local | dropbox`)
+  — was gated on credentials (~Mon 3 Aug).
+- **Frozen FX source:** pick the authoritative dated GBP/USD series to commit (close to the sheet's
+  historical `GOOGLEFINANCE` values so the regression stays in tolerance).
+- **Glossary/label fix:** rename the trading headline from "gross sales" to an honest label and
+  document the returns-netting — needs the glossary owner's sign-off.
 
 ---
 
