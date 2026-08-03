@@ -1,18 +1,30 @@
-"""Frozen, dated GBP/USD FX table -- fetch-and-freeze.
+"""Frozen, dated GBP/USD FX table -- fetch-and-freeze, ONE RATE PER MONTH.
 
 fx_rates.csv (repo root) is the source of truth: columns date, gbp_usd,
-source. gbp_usd is USD per GBP 1 -- matches TRADING_logic_spec.md's `AA`
-column (GBP/USD), used as a divisor: gbp_amount = usd_amount / AA.
+source, one row per report month keyed on that month's 1st (e.g.
+"2026-07-01"). gbp_usd is USD per GBP 1 -- matches TRADING_logic_spec.md's
+`AA` column (GBP/USD), used as a divisor: gbp_amount = usd_amount / AA.
+
+Confirmed 2026-08-03: the live sheet pins every US order's date to the 1st
+of the report month before the GOOGLEFINANCE lookup, so it resolves to ONE
+GBP/USD rate for the whole month, not one per order date. This is a
+deliberate BUG-FOR-BUG match of that artifact -- do not "fix" it to a daily
+rate; that would stop reproducing the sheet's actual numbers. UK/non-US
+lines never touch this table -- they use 1.0. Order bucketing/counting is
+unaffected -- only the FX lookup is pinned to the month.
 
 A row is IMMUTABLE once its source is real (anything other than
 PLACEHOLDER) -- past rates are never silently rewritten. On each run, only
-dates actually needed by the build that are still missing or PLACEHOLDER get
-fetched from a daily reference series (default: Frankfurter, ECB-backed) and
-written back with a real source label. UK/non-US lines never touch this
-table -- they use 1.0.
+the month actually needed is fetched if it's still PLACEHOLDER (default
+source: Frankfurter, ECB-backed -- matching GOOGLEFINANCE's "latest quote in
+the 7 days up to the date" behaviour, since Frankfurter also returns the
+nearest earlier trading day's rate for a non-trading-day request). Some
+months (e.g. July 2026) are instead seeded directly from a value read off
+the live sheet -- see seed_confirmed() -- rather than fetched, when that's
+the more authoritative source.
 
-This is the one deliberate deviation from the live sheet (which uses live
-GOOGLEFINANCE and is therefore not reproducible) -- see ROADMAP.md §4.
+This is the one deliberate deviation from the live sheet's live
+GOOGLEFINANCE (non-reproducible) -- see ROADMAP.md §4.
 """
 import csv
 import os
@@ -27,7 +39,9 @@ PLACEHOLDER = "PLACEHOLDER"
 
 
 def load(path=DEFAULT_PATH):
-    """{date_str: (rate, source)}, date_str is ISO (YYYY-MM-DD)."""
+    """{date_str: (rate, source)}, date_str is ISO (YYYY-MM-DD), always the
+    1st of a report month.
+    """
     rows = {}
     if os.path.exists(path):
         with open(path, newline="") as fh:
@@ -54,55 +68,59 @@ def _fetch_rate(date_str, source_url):
     return rate, actual_date
 
 
-def _nearest_on_or_before(date_str, table_dates):
-    candidates = [d for d in table_dates if d <= date_str]
-    if not candidates:
-        raise KeyError(
-            f"fx_rates.csv has no date on or before {date_str} -- add earlier "
-            "business-day rows to the table before running the build for this period"
-        )
-    return max(candidates)
-
-
-def ensure_dates(order_dates, path=DEFAULT_PATH, source_url=DEFAULT_SOURCE_URL,
+def ensure_month(month_str, path=DEFAULT_PATH, source_url=DEFAULT_SOURCE_URL,
                   source_label=DEFAULT_SOURCE_LABEL):
-    """Fetch-and-freeze: for every table date actually needed to look up the
-    given US order dates (nearest business day on or before each), fetch a
-    real rate if it's missing or still PLACEHOLDER. Never touches a row that
-    already has a real source. Persists the table if anything changed.
-
-    Returns the updated {date_str: (rate, source)} table.
+    """Fetch-and-freeze the single FX rate for a report month (e.g. "2026-05"),
+    keyed at the month's 1st. Only fetches if that row is missing or still
+    PLACEHOLDER; never touches an already-real row. Persists the table if
+    anything changed. Returns the updated {date_str: (rate, source)} table.
     """
+    date_str = f"{month_str}-01"
     rows = load(path)
-    table_dates = list(rows.keys())
-    needed = {_nearest_on_or_before(od, table_dates) for od in set(order_dates)}
+    existing = rows.get(date_str)
+    if existing is not None and existing[1] != PLACEHOLDER:
+        return rows  # immutable -- already real
 
-    changed = False
-    for date_str in sorted(needed):
-        rate, source = rows[date_str]
-        if source != PLACEHOLDER:
-            continue  # immutable -- already real
-        fetched_rate, actual_date = _fetch_rate(date_str, source_url)
-        label = source_label if actual_date == date_str else f"{source_label}, nearest available: {actual_date}"
-        rows[date_str] = (fetched_rate, label)
-        changed = True
-        print(f"fx: fetched {date_str} = {fetched_rate} ({label})", file=sys.stderr)
-
-    if changed:
-        save(rows, path)
+    fetched_rate, actual_date = _fetch_rate(date_str, source_url)
+    label = source_label if actual_date == date_str else f"{source_label}, nearest available: {actual_date}"
+    rows[date_str] = (fetched_rate, label)
+    save(rows, path)
+    print(f"fx: fetched monthly rate {date_str} = {fetched_rate} ({label})", file=sys.stderr)
     return rows
 
 
-def lookup(order_date_str, rows):
-    """GBP/USD rate for a US order: nearest table date on or before the
-    order date. Raises if that date is still PLACEHOLDER (ensure_dates
-    should have been called first) or if no table date exists at all.
+def seed_confirmed(month_str, rate, source_label, path=DEFAULT_PATH):
+    """Directly seed a report month's rate from a value read off the live
+    sheet (more authoritative than an independent fetch for a month we've
+    actually checked). Refuses to silently overwrite a different existing
+    real value -- past rates are immutable; re-seeding the SAME value/label
+    is a no-op.
     """
-    nearest = _nearest_on_or_before(order_date_str, list(rows.keys()))
-    rate, source = rows[nearest]
-    if source == PLACEHOLDER:
+    date_str = f"{month_str}-01"
+    rows = load(path)
+    existing = rows.get(date_str)
+    if existing is not None and existing[1] != PLACEHOLDER:
+        if existing == (rate, source_label):
+            return rows
         raise ValueError(
-            f"FX rate for {nearest} (needed for order date {order_date_str}) is "
-            "still PLACEHOLDER -- call ensure_dates() before building"
+            f"{date_str} already has a real rate {existing} -- refusing to "
+            f"overwrite with ({rate}, {source_label}); past rates are immutable"
         )
+    rows[date_str] = (rate, source_label)
+    save(rows, path)
+    print(f"fx: seeded confirmed monthly rate {date_str} = {rate} ({source_label})", file=sys.stderr)
+    return rows
+
+
+def lookup_month(month_str, rows):
+    """The single GBP/USD rate for a report month. Raises if missing or
+    still PLACEHOLDER (ensure_month/seed_confirmed should have been called
+    first).
+    """
+    date_str = f"{month_str}-01"
+    if date_str not in rows:
+        raise KeyError(f"No FX rate for {date_str} -- call ensure_month() or seed_confirmed() first")
+    rate, source = rows[date_str]
+    if source == PLACEHOLDER:
+        raise ValueError(f"FX rate for {date_str} is still PLACEHOLDER")
     return rate

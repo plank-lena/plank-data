@@ -49,6 +49,9 @@ def line_ab(net_of_discount, tax, returns_inc_vat, tax_returned, fx_rate):
     net_of_discount : T -- discountedTotalSet(withCodeDiscounts=true), inc-VAT
     tax             : R -- sum of taxLines, inc-VAT sale's tax component
     returns_inc_vat : O -- sum of matching refundLineItem subtotal+tax
+                      (see sum_refund_events -- pass 0.0 to test a
+                      "no returns at all" diagnostic, or a cutoff-filtered
+                      sum to test a returns-timing hypothesis)
     tax_returned    : S -- sum of matching refundLineItem tax only
     fx_rate         : AA -- GBP/USD; 1.0 for GBP-store lines
 
@@ -63,19 +66,38 @@ def line_ab(net_of_discount, tax, returns_inc_vat, tax_returned, fx_rate):
     return (net_of_discount - tax - returns_inc_vat) / fx_rate
 
 
-def refunds_by_line_id(order_node):
-    """{line_item_gid: {"subtotal": float, "tax": float}} for one order,
-    from its refunds[].refundLineItems[]. Multiple refunds against the same
-    line (e.g. a partial then a second partial) are summed.
+def refund_events_by_line_id(order_node):
+    """{line_item_gid: [(refund_created_at, subtotal, tax), ...]} for one
+    order, from its refunds[].refundLineItems[]. Kept as raw per-refund
+    events (not pre-summed) so callers can filter by the refund's own date
+    against different candidate cutoffs without a second network pull --
+    see TRADING_logic_spec.md's note that a return is "adjusted to the week
+    the order was placed," which live per-order-line APIs can over-apply if
+    the return happened long after the report would have been generated
+    (2026-08-03 floor-isolation finding: subtracting every return ever
+    applied, with no cutoff, overshoots the true figure).
     """
     out = {}
     for refund in order_node["refunds"]:
+        created_at = refund["createdAt"]
         for edge in refund["refundLineItems"]["edges"]:
             node = edge["node"]
             line_id = node["lineItem"]["id"]
             subtotal = float(node["subtotalSet"]["shopMoney"]["amount"])
             tax = float(node["totalTaxSet"]["shopMoney"]["amount"])
-            entry = out.setdefault(line_id, {"subtotal": 0.0, "tax": 0.0})
-            entry["subtotal"] += subtotal
-            entry["tax"] += tax
+            out.setdefault(line_id, []).append((created_at, subtotal, tax))
     return out
+
+
+def sum_refund_events(events, cutoff_date=None):
+    """Sum (subtotal, tax) from a list of refund events, optionally only
+    counting refunds created on or before cutoff_date (an ISO date string,
+    inclusive). cutoff_date=None sums everything (no cutoff).
+    """
+    subtotal_total = tax_total = 0.0
+    for created_at, subtotal, tax in events:
+        if cutoff_date is not None and created_at[:10] > cutoff_date:
+            continue
+        subtotal_total += subtotal
+        tax_total += tax
+    return subtotal_total, tax_total

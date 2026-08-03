@@ -198,34 +198,80 @@ A failed gate prints the offending figures and the gap, and writes **no output**
       template-fill step (headline = orders-based rate; flag still-maturing recent months)
 - [ ] Lock Q1 (and any other closed period) as a regression fixture
 
-### Phase B — Monthly Trading builder *(sheet reverse-engineered; ready to build — see `TRADING_logic_spec.md`)*
+### Phase B — Monthly Trading builder *(source pivoted to Matrixify, 2026-08-03 — see below)*
 - [x] Investigate the trading Google Sheet (Cowork, 3 Aug) — logic fully reverse-engineered;
       **Path B confirmed** (port to code; retire Supermetrics; sheet stays as spec + oracle)
-- [x] Build the revenue engine from the **Shopify Admin GraphQL API** (not ShopifyQL/Supermetrics
-      — real orders give a stable `line_item.id`, sidestepping the order+SKU dedupe trap
-      entirely), reproducing `AB`: `(net_of_discount_incVAT − tax − returns)/FX`, zero-net branch
-      included. Country UK/US/ROW from ship-to (store fallback); channel D2C/B2B from
-      `purchasingEntity`. **Known gap (2026-08-03): reproduces May 2026 within ~1–5%, not yet the
-      required 0.1%** — UK 1.98%, US 5.42%, ROW 1.09% low across the board (not a country-split
-      bug; something systematically under-counted). Leading suspects: (a) order-created-month
-      bucketing uses UTC `created_at` — Supermetrics' pull may use a different timezone/window at
-      the month boundary; (b) `discountedTotalSet` only captures line-level + code-based
-      discounts, not order-level automatic promotions (would push the gap the other way, so a
-      weaker suspect); (c) cancelled/edited-order handling may differ from the Supermetrics
-      export. Needs either further line-by-line debugging against real orders, or a look at the
-      actual `LM Shopify` tab for a few late-April/early-May boundary orders to settle it. The
-      reconciliation gate (below) correctly refuses to emit a workbook until this closes.
-- [ ] Add GM (Shopify variant `unit_cost`, Line Detail fallback) and inventory (on-hand, excl.
-      flagged group); reproduce sell-through and months-cover
+- [x] **SUPERSEDED, 2026-08-03: live Shopify Admin GraphQL as the trading source.** Built and
+      genuinely worked (real AB/country/channel logic, monthly FX, a real >50-line-item
+      pagination bug found and fixed, a real Shopify search-index date-boundary bug found and
+      fixed) — but ultimately abandoned as the *source*, not because the logic was wrong.
+      Two live-data findings drove the pivot, kept here because they'll bite anyone tempted to
+      go back to a live query for a monthly (i.e. frozen-in-time) report:
+      - Shopify's `created_at:<...` search filter is **not reliable near "now"**: an order
+        created `2026-08-01T05:38:23Z` matched `created_at:<2026-08-01T00:00:00Z` even with an
+        explicit UTC timestamp. A client-side re-filter against the real `createdAt` fixed this.
+      - The store's data is **genuinely live and mutating** during the multi-minute span of a
+        full pull — two identical queries a few minutes apart returned the same *count* but a
+        ~5% *different set* of orders. Lena confirmed this isn't a bug: Plank is mid-warehouse-move,
+        so July's order/return data is in real operational flux. A live query can never hit an
+        exact match against a report that must be a frozen point-in-time snapshot.
+      - (Also found/fixed along the way, still true and reusable: the real Shopify Draft Order
+        `sourceName` literal is `"shopify_draft_order"`, not `"draft_order"`; and Shopify's
+        `-source_name:X` negation search syntax does **not** do exact-match negation — it
+        excluded ~113 orders when only ~2 real drafts existed. Client-side filtering is safer
+        than trusting either.)
+      - `trading/shopify_feed.py`, `trading/revenue.py` (AB formula, country/channel — reused
+        as-is by the new source), `trading/build.py`, `trading/order_scope_diff.py` are the
+        artifacts of this path. Kept in the repo (the AB/gate logic is sound and now reused) but
+        **do not run `trading/build.py` against live Shopify for a real report** — see below.
+- [x] **Matrixify migration (current path).** Same AB/country/channel/reconciliation-gate logic,
+      new ingestion: a Matrixify **export** is a frozen, point-in-time CSV snapshot — the actual
+      property a monthly report needs, which no amount of live-query correctness can substitute
+      for. `trading/matrixify_source.py` parses the export; `trading/build_matrixify.py` is the
+      new entrypoint. Confirmed on a real export (`trading/source/orders_2026-05_US.csv`,
+      committed as the frozen snapshot, per convention — unlike everything else under `source/`
+      at repo root, `trading/source/*.csv` is deliberately **not** gitignored: it's the auditable
+      record, not a dropped feed):
+      - A refund shares the **same `Line: ID`** as its original `Line Item` row, as one or more
+        `Refund Line` rows with negative Quantity/Total/Tax Total — dedup/aggregate on `Line: ID`
+        directly recovers the same O/S the GraphQL engine computed from `refundLineItems`.
+        Verified against a real multi-unit refund (order `#US29002`): 3 units, 3 refund rows,
+        tax nets out exactly.
+      - Month bucketing is done by parsing `Created At` (Matrixify exports it with an explicit
+        UTC offset, `%Y-%m-%d %H:%M:%S %z`) and converting to **Europe/London** in Python
+        (`matrixify_source.order_month_london`) — no remote search-index date filter involved at
+        all, which is what actually fixes the boundary-leakage class of bug (not just the
+        warehouse-move instability).
+      - **Known gap, not yet explained:** US May 2026 reconciles to only ~91.3% of the sheet's US
+        figure (£195,392.35 computed vs £214,063.73 expected, units 8,973 vs 9,436). Better
+        *behaved* than the GraphQL path (a single stable frozen number, not a moving target) but
+        not yet *correct*. Leading suspects, untested as of 2026-08-03: order-level `Discount`
+        row type (55 rows in the May US export) may not be netted into `Line: Total` the way
+        line-level discounts are — `build_lines()` currently only reads `Line Item` and `Refund
+        Line`/`Shipping Line` rows, ignoring standalone `Discount` rows entirely; and cancelled
+        orders' treatment hasn't been checked against this source yet.
+      - **UK is fully blocked**: only the `Matrixify-PlankUS` MCP connector was available this
+        session — `Matrixify-PlankUK` was never connected, so no UK export exists and `uk+us+row`
+        cannot be checked at all yet. Connect it before continuing.
+      - July export not yet created via Matrixify; the 28-order scope question (are the sheet's
+        missing orders cancelled? use `Cancelled At` + `Payment: Status`, both present in the
+        export) is directly testable once it is, but hasn't been run.
+- [ ] Investigate the May US Matrixify gap (Discount rows, cancelled-order handling) before
+      trusting any Matrixify-sourced figure
+- [ ] Connect `Matrixify-PlankUK`; export + reconcile UK May 2026; only then does `uk+us+row`
+      become checkable
+- [ ] Export + reconcile July via Matrixify; resolve the 28-order scope question with
+      `Cancelled At` + `Payment: Status`
+- [ ] Add GM (`Line: Variant Cost`, Line Detail fallback) and inventory; reproduce sell-through
+      and months-cover
 - [ ] Recompute vs-LM / vs-LY live from shifted-window pulls (not hand-carried)
-- [ ] **Freeze FX**: committed dated GBP/USD table keyed by order date (the one deviation)
-- [ ] De-dupe on **order+SKU** (no line-item id) — same trap as returns — or pull `line_item.id`
-      via Admin API / Matrixify
 - [ ] Emit the values-only Monthly Trading workbook (Monthly Summary / By Collection / By SKU),
       feed the existing `trading/dashboard/` template-fill step
 - [ ] Gate: `uk + us + row` within 0.1%, ROW present, VAT-by-tax, frozen FX, row-count tie
-- [ ] Regress against a committed month (Apr/May/Jun 2026) before shipping; **relabel the
+- [ ] Regress against a committed month (May/Jun/Jul 2026) before shipping; **relabel the
       headline honestly** (not "gross") and update the glossary
+- [ ] Once May and July reconcile via Matrixify, remove `trading/shopify_feed.py` /
+      `trading/build.py`'s live-query path and `trading/order_scope_diff.py` (superseded)
 
 ### Phase C — Quarterly Trading builder
 - [ ] Roll the three monthly builds into the quarter (the returns model already shows the

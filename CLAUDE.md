@@ -13,7 +13,11 @@ repo — if the two ever disagree, `ROADMAP.md` wins.
 - Commit every run so each report is reproducible and diffable.
 - Never commit real secrets. `.env` files are gitignored; only `.env.example`
   (placeholders) is tracked, if one exists.
-- `/source` is dropped raw feeds and is gitignored — never committed. `/output`
+- `/source` (repo root) is dropped raw feeds and is gitignored — never
+  committed. **Exception:** `trading/source/*.csv` (Matrixify exports) is
+  deliberately tracked — each is a frozen, immutable monthly snapshot and the
+  auditable record a trading report was built from, not a dropped feed. Never
+  overwrite a committed month's export; each month gets its own file. `/output`
   is generated dashboards and **is** committed (needed for diffability).
 - `snake_case` for any SQL written in this repo.
 - Load workbooks with `data_only=False` when you need to see formulas rather
@@ -76,9 +80,14 @@ The canonical glossary, SKU taxonomy, and Line Detail column dictionary live in
 - **Returns join / rate / cash-basis decisions**: these are LOCKED (Lena +
   Daisy, Aug 2026) — see `ROADMAP.md` §4. Don't change without re-confirming
   with them; a change restates historical numbers.
-- **Trading feed shape / VAT basis**: blocked on the trading Google Sheet
-  investigation (`BRIEF_cowork_trading_sheet.md`, not yet landed). Don't
-  invent trading aggregation ahead of that spec — see `ROADMAP.md` §7.
+- **Trading source**: Matrixify exports (`trading/matrixify_source.py` +
+  `trading/build_matrixify.py`), NOT live Shopify GraphQL
+  (`trading/shopify_feed.py` + `trading/build.py`'s live path) — the latter is
+  kept in the repo (its AB/country/channel logic is reused as-is) but was
+  superseded 2026-08-03 because a monthly report needs a frozen, reproducible
+  snapshot, which a live query against an actively-mutating store cannot give
+  you. See `ROADMAP.md` Phase B for the full writeup and current known gaps
+  before trusting any trading figure.
 - **Line Detail source**: `LINE_DETAIL_SOURCE = local | dropbox` switch
   (mirrors the returns/trading builders) — activate the Dropbox path once its
   credentials exist.

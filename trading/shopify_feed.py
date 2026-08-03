@@ -46,9 +46,15 @@ query($query: String, $cursor: String) {
         name
         createdAt
         test
+        displayFinancialStatus
+        sourceName
         shippingAddress { countryCodeV2 }
         purchasingEntity { __typename }
+        shippingLines(first: 10) {
+          edges { node { discountedPriceSet { shopMoney { amount } } } }
+        }
         refunds {
+          createdAt
           refundLineItems(first: 50) {
             edges {
               node {
@@ -83,6 +89,28 @@ query($query: String, $cursor: String) {
 ORDERS_COUNT_QUERY = """
 query($query: String) {
   ordersCount(query: $query) { count }
+}
+"""
+
+ORDER_LINE_ITEMS_QUERY = """
+query($id: ID!, $cursor: String) {
+  order(id: $id) {
+    lineItems(first: 50, after: $cursor) {
+      pageInfo { hasNextPage endCursor }
+      edges {
+        node {
+          id
+          sku
+          quantity
+          currentQuantity
+          originalTotalSet { shopMoney { amount } }
+          discountedTotalSet(withCodeDiscounts: true) { shopMoney { amount } }
+          taxLines { priceSet { shopMoney { amount } } }
+          variant { inventoryItem { unitCost { amount } id } }
+        }
+      }
+    }
+  }
 }
 """
 
@@ -128,6 +156,20 @@ def orders_count(domain, token, date_query):
     return data["ordersCount"]["count"]
 
 
+def _fetch_remaining_line_items(domain, token, order_id, cursor):
+    """Page through line items beyond the first 50 for one order (rare, but
+    real -- e.g. a large wholesale order). Returns the additional edges.
+    """
+    edges = []
+    while True:
+        data = _graphql(domain, token, ORDER_LINE_ITEMS_QUERY, {"id": order_id, "cursor": cursor})
+        page = data["order"]["lineItems"]
+        edges.extend(page["edges"])
+        if not page["pageInfo"]["hasNextPage"]:
+            return edges
+        cursor = page["pageInfo"]["endCursor"]
+
+
 def fetch_orders(domain, token, date_query):
     """Yield every non-test order matching date_query (a Shopify search
     query string, e.g. "created_at:>=2026-05-01 created_at:<2026-06-01").
@@ -141,11 +183,9 @@ def fetch_orders(domain, token, date_query):
             if node["test"]:
                 continue
             if node["lineItems"]["pageInfo"]["hasNextPage"]:
-                raise RuntimeError(
-                    f"Order {node['name']} has >50 line items -- pagination "
-                    "within a single order isn't implemented; extend fetch_orders "
-                    "before trusting this run's totals."
-                )
+                extra = _fetch_remaining_line_items(
+                    domain, token, node["id"], node["lineItems"]["pageInfo"]["endCursor"])
+                node["lineItems"]["edges"].extend(extra)
             yield node
         if not page["pageInfo"]["hasNextPage"]:
             return
