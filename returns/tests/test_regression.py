@@ -1,0 +1,68 @@
+"""Regression test: re-running the returns builder against the real Q1
+workbook must reproduce the committed 2026Q1 fixture within tolerance.
+
+Requires source/Q1_Jan_Feb_Mar_2026.xlsx locally -- that file is gitignored
+(a dropped feed, per ROADMAP.md), so this test is a maintainer-local check,
+not something CI can run without the source file present. Skips (does not
+fail) if the source file is missing, since that's an environment gap, not a
+correctness regression.
+
+Run:  python returns/tests/test_regression.py
+"""
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+
+import pandas as pd
+
+from returns.build import run
+
+HERE = os.path.dirname(__file__)
+FIXTURE_DIR = os.path.join(HERE, "fixtures", "2026Q1")
+SRC = os.path.join(HERE, "..", "..", "source", "Q1_Jan_Feb_Mar_2026.xlsx")
+TOL = 0.001  # 0.1% relative, matches the reconciliation gate's tolerance
+
+
+def _compare(name, actual, expected):
+    failures = []
+    for col in expected.columns:
+        if not pd.api.types.is_numeric_dtype(expected[col]):
+            if not actual[col].astype(str).equals(expected[col].astype(str)):
+                failures.append(f"{name}.{col}: non-numeric mismatch")
+            continue
+        for label in expected.index:
+            a = actual.loc[label, col]
+            e = expected.loc[label, col]
+            rel = abs(a - e) / abs(e) if e else (0.0 if abs(a) < 1e-9 else float("inf"))
+            if rel > TOL:
+                failures.append(
+                    f"{name}.{col}[{label}]: got {a}, fixture has {e} (gap {rel:.4%})"
+                )
+    return failures
+
+
+def main():
+    if not os.path.exists(SRC):
+        print(f"SKIP: source file not found at {SRC} (maintainer-local test)")
+        return 0
+
+    blocks = run(SRC)
+    all_failures = []
+    for name, block in blocks.items():
+        fixture_path = os.path.join(FIXTURE_DIR, f"{name}.csv")
+        expected = pd.read_csv(fixture_path, index_col=0)
+        all_failures += _compare(name, block, expected)
+
+    if all_failures:
+        print("REGRESSION FAILURES:")
+        for f in all_failures:
+            print(f"  {f}")
+        return 1
+
+    print("PASS -- reproduces the 2026Q1 fixture within 0.1% tolerance.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

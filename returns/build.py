@@ -136,24 +136,41 @@ def _show(df, pct=("return_rate",)):
     print(d.to_string())
 
 
+def run(src):
+    """Build every block and pass it through the reconciliation gate.
+
+    Raw (unformatted) DataFrames -- this is the entry point both the CLI
+    display below and the regression fixture/test use, so the fixture
+    reflects exactly the numbers the gate has already checked.
+    """
+    s, ret, zap = prep(src)
+    fins = s["finish"].value_counts().index[:10].tolist()
+    return {
+        "by_month": by_month(s, ret),
+        "by_status": by_group(s, ret, "status", STAT),
+        "by_market": by_group(s, ret, "mkt", ["UK", "US"]),
+        "reason_mix": reason_mix(zap),
+        "by_finish": by_group(s, ret, "finish", fins),
+    }
+
+
 if __name__ == "__main__":
-    s, ret, zap = prep(SRC)
+    blocks = run(SRC)
 
     print("=== By ORDER MONTH (orders-based rate, single-count) ===")
-    _show(by_month(s, ret))
+    _show(blocks["by_month"])
 
     print("\n=== By product STATUS ===")
-    _show(by_group(s, ret, "status", STAT))
+    _show(blocks["by_status"])
 
     print("\n=== UK / US split ===")
-    _show(by_group(s, ret, "mkt", ["UK", "US"]))
+    _show(blocks["by_market"])
 
     print("\n=== Return REASON mix (share of returned units) ===")
-    _show(reason_mix(zap), pct=("share",))
+    _show(blocks["reason_mix"], pct=("share",))
 
-    fins = s["finish"].value_counts().index[:10].tolist()
     print("\n=== By FINISH (top 10 by orders) ===")
-    _show(by_group(s, ret, "finish", fins))
+    _show(blocks["by_finish"])
 
     print(
         "\nreconciliation gate: PASS (additive measures reconcile; labels matched; "
