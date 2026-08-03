@@ -98,6 +98,24 @@ def assert_country_reconciles(country_totals, grand_total, tol=TOL):
     )
 
 
+def assert_matches_oracle(computed, oracle, tol=TOL):
+    """Assert every key present in both `computed` and `oracle` agrees within
+    tolerance -- the regression-parity check against a committed fixture's
+    ground-truth figures (e.g. a Monthly Summary row). Keys present only in
+    `oracle` (e.g. a units column the caller wants reported but not gated)
+    are silently skipped; the caller decides what to gate by what it passes
+    in `computed`.
+    """
+    for key, expected in oracle.items():
+        if key not in computed:
+            continue
+        rel = _rel_diff(computed[key], expected)
+        assert rel <= tol, (
+            f"RECONCILE FAIL: {key} computed {computed[key]} != oracle {expected} "
+            f"(gap {rel:.4%}, tolerance {tol:.1%})"
+        )
+
+
 def assert_bucketed_by(index_labels, expected_labels):
     """Structural check that a block's rows are exactly the expected set of
     buckets (e.g. order-month labels + the period total) -- confirms the
