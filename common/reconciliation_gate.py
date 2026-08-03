@@ -15,6 +15,12 @@ Returns-specific rules implemented here:
     in the data (catches the "Electric Accessory " trailing-space class of
     bug generically, for whatever grouping this is applied to).
   - The headline rate must be orders-based: returned_orders / orders.
+
+Trading-specific rule implemented here:
+  - uk + us + row must equal an INDEPENDENTLY computed grand total (summed
+    over every line regardless of country label), within tolerance -- catches
+    a line silently falling into a 4th/unexpected country bucket that never
+    lands in the uk/us/row sum. See ROADMAP.md §5.
 """
 
 TOL = 0.001  # 0.1% relative, per ROADMAP.md
@@ -71,6 +77,25 @@ def assert_orders_based_rate(block, rate_col="return_rate",
             f"RECONCILE FAIL: {label} {rate_col}={row[rate_col]} is not "
             f"orders-based (expected {returned_col}/{orders_col}={expected})"
         )
+
+
+def assert_country_reconciles(country_totals, grand_total, tol=TOL):
+    """Assert uk + us + row == an independently-computed grand total.
+
+    country_totals: {"UK": ..., "US": ..., "ROW": ...}
+    grand_total: summed over every line regardless of country label -- must
+    be computed independently of country_totals by the caller, not derived
+    from it, or this check is vacuous.
+    """
+    assert set(country_totals) == {"UK", "US", "ROW"}, (
+        f"RECONCILE FAIL: expected exactly UK/US/ROW buckets, got {sorted(country_totals)}"
+    )
+    parts = sum(country_totals.values())
+    rel = _rel_diff(parts, grand_total)
+    assert rel <= tol, (
+        f"RECONCILE FAIL: uk+us+row {parts} != grand total {grand_total} "
+        f"(gap {rel:.4%}, tolerance {tol:.1%})"
+    )
 
 
 def assert_bucketed_by(index_labels, expected_labels):

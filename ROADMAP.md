@@ -201,9 +201,20 @@ A failed gate prints the offending figures and the gap, and writes **no output**
 ### Phase B — Monthly Trading builder *(sheet reverse-engineered; ready to build — see `TRADING_logic_spec.md`)*
 - [x] Investigate the trading Google Sheet (Cowork, 3 Aug) — logic fully reverse-engineered;
       **Path B confirmed** (port to code; retire Supermetrics; sheet stays as spec + oracle)
-- [ ] Build the revenue engine from **ShopifyQL** (`run-analytics-query`), reproducing `AB`:
-      `(net_sales_incVAT − tax − returns)/FX`, exclude shipping lines, include the zero-net branch
-- [ ] Country UK/US/ROW from ship-to (store fallback); channel D2C/B2B from company/flag
+- [x] Build the revenue engine from the **Shopify Admin GraphQL API** (not ShopifyQL/Supermetrics
+      — real orders give a stable `line_item.id`, sidestepping the order+SKU dedupe trap
+      entirely), reproducing `AB`: `(net_of_discount_incVAT − tax − returns)/FX`, zero-net branch
+      included. Country UK/US/ROW from ship-to (store fallback); channel D2C/B2B from
+      `purchasingEntity`. **Known gap (2026-08-03): reproduces May 2026 within ~1–5%, not yet the
+      required 0.1%** — UK 1.98%, US 5.42%, ROW 1.09% low across the board (not a country-split
+      bug; something systematically under-counted). Leading suspects: (a) order-created-month
+      bucketing uses UTC `created_at` — Supermetrics' pull may use a different timezone/window at
+      the month boundary; (b) `discountedTotalSet` only captures line-level + code-based
+      discounts, not order-level automatic promotions (would push the gap the other way, so a
+      weaker suspect); (c) cancelled/edited-order handling may differ from the Supermetrics
+      export. Needs either further line-by-line debugging against real orders, or a look at the
+      actual `LM Shopify` tab for a few late-April/early-May boundary orders to settle it. The
+      reconciliation gate (below) correctly refuses to emit a workbook until this closes.
 - [ ] Add GM (Shopify variant `unit_cost`, Line Detail fallback) and inventory (on-hand, excl.
       flagged group); reproduce sell-through and months-cover
 - [ ] Recompute vs-LM / vs-LY live from shifted-window pulls (not hand-carried)
