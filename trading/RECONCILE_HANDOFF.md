@@ -7,6 +7,24 @@ committed as a file; this is now the durable copy). Governing docs unchanged: `R
 
 ---
 
+## ⚠ Correction (BRIEF #5, commit `70362cd`, same day) — the "UK +0.62%" figure below is wrong
+
+Section 4 below reports "UK May total: computed £249,296.19 vs £247,772.02, **+0.62%**." That
+number is a **store grand total** (the UK-store export's own UK+US+ROW buckets summed together),
+compared against the oracle's **UK-only** country bucket — an apples-to-oranges comparison that
+happened to land close by coincidence. BRIEF #5 added a proper three-way reconcile
+(`compute_combined()` in `trading/build_matrixify.py`, unions both stores and buckets by ship-to
+country) and the **real** UK ship-to bucket is **£234,981.78 vs £247,772.02 — a −5.16% gap**, the
+same order of magnitude as US's known shortfall, not a near-miss. ROW itself is close and clean
+(£14,556.43 vs £14,456.95, 0.688%, and `uk+us+row` ties to an independently-computed grand total
+exactly, residual 0). **Section 39's "Hypotheses tested" (discount-row, cancelled-orders) were
+tested against the wrong UK number too** — they may still be directionally right (both were
+US-anchored anyway) but re-run them against £234,981.78 before trusting the exact percentages
+quoted there. Everything else in this doc (the refund-export fix, the US figures, the recommended
+next steps) is unaffected by this correction.
+
+---
+
 ## What changed this session (the delta)
 
 1. **Root cause confirmed and fixed:** both committed May 2026 source CSVs
@@ -111,8 +129,12 @@ committed as a file; this is now the durable copy). Governing docs unchanged: `R
 ## Definition of done (unchanged from the original handoff)
 
 - [x] UK connected; export recipe fixed (refunds/transactions groups added).
-- [ ] UK May reconciles within 0.1% (currently +0.62%).
-- [ ] Units gap closed on both legs; `uk + us + row == total` within 0.1%, ROW present.
+- [x] ROW bucketed as a first-class three-way component (BRIEF #5, `70362cd`) — ROW is close
+      (0.688%) and `uk+us+row` ties to grand total exactly (residual 0).
+- [ ] UK May reconciles within 0.1% (currently **−5.16%**, corrected — see the callout above;
+      was misreported as +0.62% before the ship-to three-way reconcile existed).
+- [ ] Units gap closed on both legs; `uk + us + row == total` within 0.1%, ROW present (structural
+      tie already holds; oracle-value parity does not yet).
 - [ ] US value residual explained (FX and/or tax) and within tolerance, or flagged approximate.
 - [ ] July components reconcile; 28-order scope rule resolved and documented (likely same rule
       as May's cancelled-order question above).
