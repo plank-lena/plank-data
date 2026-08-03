@@ -3,6 +3,8 @@
 import re
 import sys
 
+STATUS_BUCKETS = ("Continuity", "Newness", "Discontinued", "Dead")
+
 
 # ── Input checks ──────────────────────────────────────────────────────────────
 
@@ -92,6 +94,89 @@ def validate_input(raw):
             f"Input validation failed with {len(errors)} error(s). "
             "See messages above."
         )
+
+    return warnings
+
+
+# ── Contract-mode checks (BRIEF #3 §7) ───────────────────────────────────────
+
+def validate_contract(contract, tol=0.001):
+    """Validate a contract's OWN numbers directly, rather than re-deriving
+    _ws_ms cell reads (a contract, esp. Matrixify-sourced, has no worksheet
+    to read). Returns a list of warning strings; raises ValueError on a
+    hard failure (structural problems only -- a known, disclosed revenue
+    gap on a Matrixify-sourced contract is exactly what provenance.
+    reconciled: False already communicates, and is NOT re-raised here).
+    """
+    import os
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+    from common.reconciliation_gate import assert_country_reconciles
+
+    warnings = []
+    errors = []
+    current = contract.get("current", {})
+
+    # Leak check: current's own uk_gbp+us_gbp+row_gbp must tie to current's
+    # own total_sales. Both front-ends compute these independently of each
+    # other (extract_headline reads AT7/CD7/DN7 and F7 as separate cells;
+    # emit_contract_from_matrixify accumulates country_totals and
+    # grand_total in separate running sums over the same per-line loop --
+    # see BRIEF #5's assert_country_reconciles docstring for why that
+    # independence is what makes this check non-vacuous), so this catches
+    # a real leak (a line silently missing its country bucket) without
+    # reaching into a different sheet/cut that may have its own, unrelated
+    # basis differences (By Collection's total is known to differ from
+    # Monthly Summary's by ~0.09% in the real May oracle -- a pre-existing
+    # cross-sheet quirk in the source spreadsheet, not a contract bug; NOT
+    # what this check is for).
+    total_sales = current.get("total_sales") or 0
+    country_totals = {
+        "UK": current.get("uk_gbp", 0), "US": current.get("us_gbp", 0), "ROW": current.get("row_gbp", 0),
+    }
+    try:
+        assert_country_reconciles(country_totals, total_sales, tol=tol)
+    except AssertionError as e:
+        errors.append(str(e))
+
+    # Status-bucket enum + coverage. NOT asserted additive: confirmed
+    # against the real oracle (config.STATUS_ROWS) that its own statuses
+    # table tracks exactly these 4 buckets and deliberately excludes
+    # "Not For Sale" revenue (£2,453.99 in the May fixture) entirely --
+    # i.e. the oracle itself isn't additive to total_sales here, so
+    # asserting our own contract must be would be a stricter, mismatched
+    # standard. Reported as a coverage diagnostic instead, same treatment
+    # as finishes below.
+    statuses = contract.get("statuses", [])
+    status_names = {s["s"] for s in statuses}
+    unknown_buckets = status_names - set(STATUS_BUCKETS)
+    if unknown_buckets:
+        errors.append(f"statuses has bucket(s) outside the enum {STATUS_BUCKETS}: {unknown_buckets}")
+    status_sales_sum = sum(s["sales"] for s in statuses)
+    if total_sales:
+        status_share = status_sales_sum / total_sales
+        warnings.append(f"statuses cover {status_share:.1%} of total_sales (not asserted additive -- see oracle's own Not For Sale gap)")
+
+    # Finish coverage is NOT asserted additive -- config.FINISH_COLORS is a
+    # curated top-8 palette (see trading/contract.py's emit_contract_from_
+    # matrixify), so finishes legitimately cover only part of total_sales.
+    # Reported as a diagnostic, not a failure.
+    finishes = contract.get("finishes", {})
+    finish_sales_sum = sum(f["total"] for f in finishes.values())
+    if total_sales:
+        finish_share = finish_sales_sum / total_sales
+        warnings.append(f"curated finishes cover {finish_share:.1%} of total_sales (by design, not 100%)")
+
+    # Enrichment coverage threshold -- warn, don't hard-block (known,
+    # surfaced in metadata; BRIEF #3 §7 is explicit this isn't a gate).
+    coverage = contract.get("provenance", {}).get("enrichment_coverage")
+    if coverage is not None and coverage < 0.99:
+        warnings.append(f"enrichment_coverage {coverage:.2%} is below the 99% target")
+
+    if errors:
+        for e in errors:
+            print(f"[validate] CONTRACT ERROR: {e}", file=sys.stderr)
+        raise ValueError(f"Contract validation failed with {len(errors)} error(s). See messages above.")
 
     return warnings
 
