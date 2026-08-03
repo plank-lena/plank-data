@@ -1,0 +1,131 @@
+{
+ "_comment": "Learned from the Q1 returns cube (pipeline's own SKU->category). item_type map is the SKU-rule FALLBACK, used only when Line Detail / metafields don't resolve a SKU. Edit this file (not the .py) to tune the rule.",
+ "canonical_note": "Plank Domain Glossary \u00a75: department -> item_type -> style.",
+ "department_codes": {
+  "C": "Cabinetry",
+  "D": "Door",
+  "A": "Accessories",
+  "T": "Taps",
+  "E": "Electric",
+  "L": "Lighting",
+  "X": "Components"
+ },
+ "market_prefixes": [
+  "GB-",
+  "US-"
+ ],
+ "modifier_prefixes": [
+  "S5-",
+  "KTH-",
+  "KIT-"
+ ],
+ "code3_to_item_type": {
+  "ACP": "Baseball Cap",
+  "CBB": "Cabinetry Accessory",
+  "CBP": "Cabinetry Accessory",
+  "XMS": "Components",
+  "ACH": "Decorative Accessory",
+  "EBB": "Electric Accessory",
+  "EM5": "Electric Component",
+  "EMB": "Electric Component",
+  "EMF": "Electric Component",
+  "EMH": "Electric Component",
+  "EMN": "Electric Component",
+  "EMR": "Electric Component",
+  "EL-": "Electric Component",
+  "MOD": "Electric Component",
+  "XLP": "Fixed Lighting",
+  "CBH": "Handle",
+  "CCP": "Handle",
+  "CDB": "Handle",
+  "CFD": "Handle",
+  "CFR": "Handle",
+  "CLB": "Handle",
+  "COH": "Handle",
+  "CRP": "Handle",
+  "CST": "Handle",
+  "CTB": "Handle",
+  "CHB": "Handle with Backplate",
+  "ADH": "Hook",
+  "ASH": "Hook",
+  "HK-": "Hook",
+  "AHB": "Hook",
+  "CKB": "Knob with Backplate",
+  "LBU": "Lighting Accessory",
+  "LSE": "Lighting Accessory",
+  "ECS": "Plug Socket",
+  "EEP": "Plug Socket",
+  "ESP": "Plug Socket",
+  "ESS": "Plug Socket",
+  "ASB": "Soap Bracket",
+  "ATO": "Storage",
+  "ASW": "Swatch ",
+  "EFS": "Switch & Dimmer",
+  "ESW": "Switch & Dimmer",
+  "EIN": "Switch & Dimmer",
+  "EMI": "Switch & Dimmer",
+  "ETO": "Switch & Dimmer",
+  "ETT": "Switch & Dimmer",
+  "ACM": "Tools",
+  "201": "Unmapped SKU",
+  "217": "Unmapped SKU",
+  "231": "Unmapped SKU",
+  "497": "Unmapped SKU",
+  "506": "Unmapped SKU",
+  "BKP": "Unmapped SKU",
+  "PLU": "Components",
+  "XTB": "Trade Board",
+  "226": "Unmapped SKU",
+  "241": "Unmapped SKU",
+  "619": "Unmapped SKU",
+  "ACA": "Unmapped SKU",
+  "PAR": "Unmapped SKU",
+  "XTS": "Components",
+  "EMS": "Electric Component",
+  "EMU": "Electric Component",
+  "EID": "Switch & Dimmer",
+  "TAP": "Unmapped SKU",
+  "SAM": "Handle with Backplate",
+  "100": "Electric Component",
+  "EOG": "Plug Socket",
+  "EOU": "Plug Socket",
+  "E3W": "Switch & Dimmer",
+  "ERO": "Switch & Dimmer",
+  "G19": "Electric Component"
+ },
+ "ambiguous_codes_need_authoritative": {
+  "LCL": {
+   "Fixed Lighting": 12,
+   "Switch & Dimmer": 2
+  },
+  "LWL": {
+   "Fixed Lighting": 24,
+   "Switch & Dimmer": 4
+  },
+  "KH-": {
+   "Handle": 28,
+   "Hook": 7,
+   "Knob": 8
+  },
+  "AHP": {
+   "Handle with Backplate": 1,
+   "Hook": 5
+  },
+  "CKN": {
+   "Hook": 17,
+   "Knob": 45
+  },
+  "EDP": {
+   "Plug Socket": 4,
+   "Switch & Dimmer": 2
+  },
+  "EDU": {
+   "Plug Socket with USB": 2,
+   "Switch & Dimmer": 5
+  },
+  "EDI": {
+   "Switch & Dimmer": 39,
+   "Electric Component": 4
+  }
+ }
+}

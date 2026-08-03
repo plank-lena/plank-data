@@ -1,0 +1,45 @@
+month,market,theme,owner,explicit,latent,total
+2025-09,UK,Delivery,OPS,1,0,1
+2025-09,UK,Finish & colour mismatch,PRODUCT,1,0,1
+2025-09,UK,Installation difficulty,PRODUCT,1,0,1
+2025-10,UK,Breakage & defect,PRODUCT,1,0,1
+2025-10,UK,Fixings & screws,PRODUCT,1,0,1
+2025-10,UK,Unclassified,PRODUCT,1,0,1
+2025-10,UK,Weight & material feel,PRODUCT,1,0,1
+2025-10,US,Finish & colour mismatch,PRODUCT,1,0,1
+2025-10,US,Size & dimensions,PRODUCT,1,0,1
+2025-10,US,Value for money,PRODUCT,1,0,1
+2025-10,US,Weight & material feel,PRODUCT,1,0,1
+2025-11,UK,Delivery,OPS,1,0,1
+2025-11,UK,Fixings & screws,PRODUCT,0,1,1
+2025-11,UK,Grip & usability,PRODUCT,1,0,1
+2025-11,UK,Missing parts & availability,OPS,1,0,1
+2025-11,UK,Size & dimensions,PRODUCT,1,0,1
+2025-11,UK,Value for money,PRODUCT,1,0,1
+2025-11,US,Unclassified,PRODUCT,1,0,1
+2025-12,US,Customer service,OPS,1,0,1
+2025-12,US,Delivery,OPS,1,0,1
+2026-01,UK,Customer service,OPS,1,0,1
+2026-01,UK,Delivery,OPS,1,0,1
+2026-01,UK,Fixings & screws,PRODUCT,1,1,2
+2026-01,UK,Installation difficulty,PRODUCT,1,1,2
+2026-01,UK,Missing parts & availability,OPS,1,0,1
+2026-01,US,Value for money,PRODUCT,1,0,1
+2026-02,UK,Finish & colour mismatch,PRODUCT,1,0,1
+2026-03,UK,Breakage & defect,PRODUCT,1,0,1
+2026-03,UK,Fixings & screws,PRODUCT,2,0,2
+2026-03,UK,Grip & usability,PRODUCT,3,0,3
+2026-03,UK,Installation difficulty,PRODUCT,1,1,2
+2026-03,UK,Size & dimensions,PRODUCT,1,0,1
+2026-03,UK,Weight & material feel,PRODUCT,1,0,1
+2026-03,US,Fixings & screws,PRODUCT,2,0,2
+2026-03,US,Unclassified,PRODUCT,2,0,2
+2026-04,UK,Coating & durability,PRODUCT,2,0,2
+2026-04,UK,Fixings & screws,PRODUCT,0,1,1
+2026-04,UK,Installation difficulty,PRODUCT,1,0,1
+2026-05,UK,Fixings & screws,PRODUCT,1,0,1
+2026-05,UK,Size & dimensions,PRODUCT,0,1,1
+2026-06,UK,Finish & colour mismatch,PRODUCT,1,0,1
+2026-06,UK,Fixings & screws,PRODUCT,0,2,2
+2026-06,UK,Returns & exchange friction,OPS,1,0,1
+2026-06,US,Fixings & screws,PRODUCT,1,0,1

@@ -1,0 +1,19 @@
+# Dropped feeds — raw source files, never committed
+/source/
+
+# Credentials
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node (used by trading/dashboard/validate.py's render check)
+node_modules/
+
+# OS
+.DS_Store

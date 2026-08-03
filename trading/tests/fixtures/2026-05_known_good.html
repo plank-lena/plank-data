@@ -1,0 +1,2711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>May 2026 — Monthly Trading Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #f4f5f7;
+  --surface2: #eaebed;
+  --surface3: #dfe0e3;
+  --border: rgba(0,0,0,0.1);
+  --text: #18181c;
+  --muted: #434959;
+  --uk: #1a6fd4;
+  --uk-dim: rgba(26,111,212,0.1);
+  --us: #b07d00;
+  --us-dim: rgba(176,125,0,0.1);
+  --row: #8b44c8;
+  --row-dim: rgba(139,68,200,0.1);
+  --d2c: #1a9b74;
+  --d2c-dim: rgba(26,155,116,0.1);
+  --b2b: #d44c30;
+  --b2b-dim: rgba(212,76,48,0.1);
+  --green: #1a9b74;
+  --red: #cc2a38;
+  --amber: #b06800;
+  --purple: #6a3ec2;
+  --teal: #1a6fd4;
+  --font-d: 'Playfair Display', serif;
+  --font-m: 'IBM Plex Mono', monospace;
+  --font-s: 'IBM Plex Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-s);font-size:13px;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 5% 0%,rgba(26,111,212,0.04) 0%,transparent 60%),
+  radial-gradient(ellipse 50% 40% at 95% 100%,rgba(176,125,0,0.04) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 60% at 50% 50%,rgba(26,155,116,0.02) 0%,transparent 80%);
+  pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+.hdr{padding:22px 32px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;gap:16px;position:relative;z-index:1}
+.hdr-left h1{font-family:var(--font-d);font-size:24px;font-weight:900;letter-spacing:-.5px}
+.hdr-left h1 em{font-style:normal;color:var(--amber)}
+.hdr-left h1 span{color:var(--uk);font-style:italic}
+.hdr-sub{font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:5px}
+.hdr-badges{display:flex;gap:8px;align-items:center}
+.period-badge{font-family:var(--font-m);font-size:9px;padding:4px 10px;border-radius:3px;letter-spacing:.8px;text-transform:uppercase;border:1px solid}
+.pb-q1{background:rgba(176,104,0,0.09);color:var(--amber);border-color:rgba(176,104,0,0.3)}
+.pb-lq{background:rgba(94,107,133,0.1);color:var(--muted);border-color:var(--border)}
+.pb-ly{background:rgba(26,155,116,0.09);color:var(--d2c);border-color:rgba(26,155,116,0.25)}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);position:relative;z-index:1}
+.kpi{padding:14px 18px;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .2s}
+.kpi:last-child{border-right:none}
+.kpi:hover{background:var(--surface)}
+.kpi-lbl{font-family:var(--font-m);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.kpi-val{font-family:var(--font-m);font-size:18px;font-weight:600;line-height:1}
+.kpi-badges{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.badge{font-family:var(--font-m);font-size:9px;padding:2px 5px;border-radius:2px;font-weight:500}
+.badge.up{background:rgba(26,155,116,.1);color:var(--green)}
+.badge.dn{background:rgba(204,42,56,.09);color:var(--red)}
+.badge.flat{background:rgba(0,0,0,.06);color:var(--muted)}
+.badge.warn{background:rgba(176,104,0,.09);color:var(--amber)}
+.badge-lbl{font-family:var(--font-m);font-size:8px;color:var(--muted);opacity:.7;margin-right:1px}
+
+/* ── CONTROLS ── */
+.ctrl-bar{display:flex;gap:10px;align-items:center;padding:12px 28px;border-bottom:1px solid var(--border);position:relative;z-index:1;background:var(--surface)}
+  .tg{display:flex;background:rgba(0,0,0,0.04);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.tg button{padding:5px 14px;background:none;border:none;color:rgba(0,0,0,0.65);font-family:var(--font-m);font-size:9.5px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tg button:hover{color:#000;font-weight:600}
+.tg button.active{color:#fff;font-weight:700}
+.tg.geo button.active.all{background:var(--d2c)}
+.tg.geo button.active.uk{background:var(--uk)}
+.tg.geo button.active.us{background:var(--us)}
+.tg.metric button.active{background:#18181c}
+.ctrl-sep{width:1px;height:18px;background:var(--border)}
+.ctrl-label{font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+
+/* ── MAIN LAYOUT ── */
+.body-wrap{display:grid;grid-template-columns:1fr 350px;position:relative;z-index:1}
+.col-main{border-right:1px solid var(--border)}
+.col-side{}
+.sec{padding:20px 24px;border-bottom:1px solid var(--border)}
+.sec:last-child{border-bottom:none}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sec-title{font-family:var(--font-d);font-size:15px;font-weight:700}
+.sec-meta{font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+
+/* ── FINISH ANALYSIS ── */
+.finish-sec{}
+.finish-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.ft-btn{font-family:var(--font-m);font-size:9px;letter-spacing:.6px;text-transform:uppercase;padding:4px 10px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:rgba(25,32,50,0.68);cursor:pointer;transition:all .18s}
+.ft-btn:hover{color:rgba(0,0,0,0.88);border-color:rgba(25,32,50,0.3)}
+.ft-btn.active{color:#0a0d14;font-weight:700;border-color:transparent}
+.finish-body{display:grid;grid-template-columns:180px minmax(300px,1fr) 220px;gap:16px;align-items:start}
+.finish-stats{display:flex;flex-direction:column;gap:8px}
+.fs-main{padding:12px;background:var(--surface2);border-radius:5px;border:1px solid var(--border)}
+.fs-val{font-family:var(--font-m);font-size:22px;font-weight:600;margin-bottom:2px}
+.fs-lbl{font-family:var(--font-m);font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.fs-row{display:flex;justify-content:space-between;padding:6px 10px;background:var(--surface2);border-radius:4px;border:1px solid var(--border)}
+.fs-row-lbl{font-family:var(--font-m);font-size:9.5px;color:var(--muted)}
+.fs-row-val{font-family:var(--font-m);font-size:9.5px;font-weight:600}
+.finish-donut-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.fin-ov-wrap{display:flex;gap:30px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%}
+.fin-pie-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0}
+.fin-legend{display:flex;flex-direction:column;gap:4px;min-width:320px;flex:1;max-width:460px}
+.fin-leg-row{display:flex;align-items:center;gap:9px;padding:6px 9px;background:var(--surface2);border-radius:4px;border-left:3px solid transparent}
+.fin-leg-sw{width:11px;height:11px;border-radius:2px;flex-shrink:0}
+.fin-leg-name{font-family:var(--font-m);font-size:10px;color:#1a2236;font-weight:600;line-height:1.25}
+.fin-leg-sub{font-family:var(--font-m);font-size:8px;color:var(--muted)}
+.fin-leg-val{font-family:var(--font-m);font-size:10px;color:#1a2236;font-weight:600;text-align:right;line-height:1.25}
+.fin-leg-share{font-family:var(--font-m);font-size:8px;color:var(--muted);text-align:right}
+.fin-leg-vs{font-family:var(--font-m);font-size:9.5px;font-weight:700;text-align:right;min-width:58px}
+.finish-skus{display:flex;flex-direction:column;gap:4px}
+.fsku-row{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:4px;border-left:2px solid transparent;transition:background .12s}
+.fsku-row:hover{background:var(--surface3)}
+.fsku-name{font-family:var(--font-m);font-size:9px;color:var(--amber);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsku-coll{font-family:var(--font-m);font-size:8px;color:var(--muted);width:46px;flex-shrink:0}
+.fsku-val{font-family:var(--font-m);font-size:9.5px;font-weight:600;text-align:right;width:44px;flex-shrink:0}
+.fsku-vs{font-family:var(--font-m);font-size:8.5px;text-align:right;width:44px;flex-shrink:0}
+
+/* ── TYPE CANVAS LEGEND ── */
+#type-legend .tl-item{display:flex;align-items:center;gap:5px}
+#type-legend .tl-swatch{width:10px;height:10px;border-radius:2px}
+
+
+.kt-card{display:flex;gap:14px;align-items:flex-start;padding:12px 14px;border-radius:5px;border:1px solid var(--border);background:var(--surface2)}
+.kt-card.kt-neutral{border-left:3px solid var(--muted)}
+.kt-card.kt-us{border-left:3px solid var(--us)}
+.kt-card.kt-green{border-left:3px solid var(--green)}
+.kt-card.kt-amber{border-left:3px solid var(--amber)}
+.kt-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.kt-body{display:flex;flex-direction:column;gap:5px}
+.kt-headline{font-family:var(--font-m);font-size:11px;font-weight:600;color:var(--text);line-height:1.4}
+.kt-card.kt-us .kt-headline{color:var(--us)}
+.kt-card.kt-green .kt-headline{color:var(--green)}
+.kt-card.kt-amber .kt-headline{color:var(--amber)}
+.kt-detail{font-family:var(--font-s);font-size:11.5px;color:rgba(200,208,224,0.75);line-height:1.65}
+
+
+.trend-wrap{position:relative;z-index:1;border-bottom:1px solid var(--border);padding:0}
+.trend-inner{padding:20px 24px}
+.trend-canvas-wrap{position:relative;width:100%}
+#trend-canvas{display:block;width:100%}
+.trend-legend{display:flex;gap:20px;margin-top:14px;padding-left:4px}
+.tl-item{display:flex;align-items:center;gap:6px}
+.tl-swatch{width:28px;height:4px;border-radius:2px}
+.tl-label{font-family:var(--font-m);font-size:9.5px;color:var(--muted)}
+
+/* ── COLLECTION CHART ── */
+.dual-chart{display:flex;flex-direction:column;gap:6px}
+.dc-row{display:grid;grid-template-columns:100px 1fr 90px;align-items:center;gap:8px;cursor:pointer;padding:3px 4px;border-radius:3px;transition:background .12s}
+.dc-row:hover{background:var(--surface2)}
+.dc-name{font-family:var(--font-m);font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-name.sel{color:var(--amber)}
+.dc-bars{display:flex;flex-direction:column;gap:2px}
+.dc-bar-wrap{display:flex;align-items:center;gap:4px}
+.dc-bar-lbl{font-family:var(--font-m);font-size:7.5px;width:20px;flex-shrink:0;opacity:.6;text-align:right}
+.dc-track{flex:1;height:6px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.dc-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.dc-vals{text-align:right}
+.dc-val-main{font-family:var(--font-m);font-size:10.5px;font-weight:600}
+.dc-val-vs{font-family:var(--font-m);font-size:8.5px;margin-top:2px}
+
+/* ── GEO / CHANNEL CARDS ── */
+.region-grid{display:flex;flex-direction:column;gap:10px}
+.ro-card{padding:12px 14px;border-radius:5px;border:1px solid var(--border);position:relative;overflow:hidden}
+.ro-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.ro-card.uk-card::before{background:var(--uk)}
+.ro-card.us-card::before{background:var(--us)}
+.ro-card.row-card::before{background:var(--row)}
+.ro-card.d2c-card::before{background:var(--d2c)}
+.ro-card.b2b-card::before{background:var(--b2b)}
+.ro-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.ro-flag{font-size:16px}
+.ro-title{font-family:var(--font-m);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.ro-val{font-family:var(--font-m);font-size:18px;font-weight:600;margin-bottom:3px}
+.ro-sub{font-family:var(--font-m);font-size:9px;color:var(--muted);margin-bottom:6px}
+.ro-badges{display:flex;gap:5px;flex-wrap:wrap}
+.ro-split{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.ro-split-item{}
+.ro-split-lbl{font-family:var(--font-m);font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
+.ro-split-val{font-family:var(--font-m);font-size:11px;font-weight:500}
+
+/* ── STATUS ── */
+.status-list{display:flex;flex-direction:column;gap:11px}
+.st-row{}
+.st-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.st-name{font-family:var(--font-m);font-size:10.5px;font-weight:500}
+.st-share{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.st-track{height:5px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:5px}
+.st-fill{height:100%;border-radius:2px}
+.st-comps{display:flex;gap:10px;flex-wrap:wrap}
+.st-comp{font-family:var(--font-m);font-size:9px;color:var(--muted)}
+
+/* ── MOVERS ── */
+.movers-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mover-col h4{font-family:var(--font-m);font-size:8.5px;letter-spacing:2px;text-transform:uppercase;margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.mover-col.rise h4{color:var(--green);border-color:rgba(26,155,116,.2)}
+.mover-col.fall h4{color:var(--red);border-color:rgba(204,42,56,.2)}
+.mover-item{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--surface2);border-radius:4px;margin-bottom:4px;border-left:2px solid transparent}
+.mover-col.rise .mover-item{border-left-color:rgba(26,155,116,.3)}
+.mover-col.fall .mover-item{border-left-color:rgba(204,42,56,.3)}
+.mi-name{font-family:var(--font-m);font-size:10px;font-weight:600}
+.mi-sub{font-family:var(--font-m);font-size:8.5px;color:var(--muted);margin-top:1px}
+.mi-pct{font-family:var(--font-m);font-size:12px;font-weight:600}
+.mi-pct.up{color:var(--green)}
+.mi-pct.dn{color:var(--red)}
+.mi-abs{font-family:var(--font-m);font-size:8.5px;color:var(--muted);text-align:right;margin-top:1px}
+
+/* ── SCATTER ── */
+.scatter-wrap{position:relative;width:100%}
+#scatter-canvas{display:block;width:100%}
+
+/* ── FULL ROW ── */
+.full-row{padding:20px 24px;border-top:1px solid var(--border);position:relative;z-index:1}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{font-family:var(--font-m);font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:6px 9px;border-bottom:1px solid var(--border);text-align:left;cursor:pointer;user-select:none;white-space:nowrap}
+thead th:hover{color:var(--text)}
+thead th.sort-d::after{content:' ↓';color:var(--amber)}
+thead th.sort-a::after{content:' ↑';color:var(--amber)}
+tbody tr{border-bottom:1px solid rgba(35,44,62,.5);transition:background .1s}
+tbody tr:hover{background:var(--surface2)}
+td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
+.td-r{text-align:right}
+.ttag{display:inline-block;font-size:7.5px;padding:1px 4px;border-radius:2px;font-family:var(--font-m);letter-spacing:.5px;text-transform:uppercase}
+.tc{background:rgba(91,156,246,.18);color:var(--uk)}
+.te{background:rgba(240,192,64,.18);color:var(--us)}
+.ta{background:rgba(176,125,245,.18);color:var(--purple)}
+.tl{background:rgba(79,209,165,.18);color:var(--green)}
+.geo-pill{font-size:8px;padding:1px 4px;border-radius:2px;font-family:var(--font-m)}
+.geo-uk{background:var(--uk-dim);color:var(--uk)}
+.geo-us{background:var(--us-dim);color:var(--us)}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;flex-shrink:0}
+.tbl-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+.tbl-foot span{font-family:var(--font-m);font-size:9px;color:var(--muted)}
+.tbl-foot button{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:9px;padding:3px 9px;border-radius:3px;cursor:pointer}
+.tbl-foot button:disabled{opacity:.3;cursor:default}
+
+.pos{color:var(--green)}
+.neg{color:var(--red)}
+.neu{color:var(--muted)}
+
+/* ── QOQ RIBBON ── */
+.qoq-ribbon{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border);position:relative;z-index:1}
+.qoq-cell{padding:10px 20px;border-right:1px solid var(--border);display:flex;align-items:center;gap:14px}
+.qoq-cell:last-child{border-right:none}
+.qoq-period{font-family:var(--font-m);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.qoq-val{font-family:var(--font-m);font-size:16px;font-weight:600}
+.qoq-arrow{font-size:20px;opacity:.5}
+.qoq-arrow.up{color:var(--green);opacity:.7}
+.qoq-arrow.dn{color:var(--red);opacity:.7}
+.qoq-delta{font-family:var(--font-m);font-size:10px}
+
+/* ── MINI BAR ── */
+.mini-bar-inline{display:flex;align-items:center;gap:4px}
+.mbi-track{width:38px;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;flex-shrink:0}
+.mbi-fill{height:100%;border-radius:2px;background:var(--d2c)}
+
+@media(max-width:1100px){
+  .body-wrap{grid-template-columns:1fr}
+  .col-main{border-right:none}
+  .kpi-row{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <h1><em>May 2026</em> — <span>Monthly</span> Trading Report</h1>
+    <div class="hdr-sub">Product &amp; Collection Performance · May 2026 · Buying &amp; Merchandising</div>
+  </div>
+  <div class="hdr-badges">
+    <div class="period-badge pb-q1">May 2026 · Current Month</div>
+    <div class="period-badge pb-lq">vs Apr 2026 (LM)</div>
+    <div class="period-badge pb-ly">vs May 2025 (LY)</div>
+  </div>
+</div>
+
+<!-- KPI ROW -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="kpi-lbl">Total Revenue</div>
+    <div class="kpi-val" id="kpi-rev">£476.3K</div>
+    <div class="kpi-badges">
+      <div class="badge dn"><span class="badge-lbl">LM</span>-3.2%</div>
+      <div class="badge up"><span class="badge-lbl">LY</span>+60.8%</div>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">Units Sold</div>
+    <div class="kpi-val">27,453</div>
+    <div class="kpi-badges">
+      <div class="badge dn"><span class="badge-lbl">LM</span>-6.9%</div>
+      <div class="badge up"><span class="badge-lbl">LY</span>+29.6%</div>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">Gross Margin</div>
+    <div class="kpi-val">74.3%</div>
+    <div class="kpi-badges">
+      <div class="badge flat">D2C 77.4%</div>
+      <div class="badge flat">B2B 69.4%</div>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">D2C Share</div>
+    <div class="kpi-val">69.6%</div>
+    <div class="kpi-badges">
+      <div class="badge dn"><span class="badge-lbl">LM</span>-3.4pp</div>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">🇬🇧 UK Revenue</div>
+    <div class="kpi-val" style="color:var(--uk)">£247.8K</div>
+    <div class="kpi-badges">
+      <div class="badge dn"><span class="badge-lbl">LM</span>-7.3%</div>
+      <div class="badge up"><span class="badge-lbl">LY</span>+13.3%</div>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">🇺🇸 US Revenue</div>
+    <div class="kpi-val" style="color:var(--us)">£214.1K</div>
+    <div class="kpi-badges">
+      <div class="badge up"><span class="badge-lbl">LM</span>+1.3%</div>
+      <div class="badge up"><span class="badge-lbl">LY</span>+205.4%</div>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">Sell-Through / WC</div>
+    <div class="kpi-val">11.3%</div>
+    <div class="kpi-badges">
+      <div class="badge warn">WC 34.0 wks</div>
+      <div class="badge flat">216K inv</div>
+    </div>
+  </div>
+</div>
+
+<!-- MoM RIBBON -->
+<div class="qoq-ribbon">
+  <div class="qoq-cell">
+    <div>
+      <div class="qoq-period">May 2025 (LY)</div>
+      <div class="qoq-val" style="color:var(--muted)">£296.1K</div>
+    </div>
+    <div class="qoq-arrow up">→</div>
+    <div>
+      <div class="qoq-period">Apr 2026 (LM)</div>
+      <div class="qoq-val" style="color:var(--muted)">£491.9K</div>
+    </div>
+    <div class="qoq-arrow dn">→</div>
+    <div>
+      <div class="qoq-period">May 2026 (CM)</div>
+      <div class="qoq-val" style="color:var(--amber)">£476.3K</div>
+    </div>
+  </div>
+  <div class="qoq-cell" style="flex-direction:column;align-items:flex-start">
+    <div class="qoq-period">UK Trajectory</div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:2px">
+      <span class="qoq-val" style="font-size:13px;color:var(--muted)">£218.7K</span>
+      <span style="font-family:var(--font-m);font-size:10px;color:var(--green)">→</span>
+      <span class="qoq-val" style="font-size:13px;color:var(--muted)">£267.2K</span>
+      <span style="font-family:var(--font-m);font-size:10px;color:var(--red)">→</span>
+      <span class="qoq-val" style="font-size:13px;color:var(--uk)">£247.8K</span>
+      <span class="badge dn" style="margin-left:2px">-7.3% MoM</span>
+      <span class="badge up">+13.3% YoY</span>
+    </div>
+  </div>
+  <div class="qoq-cell" style="flex-direction:column;align-items:flex-start">
+    <div class="qoq-period">US Trajectory</div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:2px">
+      <span class="qoq-val" style="font-size:13px;color:var(--muted)">£70.1K</span>
+      <span style="font-family:var(--font-m);font-size:10px;color:var(--green)">→</span>
+      <span class="qoq-val" style="font-size:13px;color:var(--muted)">£211.3K</span>
+      <span style="font-family:var(--font-m);font-size:10px;color:var(--green)">→</span>
+      <span class="qoq-val" style="font-size:13px;color:var(--us)">£214.1K</span>
+      <span class="badge up" style="margin-left:2px">+1.3% MoM</span>
+      <span class="badge up">+205.4% YoY</span>
+    </div>
+  </div>
+</div>
+
+<!-- TREND CHART (full width) -->
+<div class="trend-wrap">
+  <div class="trend-inner">
+    <div class="sec-hdr" style="margin-bottom:14px">
+      <div class="sec-title">Revenue Trend — 3 Month Comparison</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="tg metric" id="trend-metric-tg">
+          <button class="active" onclick="setTrendMetric('sales')">Sales £</button>
+          <button onclick="setTrendMetric('units')">Units</button>
+        </div>
+        <div class="tg metric" id="trend-seg-tg">
+          <button class="active" onclick="setTrendSeg('total')">Total</button>
+          <button onclick="setTrendSeg('geo')">Geo</button>
+          <button onclick="setTrendSeg('channel')">Channel</button>
+        </div>
+      </div>
+    </div>
+    <div class="trend-canvas-wrap">
+      <canvas id="trend-canvas" height="200" style="display:block;width:100%"></canvas>
+    </div>
+    <div class="trend-legend" id="trend-legend"></div>
+  </div>
+</div>
+
+<!-- MAIN BODY -->
+<div class="body-wrap">
+  <!-- LEFT COL -->
+  <div class="col-main">
+
+    <!-- CATEGORY BREAKDOWN -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">Category Breakdown</div>
+        <div class="tg metric" id="type-view-tg">
+          <button class="active" onclick="setTypeView('overview')">Overview</button>
+          <button onclick="setTypeView('channel')">Channel</button>
+          <button onclick="setTypeView('country')">Country</button>
+          <button onclick="setTypeView('vs_lq')">vs LM</button>
+          <button onclick="setTypeView('vs_ly')">vs LY</button>
+        </div>
+      </div>
+      <canvas id="type-canvas" height="200" style="display:block;width:100%"></canvas>
+      <div id="type-legend" style="display:flex;gap:16px;margin-top:10px;padding-left:4px;flex-wrap:wrap"></div>
+    </div>
+
+
+    <!-- CATEGORY ANALYSIS (tabs + donut + SKUs) -->
+    <div class="sec finish-sec">
+      <div class="sec-hdr" style="margin-bottom:12px">
+        <div class="sec-title">Category Analysis</div>
+        <div class="sec-meta">% share · margin · collection breakdown</div>
+      </div>
+      <div class="finish-tabs" id="cat-tabs"></div>
+      <div class="finish-body" id="cat-body"></div>
+    </div>
+
+    <!-- FINISH ANALYSIS -->
+    <div class="sec finish-sec">
+      <div class="sec-hdr" style="margin-bottom:12px">
+        <div class="sec-title">Finish Analysis</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="sec-meta" id="finish-meta">all finishes · by sales</div>
+          <div class="tg metric" id="finish-view-tg">
+            <button class="active" onclick="setFinishView('overview')">Compare All</button>
+            <button onclick="setFinishView('detail')">By Finish</button>
+          </div>
+        </div>
+      </div>
+      <div class="finish-tabs" id="finish-tabs"></div>
+      <div class="finish-body" id="finish-body"></div>
+    </div>
+
+    <!-- COLLECTION PERFORMERS -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">Collection Performance</div>
+        <div style="display:flex;gap:8px">
+          <div class="tg metric" id="coll-metric-tg">
+            <button class="active" onclick="setCollMetric('sales')">Sales £</button>
+            <button onclick="setCollMetric('units')">Units</button>
+          </div>
+          <div class="tg geo" id="coll-geo-tg">
+            <button class="active all" onclick="setCollGeo('all')">All</button>
+            <button class="uk" onclick="setCollGeo('uk')">🇬🇧</button>
+            <button class="us" onclick="setCollGeo('us')">🇺🇸</button>
+          </div>
+        </div>
+      </div>
+      <div class="dual-chart" id="coll-chart"></div>
+    </div>
+
+    <!-- COLLECTION ANALYSIS (tabs + donut + SKUs) -->
+    <div class="sec finish-sec">
+      <div class="sec-hdr" style="margin-bottom:12px">
+        <div class="sec-title">Collection Analysis</div>
+        <div class="sec-meta">geo &amp; channel split · top SKUs by collection</div>
+      </div>
+      <div class="finish-tabs" id="coll-tabs"></div>
+      <div class="finish-body" id="coll-body"></div>
+    </div>
+
+    <!-- MOVERS -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">Month-on-Month Collection Movers</div>
+        <div class="sec-meta">vs Apr 2026</div>
+      </div>
+      <div class="movers-pair" id="movers"></div>
+    </div>
+
+    <!-- SCATTER: Revenue vs GM -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">Revenue × Gross Margin Matrix</div>
+        <div class="sec-meta">Collection bubbles · size = units · May 2026</div>
+      </div>
+      <div class="scatter-wrap">
+        <canvas id="scatter-canvas" height="260" style="display:block;width:100%"></canvas>
+      </div>
+    </div>
+
+
+
+  </div>
+
+  <!-- RIGHT COL (SIDEBAR) -->
+  <div class="col-side">
+
+    <!-- PRODUCT STATUS -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">Product Status</div>
+        <div class="sec-meta" id="status-meta">May 2026 Sales mix</div>
+      </div>
+      <div class="status-list" id="status-list"></div>
+    </div>
+
+    <!-- GEO BREAKDOWN -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">Geography</div>
+        <div class="sec-meta">LY → LM → Current</div>
+      </div>
+      <div class="region-grid" id="geo-cards"></div>
+    </div>
+
+    <!-- CHANNEL BREAKDOWN -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">Channel</div>
+        <div class="sec-meta">D2C vs B2B</div>
+      </div>
+      <div class="region-grid" id="channel-cards"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SKU TABLE (full width) -->
+<div class="full-row">
+  <div class="sec-hdr" style="margin-bottom:14px">
+    <div>
+      <div class="sec-title">Top SKU Performance</div>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px" id="tbl-meta">May 2026 · all geographies · click headers to sort</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="tg metric" id="sku-metric-tg">
+        <button class="active" onclick="setSkuMetric('sales')">Sales £</button>
+        <button onclick="setSkuMetric('units')">Units</button>
+      </div>
+      <div class="tg geo" id="sku-geo-tg">
+        <button class="active all" onclick="setSkuGeo('all')">All</button>
+        <button class="uk" onclick="setSkuGeo('uk')">🇬🇧</button>
+        <button class="us" onclick="setSkuGeo('us')">🇺🇸</button>
+      </div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th onclick="sortT('sku')">SKU</th>
+          <th onclick="sortT('c')">Collection</th>
+          <th>Type</th>
+          <th onclick="sortT('total_sales')" class="sort-d td-r">Sales £</th>
+          <th onclick="sortT('total_units')" class="td-r">Units</th>
+          <th class="td-r">UK</th>
+          <th class="td-r">US</th>
+          <th onclick="sortT('vs_lq')" class="td-r">vs LM</th>
+          <th onclick="sortT('vs_ly')" class="td-r">vs LY</th>
+          <th onclick="sortT('gm')" class="td-r">GM%</th>
+          <th onclick="sortT('st')" class="td-r">ST%</th>
+          <th onclick="sortT('wc')" class="td-r">WC</th>
+        </tr>
+      </thead>
+      <tbody id="sku-tbody"></tbody>
+    </table>
+  </div>
+  <div class="tbl-foot">
+    <span id="tbl-info"></span>
+    <div style="display:flex;gap:6px">
+      <button id="btn-prev" onclick="pgChange(-1)">← Prev</button>
+      <button id="btn-next" onclick="pgChange(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEWNESS TABLE (full width) -->
+<div class="full-row" style="border-top:2px solid rgba(79,209,165,0.3)">
+  <div class="sec-hdr" style="margin-bottom:14px">
+    <div>
+      <div class="sec-title" style="color:var(--d2c)">✨ Newness SKU Performance</div>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px">May 2026 · first-time trading SKUs only · UK &amp; US Newness status</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div id="newness-kpis" style="display:flex;gap:10px"></div>
+      <div class="tg metric" id="new-view-tg">
+        <button class="active" onclick="setNewView('all')">All</button>
+        <button onclick="setNewView('cab')">Cabinetry</button>
+        <button onclick="setNewView('light')">Lighting</button>
+        <button onclick="setNewView('acc')">Accessories</button>
+        <button onclick="setNewView('elec')">Electric</button>
+      </div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>SKU</th>
+          <th>Description</th>
+          <th>Coll.</th>
+          <th>Finish</th>
+          <th onclick="sortN('sales')" class="sort-d td-r">Sales £</th>
+          <th onclick="sortN('units')" class="td-r">Units</th>
+          <th class="td-r">UK £</th>
+          <th class="td-r">US £</th>
+          <th class="td-r">D2C £</th>
+          <th class="td-r">B2B £</th>
+          <th onclick="sortN('gm')" class="td-r">GM%</th>
+          <th onclick="sortN('st')" class="td-r">ST%</th>
+          <th onclick="sortN('wc')" class="td-r">WC</th>
+        </tr>
+      </thead>
+      <tbody id="new-tbody"></tbody>
+    </table>
+  </div>
+  <div class="tbl-foot">
+    <span id="new-info"></span>
+    <div style="display:flex;gap:6px">
+      <button id="new-prev" onclick="newPgChange(-1)">← Prev</button>
+      <button id="new-next" onclick="newPgChange(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// DATA
+// ================================================================
+
+// 3-period comparison data (LY / LM / Current)
+const PERIODS = {
+  q1_25: {
+    label: "May 2025", short: "May '25",
+    total: 296118.34, d2c: 217976.97, b2b: 78141.37,
+    uk: 218734.92, us: 70097.46, row: 7285.96,
+    total_u: 21179, d2c_u: 15503, b2b_u: 5676,
+    uk_u: 16849, us_u: 3861, row_u: 469
+  },
+  q4_25: {
+    label: "Apr 2026", short: "Apr '26",
+    total: 491893.46, d2c: 358720.22, b2b: 133173.24,
+    uk: 267210.75, us: 211289.88, row: 13392.83,
+    total_u: 29491, d2c_u: 21280, b2b_u: 8211,
+    uk_u: 19116, us_u: 9525, row_u: 850
+  },
+  q1_26: {
+    label: "May 2026", short: "May '26",
+    total: 476292.7, d2c: 331370.37, b2b: 144922.33,
+    uk: 247772.02, us: 214063.73, row: 14456.95,
+    total_u: 27453, d2c_u: 17974, b2b_u: 8657,
+    uk_u: 16373, us_u: 9436, row_u: 822
+  }
+};
+
+// Derived period labels (used by rendering functions)
+const CM_LABEL = PERIODS.q1_26.label;
+const LM_LABEL = PERIODS.q4_25.label;
+const LY_LABEL = PERIODS.q1_25.label;
+const CM_SHORT = PERIODS.q1_26.short;
+const LM_SHORT = PERIODS.q4_25.short;
+const LY_SHORT = PERIODS.q1_25.short;
+
+
+const COLLECTIONS = [
+  {r:1,t:"Cabinetry",c:"KEPLER",ts:92327.57,tu:4803,vs_lq:0.1445,gm:0.7734,st:0.1714,wc:20.948,d2c:68322.47,b2b:24005.1,uk_s:42698.94,us_s:47488.98,row_s:2139.66,lq_total:80670.96,lq_uk:35387.1,lq_us:42343.38,uk_vs:0.2066,us_vs:0.1215,skus:41},
+  {r:2,t:"Cabinetry",c:"BOBBIN",ts:78803.11,tu:4477,vs_lq:-0.151,gm:0.7615,st:0.1596,wc:22.817,d2c:52541.84,b2b:26356.71,uk_s:33287.04,us_s:41894.19,row_s:3717.32,lq_total:92813.42,lq_uk:35826.18,lq_us:52856.6,uk_vs:-0.0709,us_vs:-0.2074,skus:63},
+  {r:3,t:"Cabinetry",c:"GRAYSON",ts:51634.4,tu:2963,vs_lq:-0.0252,gm:0.7445,st:0.1418,wc:26.231,d2c:37272.78,b2b:14361.62,uk_s:23735.61,us_s:24589.52,row_s:3309.27,lq_total:52969.52,lq_uk:24833.82,lq_us:26575.7,uk_vs:-0.0442,us_vs:-0.0747,skus:54},
+  {r:4,t:"Cabinetry",c:"BECKER",ts:45679.43,tu:1912,vs_lq:-0.0009,gm:0.7542,st:0.1791,wc:19.863,d2c:18732.0,b2b:27119.64,uk_s:13021.38,us_s:31816.14,row_s:1014.11,lq_total:45718.75,lq_uk:14518.48,lq_us:31067.97,uk_vs:-0.1031,us_vs:0.0241,skus:21},
+  {r:5,t:"Electric",c:"SYLVIE",ts:27253.29,tu:1036,vs_lq:-0.1582,gm:0.7457,st:0.2671,wc:11.887,d2c:22017.19,b2b:5236.1,uk_s:27253.29,us_s:0,row_s:0,lq_total:32374.08,lq_uk:32374.08,lq_us:0,uk_vs:-0.1582,us_vs:null,skus:13},
+  {r:6,t:"Electric",c:"KEPLER",ts:19229.33,tu:534,vs_lq:-0.2372,gm:0.6797,st:0.0867,wc:45.662,d2c:14272.34,b2b:4956.98,uk_s:19229.33,us_s:0,row_s:0,lq_total:25207.31,lq_uk:25207.31,lq_us:0,uk_vs:-0.2372,us_vs:null,skus:68},
+  {r:7,t:"Electric",c:"JASPER",ts:16354.96,tu:350,vs_lq:0.4566,gm:0.7911,st:0.1336,wc:28.105,d2c:11442.1,b2b:4912.85,uk_s:0,us_s:16354.96,row_s:0,lq_total:11228.52,lq_uk:0,lq_us:11228.52,uk_vs:null,us_vs:0.4566,skus:198},
+  {r:8,t:"Cabinetry",c:"ADA",ts:15852.67,tu:1298,vs_lq:-0.1041,gm:0.7541,st:0.2004,wc:17.29,d2c:10459.39,b2b:5393.28,uk_s:7038.69,us_s:8295.87,row_s:518.11,lq_total:17695.09,lq_uk:9215.84,lq_us:8315.58,uk_vs:-0.2362,us_vs:-0.0024,skus:32},
+  {r:9,t:"Cabinetry",c:"LOVELL",ts:15653.68,tu:1582,vs_lq:-0.1426,gm:0.7599,st:0.42,wc:5.985,d2c:12597.36,b2b:3056.32,uk_s:13048.45,us_s:1870.38,row_s:734.85,lq_total:18257.05,lq_uk:14880.05,lq_us:2500.7,uk_vs:-0.1231,us_vs:-0.2521,skus:25},
+  {r:10,t:"Electric",c:"EL COMPONENT",ts:12754.69,tu:697,vs_lq:0.4363,gm:0.727,st:0.0274,wc:153.656,d2c:9150.66,b2b:3604.03,uk_s:6599.41,us_s:6155.28,row_s:0,lq_total:8880.27,lq_uk:5286.86,lq_us:3593.41,uk_vs:0.2483,us_vs:0.7129,skus:171},
+  {r:11,t:"Cabinetry",c:"ALVA",ts:11447.69,tu:585,vs_lq:-0.2749,gm:0.7612,st:0.0877,wc:45.081,d2c:8315.48,b2b:3132.21,uk_s:5379.23,us_s:5269.46,row_s:799,lq_total:15787.7,lq_uk:6033.14,lq_us:8529.65,uk_vs:-0.1084,us_vs:-0.3822,skus:24},
+  {r:12,t:"Lighting",c:"GOOD BONES",ts:11430.62,tu:114,vs_lq:0.2268,gm:0.7867,st:0.237,wc:13.95,d2c:8259.94,b2b:3170.68,uk_s:11002.64,us_s:0,row_s:427.98,lq_total:9317.11,lq_uk:8696.12,lq_us:0,uk_vs:0.2652,us_vs:null,skus:32},
+  {r:13,t:"Accessories",c:"HOFFMAN",ts:11123.28,tu:544,vs_lq:0.0159,gm:0.7794,st:0.1358,wc:27.585,d2c:7750.94,b2b:3372.34,uk_s:3995.52,us_s:6837.38,row_s:290.38,lq_total:10948.88,lq_uk:5331.74,lq_us:5250.45,uk_vs:-0.2506,us_vs:0.3022,skus:12},
+  {r:14,t:"Accessories",c:"PULLMAN",ts:8854.75,tu:520,vs_lq:0.1681,gm:0.7965,st:0.1703,wc:21.117,d2c:6765.07,b2b:2089.68,uk_s:3314.32,us_s:5540.42,row_s:0,lq_total:7580.32,lq_uk:3087.34,lq_us:4492.97,uk_vs:0.0735,us_vs:0.2331,skus:6},
+  {r:15,t:"Cabinetry",c:"SQUIGGLE",ts:5981.1,tu:331,vs_lq:0.0563,gm:0.7443,st:0.0733,wc:54.789,d2c:5071.34,b2b:909.76,uk_s:3698.2,us_s:1942.82,row_s:340.08,lq_total:5662.48,lq_uk:4353.76,lq_us:625.0,uk_vs:-0.1506,us_vs:2.1085,skus:12},
+  {r:16,t:"Lighting",c:"NOVI",ts:4437.0,tu:59,vs_lq:0.7165,gm:0.7521,st:0.2565,wc:12.559,d2c:3389.18,b2b:1047.81,uk_s:3692.07,us_s:744.93,row_s:0,lq_total:2584.92,lq_uk:2584.92,lq_us:0,uk_vs:0.4283,us_vs:null,skus:10},
+  {r:17,t:"Accessories",c:"LEVI",ts:3939.93,tu:168,vs_lq:-0.2207,gm:0.7224,st:0.0871,wc:45.423,d2c:3524.48,b2b:415.45,uk_s:1477.48,us_s:2334.07,row_s:128.38,lq_total:5055.86,lq_uk:1790.57,lq_us:3173.8,uk_vs:-0.1749,us_vs:-0.2646,skus:6},
+  {r:18,t:"Electric",c:"LOVELL",ts:3890.88,tu:125,vs_lq:-0.4999,gm:0.669,st:1.0,wc:0,d2c:3637.43,b2b:253.45,uk_s:3890.88,us_s:0,row_s:0,lq_total:7780.98,lq_uk:7780.98,lq_us:0,uk_vs:-0.4999,us_vs:null,skus:64},
+  {r:19,t:"Accessories",c:"GRAYSON",ts:3704.23,tu:148,vs_lq:0.3431,gm:0.7352,st:0.0392,wc:106.079,d2c:2967.92,b2b:736.31,uk_s:1902.21,us_s:1473.26,row_s:328.76,lq_total:2758.04,lq_uk:1536.3,lq_us:1221.74,uk_vs:0.2382,us_vs:0.2059,skus:20},
+  {r:20,t:"Cabinetry",c:"PEYTON",ts:3688.11,tu:194,vs_lq:0.0,gm:1.0,st:0.0865,wc:45.79,d2c:2289.79,b2b:1398.33,uk_s:1267.38,us_s:2420.73,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:30},
+  {r:21,t:"Cabinetry",c:"BLAKE",ts:3411.16,tu:226,vs_lq:0.2751,gm:0.7182,st:0.2235,wc:15.052,d2c:1107.41,b2b:2303.74,uk_s:3411.16,us_s:0,row_s:0,lq_total:2675.11,lq_uk:2675.11,lq_us:0,uk_vs:0.2751,us_vs:null,skus:4},
+  {r:22,t:"Cabinetry",c:"ELIZA",ts:3073.19,tu:186,vs_lq:-0.4215,gm:0.7999,st:0.0579,wc:70.498,d2c:1925.53,b2b:1147.66,uk_s:1871.42,us_s:1175.22,row_s:26.54,lq_total:5312.69,lq_uk:1271.0,lq_us:3981.67,uk_vs:0.4724,us_vs:-0.7048,skus:24},
+  {r:23,t:"Components",c:"Trade Board",ts:2306.8,tu:17,vs_lq:2.3014,gm:-1.2343,st:-17.0,wc:-4.588,d2c:0,b2b:2306.8,uk_s:0,us_s:2306.8,row_s:0,lq_total:698.74,lq_uk:5.29,lq_us:693.45,uk_vs:-1.0,us_vs:2.3265,skus:7},
+  {r:24,t:"Cabinetry",c:"COHEN",ts:2077.52,tu:359,vs_lq:-0.1682,gm:0.7231,st:0.0384,wc:108.563,d2c:1907.51,b2b:170.01,uk_s:1113.33,us_s:907.77,row_s:56.41,lq_total:2497.56,lq_uk:1286.12,lq_us:1183.27,uk_vs:-0.1343,us_vs:-0.2328,skus:24},
+  {r:25,t:"Lighting",c:"JENSEN",ts:2016.6,tu:17,vs_lq:-0.299,gm:0.7749,st:0.0333,wc:125.922,d2c:1777.94,b2b:238.67,uk_s:769.99,us_s:1246.61,row_s:0,lq_total:2876.6,lq_uk:2443.49,lq_us:433.1,uk_vs:-0.6849,us_vs:1.8783,skus:13},
+  {r:26,t:"Cabinetry",c:"BEZEL",ts:1656.73,tu:156,vs_lq:0.7335,gm:0.6952,st:0.1771,wc:20.139,d2c:1117.33,b2b:539.4,uk_s:1642.47,us_s:0,row_s:14.26,lq_total:955.72,lq_uk:955.72,lq_us:0,uk_vs:0.7186,us_vs:null,skus:4},
+  {r:27,t:"Cabinetry",c:"ESBEN",ts:1641.91,tu:57,vs_lq:0.0,gm:1.0,st:0.0626,wc:64.924,d2c:1641.91,b2b:0,uk_s:221.24,us_s:1420.67,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:15},
+  {r:28,t:"Cabinetry",c:"JUDD",ts:1477.74,tu:117,vs_lq:-0.4898,gm:0.7631,st:0.2354,wc:14.074,d2c:559.62,b2b:918.12,uk_s:1274.06,us_s:0,row_s:203.68,lq_total:2896.6,lq_uk:2885.4,lq_us:11.2,uk_vs:-0.5584,us_vs:-1.0,skus:2},
+  {r:29,t:"Cabinetry",c:"FELIX",ts:1457.88,tu:184,vs_lq:-0.5055,gm:0.739,st:0.0316,wc:132.991,d2c:1371.65,b2b:86.23,uk_s:1158.18,us_s:63.05,row_s:236.65,lq_total:2947.98,lq_uk:2044.41,lq_us:678.41,uk_vs:-0.4335,us_vs:-0.9071,skus:4},
+  {r:30,t:"Lighting",c:"MARIN",ts:1364.0,tu:15,vs_lq:-0.508,gm:0.7767,st:0.0647,wc:62.689,d2c:1092.66,b2b:271.33,uk_s:1176.16,us_s:187.83,row_s:0,lq_total:2772.49,lq_uk:1925.84,lq_us:846.65,uk_vs:-0.3893,us_vs:-0.7781,skus:6},
+  {r:31,t:"Cabinetry",c:"PEBBLE",ts:1152.59,tu:143,vs_lq:-0.3352,gm:0.7294,st:0.2318,wc:14.364,d2c:1132.69,b2b:19.9,uk_s:1152.59,us_s:0,row_s:0,lq_total:1733.76,lq_uk:1733.76,lq_us:0,uk_vs:-0.3352,us_vs:null,skus:2},
+  {r:32,t:"Electric",c:"ADA",ts:1111.01,tu:50,vs_lq:0.0236,gm:0.7596,st:1.0,wc:0,d2c:899.36,b2b:211.64,uk_s:1111.01,us_s:0,row_s:0,lq_total:1085.41,lq_uk:1085.41,lq_us:0,uk_vs:0.0236,us_vs:null,skus:2},
+  {r:33,t:"Accessories",c:"KEPLER",ts:1089.13,tu:88,vs_lq:0.0116,gm:0.8019,st:0.1202,wc:31.712,d2c:1054.44,b2b:34.69,uk_s:711.48,us_s:377.64,row_s:0,lq_total:1076.69,lq_uk:728.4,lq_us:172.4,uk_vs:-0.0232,us_vs:1.1906,skus:8},
+  {r:34,t:"Electric",c:"PARKER",ts:995.46,tu:39,vs_lq:-0.3531,gm:0.763,st:0.4149,wc:6.111,d2c:995.46,b2b:0,uk_s:995.46,us_s:0,row_s:0,lq_total:1538.92,lq_uk:1538.92,lq_us:0,uk_vs:-0.3531,us_vs:null,skus:4},
+  {r:35,t:"Electric",c:"BOBBIN",ts:856.23,tu:29,vs_lq:-0.2676,gm:0.7216,st:0.0079,wc:547.195,d2c:709.22,b2b:147.01,uk_s:856.23,us_s:0,row_s:0,lq_total:1169.1,lq_uk:1169.1,lq_us:0,uk_vs:-0.2676,us_vs:null,skus:40},
+  {r:36,t:"Accessories",c:"FELIX",ts:614.93,tu:53,vs_lq:-0.3229,gm:0.7946,st:0.0362,wc:115.365,d2c:578.97,b2b:35.96,uk_s:308.36,us_s:217.56,row_s:89.01,lq_total:908.21,lq_uk:810.26,lq_us:97.95,uk_vs:-0.6194,us_vs:1.2213,skus:3},
+  {r:37,t:"Accessories",c:"BECKER",ts:577.33,tu:38,vs_lq:0.7873,gm:0.7553,st:1.0,wc:0,d2c:480.23,b2b:97.1,uk_s:417.64,us_s:159.69,row_s:0,lq_total:323.01,lq_uk:268.54,lq_us:54.47,uk_vs:0.5552,us_vs:1.9319,skus:3},
+  {r:38,t:"Cabinetry",c:"FOLD",ts:418.47,tu:62,vs_lq:-0.2296,gm:0.5784,st:0.0866,wc:45.71,d2c:386.54,b2b:31.93,uk_s:418.47,us_s:0,row_s:0,lq_total:543.17,lq_uk:543.17,lq_us:0,uk_vs:-0.2296,us_vs:null,skus:4},
+  {r:39,t:"Electric",c:"Euro Plate",ts:405.86,tu:24,vs_lq:-0.5377,gm:0.1762,st:0.1832,wc:19.319,d2c:124.85,b2b:281.02,uk_s:405.86,us_s:0,row_s:0,lq_total:877.96,lq_uk:877.96,lq_us:0,uk_vs:-0.5377,us_vs:null,skus:6},
+  {r:40,t:"Cabinetry",c:"STURDY",ts:396.57,tu:25,vs_lq:2.592,gm:0.7071,st:0.0729,wc:55.12,d2c:372.07,b2b:24.5,uk_s:289.87,us_s:106.7,row_s:0,lq_total:110.4,lq_uk:110.4,lq_us:0,uk_vs:1.6256,us_vs:null,skus:2},
+  {r:41,t:"Lighting",c:"FREYA",ts:377.39,tu:4,vs_lq:0.4056,gm:0.6799,st:0.0396,wc:105.083,d2c:377.39,b2b:0,uk_s:377.39,us_s:0,row_s:0,lq_total:268.5,lq_uk:268.5,lq_us:0,uk_vs:0.4056,us_vs:null,skus:5},
+  {r:42,t:"Cabinetry",c:"COHEN",ts:345.64,tu:46,vs_lq:-0.5989,gm:0.6861,st:0.0169,wc:251.333,d2c:324.66,b2b:20.98,uk_s:110.04,us_s:235.6,row_s:0,lq_total:861.82,lq_uk:314.43,lq_us:547.39,uk_vs:-0.65,us_vs:-0.5696,skus:24},
+  {r:43,t:"Accessories",c:"PEBBLE",ts:303.99,tu:38,vs_lq:-0.0828,gm:0.7349,st:0.2484,wc:13.114,d2c:240.95,b2b:63.04,uk_s:280.85,us_s:0,row_s:23.15,lq_total:331.43,lq_uk:331.43,lq_us:0,uk_vs:-0.1526,us_vs:null,skus:1},
+  {r:44,t:"Components",c:"10M4",ts:285.26,tu:153,vs_lq:-0.1185,gm:0.7363,st:0.0382,wc:109.183,d2c:244.33,b2b:40.93,uk_s:170.01,us_s:104.26,row_s:10.99,lq_total:323.62,lq_uk:154.02,lq_us:163.96,uk_vs:0.1038,us_vs:-0.3641,skus:7},
+  {r:45,t:"Accessories",c:"LOVELL",ts:282.04,tu:39,vs_lq:-0.1803,gm:0.7785,st:0.1175,wc:32.556,d2c:260.77,b2b:21.27,uk_s:282.04,us_s:0,row_s:0,lq_total:344.09,lq_uk:344.09,lq_us:0,uk_vs:-0.1803,us_vs:null,skus:4},
+  {r:46,t:"Accessories",c:"SWATCH",ts:278.79,tu:31,vs_lq:-0.3404,gm:-0.2165,st:0.1802,wc:19.71,d2c:139.79,b2b:139.0,uk_s:22.09,us_s:256.7,row_s:0,lq_total:422.66,lq_uk:219.67,lq_us:202.99,uk_vs:-0.8994,us_vs:0.2646,skus:10},
+  {r:47,t:"",c:"ALERIA",ts:211.24,tu:0,vs_lq:0.0,gm:0,st:0.0,wc:0,d2c:0,b2b:0,uk_s:0,us_s:0,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:3},
+  {r:48,t:"Accessories",c:"ALVA",ts:192.35,tu:15,vs_lq:-0.0527,gm:0.7958,st:0.0212,wc:200.489,d2c:162.39,b2b:29.95,uk_s:150.96,us_s:41.38,row_s:0,lq_total:203.04,lq_uk:47.42,lq_us:155.62,uk_vs:2.1838,us_vs:-0.7341,skus:4},
+  {r:49,t:"",c:"BECKER",ts:172.21,tu:0,vs_lq:0.0,gm:0,st:0.0,wc:0,d2c:0,b2b:0,uk_s:0,us_s:0,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:12},
+  {r:50,t:"Electric",c:"Shaver Socket",ts:166.49,tu:4,vs_lq:-0.6819,gm:0.4197,st:0.1538,wc:23.833,d2c:166.49,b2b:0,uk_s:166.49,us_s:0,row_s:0,lq_total:523.47,lq_uk:523.47,lq_us:0,uk_vs:-0.6819,us_vs:null,skus:3},
+  {r:51,t:"Cabinetry",c:"SWIFT",ts:148.67,tu:16,vs_lq:-0.463,gm:0.6685,st:0.2462,wc:13.271,d2c:148.67,b2b:0,uk_s:16.28,us_s:132.39,row_s:0,lq_total:276.84,lq_uk:84.72,lq_us:192.12,uk_vs:-0.8078,us_vs:-0.3109,skus:1},
+  {r:52,t:"Electric",c:"BETTY",ts:145.09,tu:52,vs_lq:1.1165,gm:0.845,st:0.1751,wc:20.417,d2c:145.09,b2b:0,uk_s:145.09,us_s:0,row_s:0,lq_total:68.55,lq_uk:68.55,lq_us:0,uk_vs:1.1165,us_vs:null,skus:4},
+  {r:53,t:"",c:"CANTO",ts:119.93,tu:0,vs_lq:0.0,gm:0,st:0.0,wc:0,d2c:0,b2b:0,uk_s:0,us_s:0,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:3},
+  {r:54,t:"Accessories",c:"BOBBIN",ts:96.84,tu:8,vs_lq:-0.4097,gm:0.8288,st:0.0055,wc:779.458,d2c:96.84,b2b:0,uk_s:9.14,us_s:39.35,row_s:48.36,lq_total:164.07,lq_uk:164.07,lq_us:0,uk_vs:-0.9443,us_vs:null,skus:7},
+  {r:55,t:"",c:"BOBBIN",ts:95.44,tu:0,vs_lq:0.0,gm:0,st:0.0,wc:0,d2c:0,b2b:0,uk_s:0,us_s:0,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:12},
+  {r:56,t:"Accessories",c:"CC Measurer",ts:87.6,tu:10,vs_lq:0.7091,gm:0.3722,st:0.3846,wc:6.933,d2c:79.39,b2b:8.22,uk_s:87.6,us_s:0,row_s:0,lq_total:51.26,lq_uk:40.67,lq_us:0,uk_vs:1.1538,us_vs:null,skus:1},
+  {r:57,t:"Electric",c:"MAXWELL",ts:68.0,tu:2,vs_lq:-0.1375,gm:0.6756,st:0.0003,wc:13604.5,d2c:0,b2b:68.0,uk_s:68.0,us_s:0,row_s:0,lq_total:78.84,lq_uk:78.84,lq_us:0,uk_vs:-0.1375,us_vs:null,skus:4},
+  {r:58,t:"Electric",c:"ALVA",ts:55.83,tu:1,vs_lq:-0.8267,gm:0.7575,st:0.0003,wc:16631.333,d2c:55.83,b2b:0,uk_s:55.83,us_s:0,row_s:0,lq_total:322.13,lq_uk:322.13,lq_us:0,uk_vs:-0.8267,us_vs:null,skus:25},
+  {r:59,t:"Accessories",c:"TOYO Steel",ts:55.33,tu:2,vs_lq:-0.5366,gm:0.3892,st:0.0164,wc:260.0,d2c:55.33,b2b:0,uk_s:55.33,us_s:0,row_s:0,lq_total:119.42,lq_uk:119.42,lq_us:0,uk_vs:-0.5366,us_vs:null,skus:2},
+  {r:60,t:"Cabinetry",c:"SCOTT",ts:47.31,tu:4,vs_lq:0.0,gm:0.6939,st:0.5714,wc:3.25,d2c:47.31,b2b:0,uk_s:0,us_s:47.31,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:1},
+  {r:61,t:"Lighting",c:"G9 BULB",ts:44.02,tu:8,vs_lq:-0.0732,gm:0.6184,st:0.4706,wc:4.875,d2c:44.02,b2b:0,uk_s:44.02,us_s:0,row_s:0,lq_total:47.5,lq_uk:47.5,lq_us:0,uk_vs:-0.0732,us_vs:null,skus:1},
+  {r:62,t:"Accessories",c:"LENA",ts:39.16,tu:18,vs_lq:0.0,gm:0.8017,st:0.0608,wc:66.926,d2c:32.58,b2b:6.58,uk_s:39.16,us_s:0,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:2},
+  {r:63,t:"Accessories",c:"CAP",ts:34.92,tu:2,vs_lq:-0.4877,gm:0.5991,st:0.1176,wc:32.5,d2c:34.92,b2b:0,uk_s:34.92,us_s:0,row_s:0,lq_total:68.16,lq_uk:68.16,lq_us:0,uk_vs:-0.4877,us_vs:null,skus:2},
+  {r:64,t:"Accessories",c:"BEZEL",ts:23.28,tu:2,vs_lq:0.0,gm:0.7113,st:0.0112,wc:383.5,d2c:23.28,b2b:0,uk_s:23.28,us_s:0,row_s:0,lq_total:23.28,lq_uk:23.28,lq_us:0,uk_vs:0.0,us_vs:null,skus:2},
+  {r:65,t:"Accessories",c:"ELNA",ts:20.8,tu:2,vs_lq:-0.4304,gm:0.6269,st:0.0126,wc:340.167,d2c:20.8,b2b:0,uk_s:20.8,us_s:0,row_s:0,lq_total:36.51,lq_uk:36.51,lq_us:0,uk_vs:-0.4304,us_vs:null,skus:2},
+  {r:66,t:"Accessories",c:"ERIN",ts:17.46,tu:2,vs_lq:-0.6907,gm:0.5293,st:0.05,wc:82.333,d2c:17.46,b2b:0,uk_s:17.46,us_s:0,row_s:0,lq_total:56.46,lq_uk:56.46,lq_us:0,uk_vs:-0.6907,us_vs:null,skus:2},
+  {r:67,t:"Cabinetry",c:"OLMO",ts:6.98,tu:1,vs_lq:0.0,gm:0.5716,st:0.0769,wc:52.0,d2c:6.98,b2b:0,uk_s:6.98,us_s:0,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:1},
+  {r:68,t:"Components",c:"Dowel Screw & Wall Plug",ts:1.35,tu:0,vs_lq:0.0,gm:1.0,st:0.0,wc:0,d2c:0,b2b:0,uk_s:0,us_s:0,row_s:0,lq_total:0,lq_uk:0,lq_us:0,uk_vs:null,us_vs:null,skus:1}
+];
+
+const STATUSES = [
+  {s:"Continuity",sales:384137.41,units:21661,vs_lq:-0.0554,vs_ly:1.1175,gm:0.7508,st:0.113,wc:34.008,inv:169994},
+  {s:"Newness",sales:80151.66,units:3432,vs_lq:0.0715,vs_ly:1.9256,gm:0.7648,st:0.0946,wc:41.456,inv:32833},
+  {s:"Discontinued",sales:6701.87,units:239,vs_lq:0.0994,vs_ly:-0.6377,gm:0.727,st:0.1464,wc:25.275,inv:1394},
+  {s:"Dead",sales:2420.33,units:395,vs_lq:-0.2005,vs_ly:-0.9646,gm:0.7259,st:0.1427,wc:26.044,inv:2374}
+];
+
+// Product types
+const PROD_TYPES = [
+  {t:"Cabinetry",sales:338648,units:20457,vs_lq:-0.0335,vs_ly:null,gm:0.7651},
+  {t:"Electric",sales:83287,units:2891,vs_lq:-0.0861,vs_ly:null,gm:0.7316},
+  {t:"Accessories",sales:32244,units:1727,vs_lq:0.0582,vs_ly:null,gm:0.7822},
+  {t:"Lighting",sales:20429,units:229,vs_lq:0.1172,vs_ly:null,gm:0.7751},
+  {t:"Components",sales:3032,units:416,vs_lq:0.8784,vs_ly:null,gm:-0.7238}
+];
+
+const SKUS = [
+  {r:0,sku:"KH-BECKER-170-AB",d:"BECKER 170mm D Bar Handle - Antique",c:"BECKER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:14430.45,total_units:531,vs_lq:0.3723,vs_ly:0.137,gm:0.7671,st:0.5391,wc:3.705,inv:454,uk_s2:2668.94,uk_u:129,us_s2:10926.47,us_u:379,d2c:4473.33,b2b:9957.12,lq:10515.63,ly:12693.79},
+  {r:1,sku:"GB-EDP-SOCK-2GS-2AB-BK",d:"SYLVIE Double Plug Socket - Antique Brass (Black Insert)",c:"SYLVIE",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:12917.42,total_units:540,vs_lq:-0.1764,vs_ly:0.461,gm:0.7529,st:0.4262,wc:5.834,inv:727,uk_s2:12917.42,uk_u:540,us_s2:0,us_u:0,d2c:10052.98,b2b:2864.44,lq:15683.74,ly:8841.08},
+  {r:2,sku:"CDB-BOBB-175-1BR",d:"BOBBIN 175mm Handle - Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:12890.46,total_units:492,vs_lq:-0.1051,vs_ly:0.348,gm:0.7695,st:0.1614,wc:22.512,inv:2556,uk_s2:4069.54,uk_u:196,us_s2:7922.63,us_u:267,d2c:9657.91,b2b:3232.55,lq:14404.84,ly:9560.46},
+  {r:3,sku:"KH-KEPLER-160-AB",d:"KEPLER 160m T Bar Handle - Antique",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:10084.7,total_units:498,vs_lq:0.0892,vs_ly:0.309,gm:0.7649,st:0.2745,wc:11.451,inv:1316,uk_s2:2984.0,uk_u:192,us_s2:7060.8,us_u:303,d2c:8085.88,b2b:1998.82,lq:9258.82,ly:7701.67},
+  {r:4,sku:"KH-BECKER-230-AB",d:"BECKER 230mm D Bar Handle - Antique",c:"BECKER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:9588.1,total_units:359,vs_lq:0.0342,vs_ly:0.667,gm:0.7199,st:0.5249,wc:3.923,inv:325,uk_s2:5213.93,uk_u:228,us_s2:4374.17,us_u:131,d2c:2981.62,b2b:6606.48,lq:9271.0,ly:5751.94},
+  {r:5,sku:"KH-KEPLER-220-AB",d:"KEPLER 220mm T Bar Handle - Antique",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:8153.75,total_units:310,vs_lq:0.0541,vs_ly:0.253,gm:0.7829,st:0.1126,wc:34.163,inv:2444,uk_s2:2660.09,uk_u:137,us_s2:5493.66,us_u:173,d2c:5535.09,b2b:2618.66,lq:7735.09,ly:6509.07},
+  {r:6,sku:"GB-EDU-SOCK-2GU-2AB-BK",d:"SYLVIE Double USB Plug Socket - Antique Brass (Black Insert)",c:"SYLVIE",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:7057.69,total_units:194,vs_lq:-0.1731,vs_ly:0.806,gm:0.7235,st:0.5404,wc:3.686,inv:165,uk_s2:7057.69,uk_u:194,us_s2:0,us_u:0,d2c:5595.73,b2b:1461.96,lq:8534.62,ly:3907.97},
+  {r:7,sku:"KH-KEPLER-280-AB",d:"KEPLER 280mm T Bar Handle - Antique",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:6755.2,total_units:216,vs_lq:0.0544,vs_ly:0.387,gm:0.7909,st:0.1745,wc:20.503,inv:1022,uk_s2:2521.43,uk_u:103,us_s2:4233.77,us_u:113,d2c:5068.13,b2b:1687.07,lq:6406.58,ly:4869.47},
+  {r:8,sku:"CKN-REVI-025-1AB",d:"REVILL 25mm Knurled Knob - Antique Brass",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:6689.62,total_units:450,vs_lq:1.045,vs_ly:1.592,gm:0.8325,st:0.2101,wc:16.293,inv:1692,uk_s2:1006.93,uk_u:97,us_s2:5612.02,us_u:346,d2c:6098.4,b2b:591.22,lq:3271.27,ly:2580.61},
+  {r:9,sku:"CKN-KEPL-031-1AB",d:"KEPLER 31mm Knob - Antique Brass",c:"KEPLER",t:"Cabinetry",uk_s:"New",us_s:"New",total_sales:6575.57,total_units:483,vs_lq:-0.0435,vs_ly:null,gm:0.7583,st:0.1411,wc:26.368,inv:2939,uk_s2:3315.25,uk_u:284,us_s2:2928.35,us_u:163,d2c:5187.23,b2b:1388.34,lq:6874.56,ly:0},
+  {r:10,sku:"CDB-BECK-470-1AB",d:"BECKER 470mm Heavyweight D Bar Handle - Antique Brass",c:"BECKER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:5526.41,total_units:66,vs_lq:-0.0236,vs_ly:null,gm:0.7654,st:0.1312,wc:28.692,inv:437,uk_s2:455.69,uk_u:8,us_s2:5070.72,us_u:58,d2c:1930.24,b2b:3596.17,lq:5659.97,ly:0},
+  {r:11,sku:"KH-KEPLER-160-SS",d:"KEPLER 160mm T Bar Handle - Stainless",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:5376.55,total_units:395,vs_lq:5.5831,vs_ly:2.107,gm:0.7877,st:0.3915,wc:6.736,inv:614,uk_s2:4658.4,uk_u:341,us_s2:718.15,us_u:54,d2c:814.7,b2b:4561.84,lq:816.72,ly:1730.63},
+  {r:12,sku:"CST-BECK-100-1AB",d:"BECKER 100mm Single T Handle - Antique Brass",c:"BECKER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:5318.48,total_units:290,vs_lq:0.4042,vs_ly:3.253,gm:0.7334,st:0.5088,wc:4.184,inv:280,uk_s2:1214.74,uk_u:88,us_s2:4103.74,us_u:202,d2c:2755.86,b2b:2562.62,lq:3787.68,ly:1250.45},
+  {r:13,sku:"KH-KEPLER-160-BR",d:"KEPLER 160mm T Bar Handle - Brass",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:5032.94,total_units:315,vs_lq:1.1187,vs_ly:0.059,gm:0.7321,st:0.1273,wc:29.701,inv:2159,uk_s2:3730.93,uk_u:257,us_s2:455.78,us_u:19,d2c:3393.57,b2b:1639.37,lq:2375.49,ly:4751.17},
+  {r:14,sku:"CDB-BOBB-175-1AB",d:"BOBBIN D Bar Handle - Antique Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:4751.34,total_units:207,vs_lq:-0.0886,vs_ly:2.394,gm:0.7299,st:0.1358,wc:27.57,inv:1317,uk_s2:2545.71,uk_u:121,us_s2:2052.68,us_u:80,d2c:3807.58,b2b:943.76,lq:5213.09,ly:1399.75},
+  {r:15,sku:"CDB-GRAY-235-1AB",d:"GRAYSON 235mm Handle - Antique Brass",c:"GRAYSON",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:4644.11,total_units:211,vs_lq:-0.407,vs_ly:5.105,gm:0.7219,st:0.2242,wc:14.992,inv:730,uk_s2:2385.18,uk_u:121,us_s2:1067.83,us_u:48,d2c:3040.99,b2b:1603.12,lq:7832.2,ly:760.69},
+  {r:16,sku:"CKN-BOBB-025-1AB",d:"BOBBIN 25mm Knob - Antique Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:4369.52,total_units:480,vs_lq:-0.2757,vs_ly:null,gm:0.8056,st:0.2361,wc:14.02,inv:1553,uk_s2:1813.16,uk_u:226,us_s2:1730.15,us_u:165,d2c:2306.68,b2b:2062.85,lq:6032.42,ly:0},
+  {r:17,sku:"CTB-KEPL-512-1AB",d:"KEPLER 512mm Heavyweight Handle - Antique Brass",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:4284.56,total_units:63,vs_lq:-0.1998,vs_ly:null,gm:0.7036,st:0.1233,wc:30.815,inv:448,uk_s2:1867.14,uk_u:33,us_s2:2417.41,us_u:30,d2c:2995.78,b2b:1288.78,lq:5354.62,ly:0},
+  {r:18,sku:"KIT-CKB-GRAY-036-1AG",d:"GRAYSON 36mm Knob + COHEN Backplate - Aged Brass",c:"GRAYSON",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:4230.86,total_units:251,vs_lq:1.8034,vs_ly:null,gm:0.7896,st:0.3206,wc:9.185,inv:532,uk_s2:1540.36,uk_u:109,us_s2:2690.5,us_u:142,d2c:3409.25,b2b:821.6,lq:1509.17,ly:0},
+  {r:19,sku:"CLB-KEPL-100-1AB",d:"KEPLER 100mm L Bar Handle - Antique Brass",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:4132.15,total_units:229,vs_lq:0.9216,vs_ly:0.378,gm:0.7667,st:0.2132,wc:15.99,inv:845,uk_s2:1025.92,uk_u:78,us_s2:3106.23,us_u:151,d2c:2345.35,b2b:1786.8,lq:2150.38,ly:2998.71},
+  {r:20,sku:"CKN-BOBB-025-1BR",d:"BOBBIN 25mm Knob - Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:4072.01,total_units:417,vs_lq:-0.1239,vs_ly:null,gm:0.8228,st:0.3592,wc:7.731,inv:744,uk_s2:1567.19,uk_u:184,us_s2:2370.92,us_u:217,d2c:2644.71,b2b:1427.3,lq:4647.94,ly:0},
+  {r:21,sku:"CDB-BOBB-235-1BR",d:"BOBBIN 235mm Handle - Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"New",us_s:"New",total_sales:3933.34,total_units:135,vs_lq:-0.4071,vs_ly:null,gm:0.735,st:0.6109,wc:2.76,inv:86,uk_s2:1729.93,uk_u:71,us_s2:1974.22,us_u:57,d2c:2489.3,b2b:1444.04,lq:6634.15,ly:0},
+  {r:22,sku:"CDB-GRAY-476-1AB",d:"GRAYSON 476mm Heavyweight Handle - Antique Brass",c:"GRAYSON",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:3888.93,total_units:59,vs_lq:0.3622,vs_ly:null,gm:0.7733,st:0.1026,wc:37.898,inv:516,uk_s2:1352.03,uk_u:27,us_s2:2536.9,us_u:32,d2c:2146.45,b2b:1742.48,lq:2854.97,ly:0},
+  {r:23,sku:"KH-KEPLER-57-AB",d:"KEPLER 57mm Single T Handle - Antique",c:"KEPLER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:3849.22,total_units:358,vs_lq:-0.2509,vs_ly:0.334,gm:0.7833,st:0.2011,wc:17.212,inv:1422,uk_s2:1376.11,uk_u:165,us_s2:2458.51,us_u:191,d2c:2801.07,b2b:1048.15,lq:5138.33,ly:2884.73},
+  {r:24,sku:"CKN-BECK-025-1AB",d:"BECKER 25mm Knob - Antique Brass",c:"BECKER",t:"Cabinetry",uk_s:"Pre",us_s:"Pre",total_sales:3694.96,total_units:268,vs_lq:-0.1906,vs_ly:null,gm:0.7958,st:0.8933,wc:0.517,inv:32,uk_s2:0,uk_u:0,us_s2:3694.96,us_u:268,d2c:1583.4,b2b:2111.56,lq:4565.15,ly:0}
+];
+
+// ================================================================
+// STATE
+// ================================================================
+let trendMetric = 'sales', trendSeg = 'total';
+let collMetric = 'sales', collGeo = 'all';
+let skuMetric = 'sales', skuGeo = 'all';
+let tSortKey = 'total_sales', tSortDir = 'desc', tPage = 0;
+const PAGE = 15;
+
+// ================================================================
+// HELPERS
+// ================================================================
+function fmtGBP(n) {
+  if (n >= 1e6) return '£' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '£' + (n/1e3).toFixed(1) + 'K';
+  return '£' + Math.round(n).toLocaleString();
+}
+function fmtU(n) {
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toLocaleString();
+}
+function fmtPct(v, forceSign=true) {
+  if (v == null || isNaN(v)) return '—';
+  const s = (v >= 0 && forceSign ? '+' : '') + (v*100).toFixed(1) + '%';
+  return s;
+}
+function pClass(v) {
+  if (v == null || isNaN(v)) return 'neu';
+  return v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : 'neu';
+}
+function badgeClass(v) {
+  if (v == null || isNaN(v)) return 'flat';
+  return v > 0.005 ? 'up' : v < -0.005 ? 'dn' : 'flat';
+}
+
+function setTrendMetric(m) {
+  trendMetric = m;
+  document.querySelectorAll('#trend-metric-tg button').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&m==='sales')||(i===1&&m==='units'));
+  });
+  renderTrend();
+}
+function setTrendSeg(s) {
+  trendSeg = s;
+  document.querySelectorAll('#trend-seg-tg button').forEach((b,i) => {
+    b.classList.toggle('active', ['total','geo','channel'][i]===s);
+  });
+  renderTrend();
+}
+function setCollMetric(m) {
+  collMetric = m;
+  document.querySelectorAll('#coll-metric-tg button').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&m==='sales')||(i===1&&m==='units'));
+  });
+  renderCollections();
+}
+function setCollGeo(g) {
+  collGeo = g;
+  document.querySelectorAll('#coll-geo-tg button').forEach((b,i) => {
+    const map = ['all','uk','us'];
+    b.classList.toggle('active', map[i]===g);
+  });
+  renderCollections();
+}
+function setSkuMetric(m) {
+  skuMetric = m;
+  document.querySelectorAll('#sku-metric-tg button').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&m==='sales')||(i===1&&m==='units'));
+  });
+  renderTable();
+}
+function setSkuGeo(g) {
+  skuGeo = g;
+  document.querySelectorAll('#sku-geo-tg button').forEach((b,i) => {
+    const map = ['all','uk','us'];
+    b.classList.toggle('active', map[i]===g);
+  });
+  renderTable();
+}
+
+// ================================================================
+// TREND CHART
+// ================================================================
+
+// Per-period colors used in "total" seg and as period tint in geo/channel segs
+const PERIOD_COLORS = {
+  q1_25: { base: 'rgba(160,170,185,VAL)', label: 'rgba(100,110,130,0.9)'  },
+  q4_25: { base: 'rgba(200,130,20,VAL)',  label: 'rgba(160,100,0,0.95)'   },
+  q1_26: { base: 'rgba(26,111,212,VAL)',  label: 'rgba(26,111,212,1.0)'   },
+};
+
+function renderTrend() {
+  const canvas = document.getElementById('trend-canvas');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width || 800, H = 230;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+
+  const m = trendMetric === 'sales';
+  const periods = ['q1_25','q4_25','q1_26'];
+  const periodLabels = ["May '25","Apr '26","May '26"];
+
+  // In geo/channel mode, each series has its own color; period is shown via opacity level
+  // In total mode, each period gets its own distinct color
+  const seriesPalettes = {
+    geo: [
+      {color:'rgba(26,111,212,AL)',label:'UK'},
+      {color:'rgba(176,125,0,AL)',label:'US'},
+      {color:'rgba(139,68,200,AL)',label:'ROW'},
+    ],
+    channel: [
+      {color:'rgba(26,155,116,AL)',label:'D2C'},
+      {color:'rgba(212,76,48,AL)',label:'B2B'},
+    ]
+  };
+  // Per-period opacity for geo/channel mode: past=dimmer, current=full
+  const periodAlpha = { q1_25: '0.45', q4_25: '0.7', q1_26: '1.0' };
+
+  const keys = {
+    total: m ? [['total']] : [['total_u']],
+    geo:     m ? [['uk'],['us'],['row']] : [['uk_u'],['us_u'],['row_u']],
+    channel: m ? [['d2c'],['b2b']]       : [['d2c_u'],['b2b_u']],
+  };
+
+  const segKeys = keys[trendSeg];
+
+  // Build pal: for total mode use period colors; for geo/channel use series colors tinted by period
+  let pal;
+  if (trendSeg === 'total') {
+    pal = [{label:'Total'}]; // color resolved per-period below
+  } else {
+    pal = seriesPalettes[trendSeg];
+  }
+
+  const data = periods.map(p => segKeys.map(sk => PERIODS[p][sk[0]] || 0));
+  const maxVal = Math.max(...data.flat()) * 1.08; // small headroom for labels
+
+  const padL = 70, padR = 20, padT = 30, padB = 50;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const nGroups = periods.length;
+  const nSeries = pal.length;
+  const groupW = chartW / nGroups;
+  const barW = Math.min(38, groupW / (nSeries + 1));
+  const gap = (groupW - barW * nSeries) / (nSeries + 1);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + chartH - (i/4) * chartH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    const lv = (maxVal * i/4);
+    const label = m ? (lv >= 1e6 ? '£' + (lv/1e6).toFixed(2) + 'M' : '£' + Math.round(lv/1000) + 'K') : (lv >= 1000 ? Math.round(lv/1000) + 'K' : Math.round(lv));
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.font = `10px 'IBM Plex Mono'`;
+    ctx.textAlign = 'right';
+    ctx.fillText(label, padL - 6, y + 3);
+  }
+
+  // Bars
+  periods.forEach((p, gi) => {
+    const gx = padL + gi * groupW;
+    const isCurrentQ = p === 'q1_26';
+    const alpha = periodAlpha[p];
+
+    pal.forEach((s, si) => {
+      const val = data[gi][si];
+      const barH = (val / maxVal) * chartH;
+      const x = gx + gap + si * (barW + gap);
+      const y = padT + chartH - barH;
+
+      // Resolve bar color
+      let fillColor;
+      if (trendSeg === 'total') {
+        const pc = PERIOD_COLORS[p];
+        fillColor = pc.base.replace('VAL', isCurrentQ ? '1.0' : p === 'q4_25' ? '0.85' : '0.7');
+      } else {
+        fillColor = s.color.replace('AL', alpha);
+      }
+
+      // Gradient fill
+      const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+      grad.addColorStop(0, fillColor);
+      grad.addColorStop(1, fillColor.replace(/[\d.]+\)$/, isCurrentQ ? '0.4)' : '0.2)'));
+      ctx.fillStyle = grad;
+      const radius = 3;
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + barW - radius, y);
+      ctx.quadraticCurveTo(x + barW, y, x + barW, y + radius);
+      ctx.lineTo(x + barW, y + barH);
+      ctx.lineTo(x, y + barH);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      ctx.fill();
+
+      // ── DATA LABEL ON EVERY BAR ──
+      const lbl = m ? fmtGBP(val) : fmtU(val);
+      if (trendSeg === 'total') {
+        // For total mode, label matches period color, bold for current
+        const pc = PERIOD_COLORS[p];
+        ctx.fillStyle = isCurrentQ ? pc.label : p === 'q4_25' ? 'rgba(255,165,90,0.9)' : 'rgba(140,210,230,0.85)';
+        ctx.font = `${isCurrentQ ? 'bold ' : ''}${isCurrentQ ? 10.5 : 9.5}px 'IBM Plex Mono'`;
+      } else {
+        // For geo/channel, use the series color at higher opacity
+        const baseCol = s.color.replace('AL', '1.0');
+        ctx.fillStyle = isCurrentQ ? baseCol : baseCol.replace(/[\d.]+\)$/, p === 'q4_25' ? '0.8)' : '0.6)');
+        ctx.font = `${isCurrentQ ? 'bold ' : ''}${isCurrentQ ? 10 : 9}px 'IBM Plex Mono'`;
+      }
+      ctx.textAlign = 'center';
+      ctx.fillText(lbl, x + barW/2, y - 5);
+    });
+
+    // Period label below x-axis
+    const centerX = gx + groupW/2;
+    ctx.fillStyle = isCurrentQ ? 'rgba(26,111,212,1.0)' : p === 'q4_25' ? 'rgba(160,100,0,0.9)' : 'rgba(100,110,130,0.8)';
+    ctx.font = `${isCurrentQ ? 'bold ' : ''}11px 'IBM Plex Mono'`;
+    ctx.textAlign = 'center';
+    ctx.fillText(periodLabels[gi], centerX, H - padB + 18);
+
+    // % delta arrow between periods (total mode only)
+    if (gi > 0 && trendSeg === 'total') {
+      const prev = data[gi-1][0], curr = data[gi][0];
+      const pct = (curr - prev) / prev;
+      const arrowX = gx - 10;
+      const arrowY = padT + chartH * 0.42;
+      ctx.fillStyle = pct > 0 ? 'rgba(26,155,116,0.85)' : 'rgba(204,42,56,0.85)';
+      ctx.font = `bold 9px 'IBM Plex Mono'`;
+      ctx.textAlign = 'center';
+      ctx.fillText((pct > 0 ? '▲' : '▼') + Math.abs(pct*100).toFixed(1)+'%', arrowX, arrowY);
+    }
+  });
+
+  // Legend
+  const legend = document.getElementById('trend-legend');
+  if (trendSeg === 'total') {
+    legend.innerHTML = periods.map((p, i) => {
+      const pc = PERIOD_COLORS[p];
+      const col = pc.base.replace('VAL', '0.85');
+      return `<div class="tl-item"><div class="tl-swatch" style="background:${col}"></div><span class="tl-label">${periodLabels[i]}</span></div>`;
+    }).join('');
+  } else {
+    legend.innerHTML = pal.map(s => {
+      const col = s.color.replace('AL','0.85');
+      return `<div class="tl-item"><div class="tl-swatch" style="background:${col}"></div><span class="tl-label">${s.label}</span></div>`;
+    }).join('') + `<div class="tl-item" style="margin-left:12px;gap:10px">
+      ${periods.map((p,i)=>`<span style="font-family:var(--font-m);font-size:8.5px;color:${p==='q1_26'?'rgba(26,111,212,0.9)':p==='q4_25'?'rgba(160,100,0,0.85)':'rgba(100,110,130,0.75)'}">${periodLabels[i]}</span>`).join('<span style="color:var(--border)"> · </span>')}
+    </div>`;
+  }
+}
+
+// ================================================================
+// COLLECTIONS
+// ================================================================
+function renderCollections() {
+  const m = collMetric === 'sales';
+  const g = collGeo;
+
+  const sorted = [...COLLECTIONS].sort((a,b) => {
+    const va = m ? (g==='uk'?a.uk_s:g==='us'?a.us_s:a.ts) : (g==='uk'?a.uk_u:g==='us'?a.us_u:a.tu);
+    const vb = m ? (g==='uk'?b.uk_s:g==='us'?b.us_s:b.ts) : (g==='uk'?b.uk_u:g==='us'?b.us_u:b.tu);
+    return vb - va;
+  }).slice(0, 14);
+
+  const maxV = Math.max(...sorted.map(c => m ? (g==='uk'?c.uk_s:g==='us'?c.us_s:c.ts) : (g==='uk'?c.uk_u:g==='us'?c.us_u:c.tu)));
+  const maxLQ = Math.max(...sorted.map(c => c.lq_total || 0));
+  const typeColors = {Cabinetry:'var(--uk)',Electric:'var(--us)',Accessories:'var(--purple)',Lighting:'var(--green)'};
+
+  document.getElementById('coll-chart').innerHTML = sorted.map(c => {
+    const v = m ? (g==='uk'?c.uk_s:g==='us'?c.us_s:c.ts) : (g==='uk'?c.uk_u:g==='us'?c.us_u:c.tu);
+    const lqBase = m ? (g==='uk'?c.lq_uk:g==='us'?c.lq_us:c.lq_total) : c.lq_total;
+    const lqV = m ? lqBase : (lqBase / (c.ts || 1)) * (c.tu || 0);
+    const vs = g==='uk' ? c.uk_vs : g==='us' ? c.us_vs : c.vs_lq;
+    const w = (v / maxV * 100).toFixed(1);
+    const wLQ = (Math.min(lqV, maxV) / maxV * 100).toFixed(1);
+    const col = typeColors[c.t] || 'var(--muted)';
+    const lqCol = 'rgba(0,0,0,0.82)';
+    const lbl = m ? fmtGBP(v) : fmtU(v);
+    const vsStr = fmtPct(vs);
+    const vcls = pClass(vs);
+    return `
+      <div class="dc-row">
+        <div class="dc-name"><span style="font-size:7px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-right:3px">${c.t}</span><strong>${c.c}</strong><span style="font-size:7.5px;color:var(--muted);margin-left:4px">${c.skus}sku</span></div>
+        <div class="dc-bars">
+          <div class="dc-bar-wrap">
+            <span class="dc-bar-lbl" style="color:${col}">May</span>
+            <div class="dc-track"><div class="dc-fill" style="width:${w}%;background:${col}"></div></div>
+          </div>
+          <div class="dc-bar-wrap">
+            <span class="dc-bar-lbl">LM</span>
+            <div class="dc-track"><div class="dc-fill" style="width:${wLQ}%;background:${lqCol}"></div></div>
+          </div>
+        </div>
+        <div class="dc-vals">
+          <div class="dc-val-main">${lbl}</div>
+          <div style="font-family:var(--font-m);font-size:8px;color:var(--muted);margin-top:1px">${(v/TOTAL_SALES*100).toFixed(1)}% share</div>
+          <div class="dc-val-vs ${vcls}">${vsStr}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ================================================================
+// CATEGORY BREAKDOWN (ENHANCED)
+// ================================================================
+let typeView = 'overview';
+function setTypeView(v) {
+  typeView = v;
+  document.querySelectorAll('#type-view-tg button').forEach((b,i) => {
+    b.classList.toggle('active', ['overview','channel','country','vs_lq','vs_ly'][i] === v);
+  });
+  renderTypeChart();
+}
+
+// TYPE_DATA computed dynamically from COLLECTIONS — single source of truth
+const _TYPE_KEYS = ['Cabinetry','Electric','Accessories','Lighting'];
+const _TYPE_COLS = {
+  Cabinetry:'rgba(26,111,212,0.9)', Electric:'rgba(176,125,0,0.9)',
+  Accessories:'rgba(106,62,194,0.9)', Lighting:'rgba(26,155,116,0.9)'
+};
+const TYPE_DATA = _TYPE_KEYS.map(t => {
+  const rows = COLLECTIONS.filter(c => c.t === t);
+  const sales   = rows.reduce((s,c) => s+c.ts, 0);
+  const lq      = rows.reduce((s,c) => s+c.lq_total, 0);
+  const d2c     = rows.reduce((s,c) => s+c.d2c, 0);
+  const b2b     = rows.reduce((s,c) => s+c.b2b, 0);
+  const uk      = rows.reduce((s,c) => s+c.uk_s, 0);
+  const us      = rows.reduce((s,c) => s+c.us_s, 0);
+  const lq_d2c  = lq > 0 ? d2c / (sales||1) * lq : 0;
+  const lq_b2b  = lq > 0 ? b2b / (sales||1) * lq : 0;
+  const lq_uk   = rows.reduce((s,c) => s+c.lq_uk, 0);
+  const lq_us   = rows.reduce((s,c) => s+c.lq_us, 0);
+  const gm      = rows.reduce((s,c) => s+c.gm*c.ts, 0) / (sales||1);
+  return {t, col:_TYPE_COLS[t], sales, lq_sales:lq, ly_sales:0,
+          d2c, b2b, uk, us, lq_d2c, lq_b2b, lq_uk, lq_us,
+          ly_d2c:0, ly_b2b:0, ly_uk:0, ly_us:0, gm,
+          d2c_vs_lq: lq_d2c>0?(d2c-lq_d2c)/lq_d2c:0,
+          b2b_vs_lq: lq_b2b>0?(b2b-lq_b2b)/lq_b2b:0,
+          uk_vs_lq:  lq_uk>0?(uk-lq_uk)/lq_uk:0,
+          us_vs_lq:  lq_us>0?(us-lq_us)/lq_us:0};
+});
+
+function renderTypeChart() {
+  const canvas = document.getElementById('type-canvas');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width || 700, H = 220;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+
+  const padL = 80, padR = 16, padT = 30, padB = 40;
+  const cW = W - padL - padR, cH = H - padT - padB;
+  const n = TYPE_DATA.length;
+  const groupW = cW / n;
+
+  // Helper: rounded rect
+  function rRect(x, y, w, h, r=3) {
+    if (h <= 0) return;
+    ctx.beginPath();
+    ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h); ctx.lineTo(x, y+h);
+    ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Helper: variance bar (can go left or right of center line)
+  function vBar(cx, midY, val, maxAbs, barH=14, col) {
+    const w = Math.abs(val) / maxAbs * (cW/n * 0.36);
+    ctx.fillStyle = col;
+    if (val >= 0) rRect(cx, midY - barH/2, w, barH, 2);
+    else rRect(cx - w, midY - barH/2, w, barH, 2);
+  }
+
+  if (typeView === 'overview') {
+    const maxV = Math.max(...TYPE_DATA.map(d => d.sales));
+    for (let i = 0; i <= 4; i++) {
+      const y = padT + cH - i/4 * cH;
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+      const lv = maxV * i/4;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.font = `9.5px 'IBM Plex Mono'`; ctx.textAlign = 'right';
+      ctx.fillText('£'+Math.round(lv/1000)+'K', padL-5, y+3);
+    }
+    TYPE_DATA.forEach((d, gi) => {
+      const gx = padL + gi * groupW;
+      const bW = groupW * 0.38, bW2 = groupW * 0.38;
+      const gap = (groupW - bW - bW2) / 3;
+      // Q1 bar
+      const h1 = (d.sales / maxV) * cH;
+      const grad1 = ctx.createLinearGradient(0, padT+cH-h1, 0, padT+cH);
+      grad1.addColorStop(0, d.col); grad1.addColorStop(1, d.col.replace('0.9','0.4'));
+      ctx.fillStyle = grad1; rRect(gx+gap, padT+cH-h1, bW, h1);
+      ctx.fillStyle = d.col; ctx.font = `bold 9.5px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText('£'+Math.round(d.sales/1000)+'K', gx+gap+bW/2, padT+cH-h1-5);
+      // LQ bar
+      const h2 = (d.lq_sales / maxV) * cH;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; rRect(gx+gap*2+bW, padT+cH-h2, bW2, h2);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.font = `9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText('£'+Math.round(d.lq_sales/1000)+'K', gx+gap*2+bW+bW2/2, padT+cH-h2-4);
+      // vs delta
+      const vs = (d.sales - d.lq_sales) / d.lq_sales;
+      ctx.fillStyle = vs >= 0 ? 'rgba(79,209,165,0.9)' : 'rgba(240,100,114,0.9)';
+      ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText((vs>=0?'▲':'▼')+Math.abs(vs*100).toFixed(1)+'%', gx+groupW/2, padT+cH+14);
+      // Type label
+      ctx.fillStyle = d.col; ctx.font = `bold 10px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText(d.t, gx+groupW/2, padT+cH+26);
+    });
+    document.getElementById('type-legend').innerHTML = `
+      <div class="tl-item"><div class="tl-swatch" style="background:rgba(240,200,40,0.85)"></div><span class="tl-label">${CM_LABEL}</span></div>
+      <div class="tl-item"><div class="tl-swatch" style="background:rgba(94,107,133,0.4)"></div><span class="tl-label">${LM_LABEL} (LQ)</span></div>`;
+
+  } else if (typeView === 'channel' || typeView === 'country') {
+    const isCh = typeView === 'channel';
+    const maxV = Math.max(...TYPE_DATA.map(d => isCh ? d.sales : d.sales));
+    for (let i = 0; i <= 4; i++) {
+      const y = padT + cH - i/4 * cH;
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+      const lv = maxV * i/4;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.font = `9.5px 'IBM Plex Mono'`; ctx.textAlign = 'right';
+      ctx.fillText('£'+Math.round(lv/1000)+'K', padL-5, y+3);
+    }
+    const col1 = isCh ? 'rgba(79,209,165,0.9)' : 'rgba(91,156,246,0.9)';
+    const col2 = isCh ? 'rgba(240,117,96,0.9)' : 'rgba(240,192,64,0.9)';
+    const lbl1 = isCh ? 'D2C' : 'UK';
+    const lbl2 = isCh ? 'B2B' : 'US';
+    TYPE_DATA.forEach((d, gi) => {
+      const gx = padL + gi * groupW;
+      const bW = groupW * 0.32;
+      const gap = (groupW - bW * 2) / 3;
+      const v1 = isCh ? d.d2c : d.uk;
+      const v2 = isCh ? d.b2b : d.us;
+      const lqV1 = isCh ? d.lq_d2c : d.lq_uk;
+      const lqV2 = isCh ? d.lq_b2b : d.lq_us;
+      const h1 = (v1/maxV)*cH, h2 = (v2/maxV)*cH;
+      const lqH1 = (lqV1/maxV)*cH, lqH2 = (lqV2/maxV)*cH;
+      // stacked LQ (ghost)
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      rRect(gx+gap, padT+cH-lqH1, bW, lqH1);
+      rRect(gx+gap*2+bW, padT+cH-lqH2, bW, lqH2);
+      // current bars
+      const g1 = ctx.createLinearGradient(0, padT+cH-h1, 0, padT+cH);
+      g1.addColorStop(0, col1); g1.addColorStop(1, col1.replace('0.9','0.35'));
+      ctx.fillStyle = g1; rRect(gx+gap, padT+cH-h1, bW, h1);
+      const g2 = ctx.createLinearGradient(0, padT+cH-h2, 0, padT+cH);
+      g2.addColorStop(0, col2); g2.addColorStop(1, col2.replace('0.9','0.35'));
+      ctx.fillStyle = g2; rRect(gx+gap*2+bW, padT+cH-h2, bW, h2);
+      // labels on bars
+      ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillStyle = col1; ctx.fillText('£'+Math.round(v1/1000)+'K', gx+gap+bW/2, padT+cH-h1-5);
+      ctx.fillStyle = col2; ctx.fillText('£'+Math.round(v2/1000)+'K', gx+gap*2+bW+bW/2, padT+cH-h2-5);
+      // vs LM mini delta
+      const vs1 = (v1-lqV1)/lqV1, vs2 = (v2-lqV2)/(lqV2||1);
+      ctx.font = `8px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillStyle = vs1>=0?'rgba(79,209,165,0.8)':'rgba(240,100,114,0.8)';
+      ctx.fillText((vs1>=0?'▲':'▼')+Math.abs(vs1*100).toFixed(0)+'%', gx+gap+bW/2, padT+cH+12);
+      ctx.fillStyle = vs2>=0?'rgba(79,209,165,0.8)':'rgba(240,100,114,0.8)';
+      ctx.fillText((vs2>=0?'▲':'▼')+Math.abs(vs2*100).toFixed(0)+'%', gx+gap*2+bW+bW/2, padT+cH+12);
+      // type label
+      ctx.fillStyle = d.col; ctx.font = `bold 9.5px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText(d.t, gx+groupW/2, padT+cH+26);
+    });
+    document.getElementById('type-legend').innerHTML = `
+      <div class="tl-item"><div class="tl-swatch" style="background:${col1}"></div><span class="tl-label">${lbl1}</span></div>
+      <div class="tl-item"><div class="tl-swatch" style="background:${col2}"></div><span class="tl-label">${lbl2}</span></div>
+      <div class="tl-item"><div class="tl-swatch" style="background:rgba(94,107,133,0.2);border:1px solid rgba(94,107,133,0.4)"></div><span class="tl-label">LQ ghost</span></div>`;
+
+  } else {
+    // vs LM or vs LY — variance chart
+    const isLQ = typeView === 'vs_lq';
+    const label = isLQ ? 'vs Apr 2026' : 'vs May 2025';
+    const getVs = (d, seg) => {
+      if (seg === 'total') return isLQ ? (d.sales - d.lq_sales)/d.lq_sales : (d.sales - d.ly_sales)/d.ly_sales;
+      if (seg === 'd2c')   return isLQ ? d.d2c_vs_lq : (d.d2c - d.ly_d2c)/(d.ly_d2c||1);
+      if (seg === 'b2b')   return isLQ ? d.b2b_vs_lq : (d.b2b - d.ly_b2b)/(d.ly_b2b||1);
+      if (seg === 'uk')    return isLQ ? d.uk_vs_lq : (d.uk - d.ly_uk)/(d.ly_uk||1);
+      if (seg === 'us')    return isLQ ? d.us_vs_lq : (d.us - d.ly_us)/(d.ly_us||1);
+    };
+    const segs = [
+      {k:'total', col:'rgba(240,200,40,0.9)',    lbl:'Total'},
+      {k:'d2c',   col:'rgba(79,209,165,0.85)',   lbl:'D2C'},
+      {k:'b2b',   col:'rgba(240,117,96,0.85)',   lbl:'B2B'},
+      {k:'uk',    col:'rgba(91,156,246,0.85)',    lbl:'UK'},
+      {k:'us',    col:'rgba(240,192,64,0.85)',    lbl:'US'},
+    ];
+    const allVals = TYPE_DATA.flatMap(d => segs.map(s => getVs(d, s.k)));
+    const maxAbs = Math.max(...allVals.map(v => isFinite(v) ? Math.abs(v) : 0)) * 1.1 || 1;
+
+    // Center line
+    const midY = padT + cH/2;
+    ctx.strokeStyle = 'rgba(0,0,0,0.60)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(padL, midY); ctx.lineTo(W-padR, midY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Axis labels
+    [0.5, 1.0].forEach(frac => {
+      const val = maxAbs * frac;
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.font = `9px 'IBM Plex Mono'`; ctx.textAlign = 'right';
+      ctx.fillText('+'+(val*100).toFixed(0)+'%', padL-4, midY - (cH/2)*frac + 3);
+      ctx.fillText('-'+(val*100).toFixed(0)+'%', padL-4, midY + (cH/2)*frac + 3);
+    });
+    ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.font = `9px 'IBM Plex Mono'`; ctx.textAlign = 'right';
+    ctx.fillText('0%', padL-4, midY+3);
+
+    // Zero-change label
+    ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.font = `8px 'IBM Plex Mono'`; ctx.textAlign = 'left';
+    ctx.fillText(label, padL+4, midY-5);
+
+    TYPE_DATA.forEach((d, gi) => {
+      const gx = padL + gi * groupW;
+      const nS = segs.length, bW = Math.min(16, (groupW - (nS+1)*2) / nS);
+      const totalBW = nS*bW + (nS-1)*2;
+      const startX = gx + (groupW - totalBW)/2;
+
+      segs.forEach((s, si) => {
+        const vs = getVs(d, s.k);
+        if (!isFinite(vs)) return;
+        const barH = Math.abs(vs) / maxAbs * (cH/2);
+        const x = startX + si*(bW+2);
+        const y = vs >= 0 ? midY - barH : midY;
+        const col = vs >= 0 ? s.col : s.col.replace('0.9','0.75').replace('0.85','0.7');
+        ctx.fillStyle = col;
+        rRect(x, y, bW, barH, 2);
+        // value label on bar
+        ctx.fillStyle = vs >= 0 ? col : col;
+        ctx.font = `7.5px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+        const lblY = vs >= 0 ? y - 3 : y + barH + 9;
+        if (barH > 5) ctx.fillText((vs>=0?'+':'')+Math.round(vs*100)+'%', x+bW/2, lblY);
+      });
+
+      // Type label
+      ctx.fillStyle = d.col; ctx.font = `bold 9.5px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText(d.t, gx+groupW/2, padT+cH+14);
+    });
+
+    document.getElementById('type-legend').innerHTML = segs.map(s => `
+      <div class="tl-item"><div class="tl-swatch" style="background:${s.col}"></div><span class="tl-label">${s.lbl}</span></div>`).join('');
+  }
+}
+
+// ================================================================
+// FINISH ANALYSIS
+// ================================================================
+const FINISH_DATA = {
+  'Antique Brass': {
+    color:'rgba(176,125,0,0.9)', textColor:'rgba(140,90,0,1)',
+    total:241311, lq:240878, ly:null, units:11834, vsLQ:0.0018, vsLY:null,
+    d2c:162562, b2b:78749, uk:123529, us:111282, lq_uk:0, lq_us:0,
+    collSplit:{"KEPLER":75091,"BECKER":41042,"BOBBIN":26215,"GRAYSON":23485,"SYLVIE":22247,"LOVELL":10174,"EL COMPONENT":7264,"OTHER":35719},
+    skus:[{sku:"KH-BECKER-170-AB",coll:"BECKER",sales:14430,vsLQ:0.3723,gm:0.7671},{sku:"GB-EDP-SOCK-2GS-2AB-BK",coll:"SYLVIE",sales:12917,vsLQ:-0.1764,gm:0.7529},{sku:"KH-KEPLER-160-AB",coll:"KEPLER",sales:10085,vsLQ:0.0892,gm:0.7649},{sku:"KH-BECKER-230-AB",coll:"BECKER",sales:9588,vsLQ:0.0342,gm:0.7199},{sku:"KH-KEPLER-220-AB",coll:"KEPLER",sales:8154,vsLQ:0.0541,gm:0.7829},{sku:"GB-EDU-SOCK-2GU-2AB-BK",coll:"SYLVIE",sales:7058,vsLQ:-0.1731,gm:0.7235},{sku:"KH-KEPLER-280-AB",coll:"KEPLER",sales:6755,vsLQ:0.0544,gm:0.7909},{sku:"CKN-REVI-025-1AB",coll:"KEPLER",sales:6690,vsLQ:1.045,gm:0.8325}]
+  },
+  'Brass': {
+    color:'rgba(140,100,0,0.9)', textColor:'rgba(120,80,0,1)',
+    total:107426, lq:128091, ly:null, units:6184, vsLQ:-0.1613, vsLY:null,
+    d2c:79125, b2b:23842, uk:62568, us:35939, lq_uk:0, lq_us:0,
+    collSplit:{"BOBBIN":31395,"KEPLER":23625,"LOVELL":8462,"GRAYSON":6986,"BECKER":5215,"SYLVIE":5007,"ADA":3802,"OTHER":18454},
+    skus:[{sku:"CDB-BOBB-175-1BR",coll:"BOBBIN",sales:12890,vsLQ:-0.1051,gm:0.7695},{sku:"KH-KEPLER-160-BR",coll:"KEPLER",sales:5033,vsLQ:1.1187,gm:0.7321},{sku:"CKN-BOBB-025-1BR",coll:"BOBBIN",sales:4072,vsLQ:-0.1239,gm:0.8228},{sku:"CDB-BOBB-235-1BR",coll:"BOBBIN",sales:3933,vsLQ:-0.4071,gm:0.735},{sku:"KH-HUMBOLDT-31-BR",coll:"KEPLER",sales:3315,vsLQ:-0.0737,gm:0.8189},{sku:"GB-EDP-SOCK-2GS-2BR-W",coll:"SYLVIE",sales:3174,vsLQ:0.195,gm:0.7799},{sku:"KH-BECKER-170-BR",coll:"BECKER",sales:2720,vsLQ:-0.2384,gm:0.7837},{sku:"CTB-SQUI-230-1BR",coll:"SQUIGGLE",sales:2512,vsLQ:-0.139,gm:0.7405}]
+  },
+  'Aged Brass': {
+    color:'rgba(130,95,20,0.9)', textColor:'rgba(110,75,0,1)',
+    total:19890, lq:18954, ly:null, units:1405, vsLQ:0.0494, vsLY:null,
+    d2c:14552, b2b:4513, uk:11240, us:6999, lq_uk:0, lq_us:0,
+    collSplit:{"GRAYSON":15803,"BOBBIN":1511,"PEBBLE":1457,"COHEN":212,"FOLD":82},
+    skus:[{sku:"KIT-CKB-GRAY-036-1AG",coll:"GRAYSON",sales:4231,vsLQ:1.8034,gm:0.7896},{sku:"CDB-GRAY-111-1AG",coll:"GRAYSON",sales:2850,vsLQ:-0.126,gm:0.7244},{sku:"CKN-GRAY-036-1AG",coll:"GRAYSON",sales:1901,vsLQ:0.1897,gm:0.7448},{sku:"CDB-GRAY-235-1AG",coll:"GRAYSON",sales:1823,vsLQ:-0.5375,gm:0.7513},{sku:"CKN-PEBB-038-1AG",coll:"PEBBLE",sales:1054,vsLQ:-0.336,gm:0.7265},{sku:"CDB-GRAY-476-1AG",coll:"GRAYSON",sales:1003,vsLQ:-0.3074,gm:0.7408},{sku:"KIT-CHB-GRAY-235-1AG",coll:"GRAYSON",sales:984,vsLQ:0.5677,gm:0.7471},{sku:"KIT-CKB-BOBB-025-1AG",coll:"BOBBIN",sales:869,vsLQ:1.3011,gm:0.8156}]
+  },
+  'Unlacquered Brass': {
+    color:'rgba(160,135,50,0.9)', textColor:'rgba(130,100,20,1)',
+    total:25853, lq:29008, ly:null, units:1392, vsLQ:-0.1088, vsLY:null,
+    d2c:14491, b2b:10336, uk:9033, us:14768, lq_uk:0, lq_us:0,
+    collSplit:{"BOBBIN":6488,"GRAYSON":5596,"GOOD BONES":3662,"ADA":1844,"ALVA":1767,"JASPER":1473,"PEYTON":1422,"OTHER":2575},
+    skus:[{sku:"GB-LWL-ASTE-161-1UB",coll:"GOOD BONES",sales:3662,vsLQ:0.7221,gm:0.7462},{sku:"CDB-BOBB-175-1UB",coll:"BOBBIN",sales:2222,vsLQ:-0.2826,gm:0.6894},{sku:"CDB-GRAY-111-1UB",coll:"GRAYSON",sales:1820,vsLQ:0.9777,gm:0.7312},{sku:"CKN-BOBB-025-1UB",coll:"BOBBIN",sales:1429,vsLQ:1.4664,gm:0.7672},{sku:"KIT-CKB-GRAY-036-1UB",coll:"GRAYSON",sales:1013,vsLQ:2.4563,gm:0.7899},{sku:"KIT-CHB-ALVA-228-1UB",coll:"ALVA",sales:990,vsLQ:0,gm:0.6881},{sku:"CDB-PEYT-479-1UB",coll:"PEYTON",sales:798,vsLQ:0,gm:1},{sku:"KIT-CKB-BOBB-FLOW-025-1UB",coll:"BOBBIN",sales:744,vsLQ:0.6497,gm:0.8043}]
+  },
+  'Polished Nickel': {
+    color:'rgba(90,110,140,0.9)', textColor:'rgba(60,80,110,1)',
+    total:21755, lq:19261, ly:null, units:1352, vsLQ:0.1295, vsLY:null,
+    d2c:15713, b2b:5610, uk:7074, us:13818, lq_uk:0, lq_us:0,
+    collSplit:{"ADA":4741,"BOBBIN":4635,"GRAYSON":3469,"ALVA":2817,"SQUIGGLE":1804,"JASPER":1727,"EL COMPONENT":1004,"OTHER":1128},
+    skus:[{sku:"CKN-BOBB-025-1PN",coll:"BOBBIN",sales:1467,vsLQ:0.345,gm:0.7345},{sku:"CDB-ALVA-104-1PN",coll:"ALVA",sales:1426,vsLQ:1.0999,gm:0.7229},{sku:"CBP-ADA-CROS-055-1PN",coll:"ADA",sales:1071,vsLQ:0.322,gm:0.7408},{sku:"KIT-CHB-ADA-235-1PN",coll:"ADA",sales:1036,vsLQ:19.2784,gm:0.7683},{sku:"CTB-SQUI-230-1PN",coll:"SQUIGGLE",sales:1024,vsLQ:4.0086,gm:0.752},{sku:"CDB-BOBB-175-1PN",coll:"BOBBIN",sales:1013,vsLQ:-0.44,gm:0.6881},{sku:"CBP-ADA-CROS-032-1PN",coll:"ADA",sales:959,vsLQ:6.9242,gm:0.7619},{sku:"CDB-GRAY-111-1PN",coll:"GRAYSON",sales:927,vsLQ:0.3406,gm:0.6344}]
+  },
+  'Black': {
+    color:'rgba(40,40,50,0.9)', textColor:'rgba(20,20,30,1)',
+    total:15088, lq:19647, ly:null, units:923, vsLQ:-0.232, vsLY:null,
+    d2c:10466, b2b:4170, uk:5530, us:8655, lq_uk:0, lq_us:0,
+    collSplit:{"HOFFMAN":5397,"KEPLER":2773,"LEVI":2511,"PULLMAN":2304,"EL COMPONENT":804,"JENSEN":282,"FOLD":227,"OTHER":91},
+    skus:[{sku:"S5-ADH-HOFF-090-1BK",coll:"HOFFMAN",sales:2211,vsLQ:1.5858,gm:0.8156},{sku:"ADH-HOFF-090-3BK-R",coll:"HOFFMAN",sales:1787,vsLQ:0.1232,gm:0.7307},{sku:"HK-PULLMAN-52-AL-BK",coll:"PULLMAN",sales:1468,vsLQ:-0.2085,gm:0.8243},{sku:"S5-ADH-LEVI-080-1BK",coll:"LEVI",sales:1468,vsLQ:-0.185,gm:0.7027},{sku:"CKN-HUMB-031-3BK",coll:"KEPLER",sales:1108,vsLQ:-0.4142,gm:0.8207},{sku:"CTB-KEPL-280-3BK",coll:"KEPLER",sales:1095,vsLQ:-0.5199,gm:0.866},{sku:"HK-LEVI-80-BK",coll:"LEVI",sales:1043,vsLQ:-0.0437,gm:0.7306},{sku:"ADH-HOFF-150-3BK",coll:"HOFFMAN",sales:1006,vsLQ:34.3966,gm:0.8393}]
+  },
+  'Stainless Steel': {
+    color:'rgba(70,100,140,0.9)', textColor:'rgba(50,80,120,1)',
+    total:9271, lq:6576, ly:null, units:1044, vsLQ:0.4098, vsLY:null,
+    d2c:3846, b2b:5414, uk:8112, us:1137, lq_uk:0, lq_us:0,
+    collSplit:{"KEPLER":8692,"10M4":285,"BETTY":123,"Dowel Screw & Wall Plug":1},
+    skus:[{sku:"KH-KEPLER-160-SS",coll:"KEPLER",sales:5377,vsLQ:5.5831,gm:0.7877},{sku:"KH-KEPLER-280-SS",coll:"KEPLER",sales:1598,vsLQ:-0.4125,gm:0.8286},{sku:"CKN-HUMB-031-2SS",coll:"KEPLER",sales:1141,vsLQ:-0.0376,gm:0.7458},{sku:"CLB-KEPL-100-2SS",coll:"KEPLER",sales:388,vsLQ:0.8801,gm:0.4483},{sku:"XMS-10M4-016-7SS",coll:"10M4",sales:155,vsLQ:-0.0837,gm:0.7679},{sku:"CKN-REVI-025-2SS",coll:"KEPLER",sales:76,vsLQ:-0.806,gm:0.7427},{sku:"GB-EBB-BETT-02G-2SS",coll:"BETTY",sales:70,vsLQ:2.2136,gm:0.8456},{sku:"CTB-KEPL-760-2SS-R",coll:"KEPLER",sales:63,vsLQ:-0.9164,gm:0.7568}]
+  },
+  'Burgundy': {
+    color:'rgba(150,30,55,0.9)', textColor:'rgba(120,20,40,1)',
+    total:8480, lq:8262, ly:null, units:600, vsLQ:0.0263, vsLY:null,
+    d2c:6256, b2b:1948, uk:3764, us:4163, lq_uk:0, lq_us:0,
+    collSplit:{"BOBBIN":7649,"LOVELL":542,"LENA":13},
+    skus:[{sku:"CDB-BOBB-175-1BG",coll:"BOBBIN",sales:3651,vsLQ:0.3811,gm:0.7709},{sku:"CKN-BOBB-025-1BG",coll:"BOBBIN",sales:2240,vsLQ:0.6737,gm:0.7918},{sku:"CST-BOBB-060-1BG",coll:"BOBBIN",sales:850,vsLQ:-0.5244,gm:0.7958},{sku:"CKN-LOVE-036-1BG",coll:"LOVELL",sales:508,vsLQ:0.3757,gm:0.7301},{sku:"KIT-CKB-BOBB-STAR-025-1BG",coll:"BOBBIN",sales:376,vsLQ:-0.5144,gm:0.8054},{sku:"CKN-KOJI-028-1BG",coll:"BOBBIN",sales:254,vsLQ:-0.6437,gm:0.6621},{sku:"KIT-CHB-BOBB-175-1BG",coll:"BOBBIN",sales:133,vsLQ:-0.6491,gm:0.7451},{sku:"KIT-CKB-BOBB-FLOW-025-1BG",coll:"BOBBIN",sales:97,vsLQ:-0.3026,gm:0.7898}]
+  }
+};
+const FINISH_NAMES = Object.keys(FINISH_DATA);
+let selectedFinish = FINISH_NAMES[0];
+let finishView = 'overview';
+
+// ── CC SIZE DATA ─────────────────────────────────────────────────
+const TOTAL_SALES = 476293;
+
+// ── COLLECTION ANALYSIS DATA (current month from Excel) ──────────
+const COLL_ANALYSIS = {
+  KEPLER:{color:'rgba(26,111,212,0.9)', sales:92328, lq:80671,lq_uk:35387, lq_us:42343, units:4803, gm:0.7734,st:0.1714,wc:20.948, d2c:68322, b2b:24005, uk:42699, us:47489, row:2140, skus:['KH-KEPLER-160-AB','KH-KEPLER-220-AB','KH-KEPLER-280-AB','CKN-REVI-025-1AB','CKN-KEPL-031-1AB','KH-KEPLER-160-SS']},
+  BOBBIN:{color:'rgba(176,125,0,0.9)', sales:78803, lq:92813,lq_uk:35826, lq_us:52857, units:4477, gm:0.7615,st:0.1596,wc:22.817, d2c:52542, b2b:26357, uk:33287, us:41894, row:3717, skus:['CDB-BOBB-175-1BR','CDB-BOBB-175-1AB','CKN-BOBB-025-1AB','CKN-BOBB-025-1BR','CDB-BOBB-235-1BR','CDB-BOBB-175-1BG']},
+  GRAYSON:{color:'rgba(26,155,116,0.9)', sales:51634, lq:52970,lq_uk:24834, lq_us:26576, units:2963, gm:0.7445,st:0.1418,wc:26.231, d2c:37273, b2b:14362, uk:23736, us:24590, row:3309, skus:['CDB-GRAY-235-1AB','KIT-CKB-GRAY-036-1AG','CDB-GRAY-476-1AB','CDB-GRAY-111-1AB','CDB-GRAY-111-1AG','CDB-GRAY-235-1BR']},
+  BECKER:{color:'rgba(106,62,194,0.9)', sales:45679, lq:45719,lq_uk:14518, lq_us:31068, units:1912, gm:0.7542,st:0.1791,wc:19.863, d2c:18732, b2b:27120, uk:13021, us:31816, row:1014, skus:['KH-BECKER-170-AB','KH-BECKER-230-AB','CDB-BECK-470-1AB','CST-BECK-100-1AB','CKN-BECK-025-1AB','KH-BECKER-170-BR']},
+  SYLVIE:{color:'rgba(212,76,48,0.9)', sales:27253, lq:32374,lq_uk:32374, lq_us:0, units:1036, gm:0.7457,st:0.2671,wc:11.887, d2c:22017, b2b:5236, uk:27253, us:0, row:0, skus:['GB-EDP-SOCK-2GS-2AB-BK','GB-EDU-SOCK-2GU-2AB-BK','GB-EDP-SOCK-2GS-2BR-W','GB-EDU-SOCK-2GU-2BR-W','GB-EFS-FUSE-01G-2AB','GB-ESP-SOCK-1GS-2AB-BK']},
+  KEPLER_E:{color:'rgba(70,120,200,0.9)', sales:19229, lq:25207,lq_uk:25207, lq_us:0, units:534, gm:0.6797,st:0.0867,wc:45.662, d2c:14272, b2b:4957, uk:19229, us:0, row:0, skus:['GB-KIT-ETOG-KEPL-1G-1AB','GB-KIT-ETOG-KEPL-2G-1AB','GB-KIT-EDIM-KEPL-1G-1AB','GB-KIT-ETOG-KEPL-3G-1AB','GB-KIT-EDIM-KEPL-2G-1AB','GB-KIT-EDIM-KEPL-3G-1AB']},
+  JASPER:{color:'rgba(50,130,185,0.9)', sales:16355, lq:11229,lq_uk:0, lq_us:11229, units:350, gm:0.7911,st:0.1336,wc:28.105, d2c:11442, b2b:4913, uk:0, us:16355, row:0, skus:['US-KIT-EOUT-JASP-1G-1BB-BL','US-KIT-E3WT-JASP-1G-1BB-BL','US-KIT-EOUT-JASP-1G-1HB-BL','US-KIT-EDIM-JASP-1G-1UB','US-KIT-EDIM-JASP-1G-1HB','US-KIT-EDIM-JASP-1G-1AB']},
+  ADA:{color:'rgba(139,68,200,0.9)', sales:15853, lq:17695,lq_uk:9216, lq_us:8316, units:1298, gm:0.7541,st:0.2004,wc:17.29, d2c:10459, b2b:5393, uk:7039, us:8296, row:518, skus:['KIT-CHB-ADA-FLOW-235-1AB','CBP-ADA-CROS-055-1BR','KIT-CHB-ADA-111-1AB','CBP-ADA-CROS-055-1AB','CBP-ADA-CROS-055-1PN','KIT-CHB-ADA-235-1PN']},
+  LOVELL:{color:'rgba(0,140,110,0.9)', sales:15654, lq:18257,lq_uk:14880, lq_us:2501, units:1582, gm:0.7599,st:0.42,wc:5.985, d2c:12597, b2b:3056, uk:13048, us:1870, row:735, skus:['KH-LOVELL-28-BR','CTB-WATT-220-1AB','COH-FOLD-160-1AB','KH-WATT-220-BR','COH-FOLD-160-1BR','CKN-LOVE-028-1AB']},
+  'EL COMPONENT':{color:'rgba(200,120,40,0.9)', sales:12755, lq:8880,lq_uk:5287, lq_us:3593, units:697, gm:0.727,st:0.0274,wc:153.656, d2c:9151, b2b:3604, uk:6599, us:6155, row:0, skus:['US-EL-PLA-1GU-1HB','GB-KIT-MODE-DIM-SM-1AB','GB-KIT-MODE-RTVT-KN-1AB','GB-KIT-MODE-DIM-KN-1AB','GB-KIT-MODE-INT-KN-1AB','GB-EL-PLA-2GT-2AB']}
+};
+const COLL_NAMES = Object.keys(COLL_ANALYSIS);
+let selectedColl = COLL_NAMES[0];
+
+// ── NEWNESS SKUS (current month — sourced directly from By SKU sheet) ──
+const NEWNESS_SKUS = [
+  {sku:'CKN-KEPL-031-1AB', desc:'KEPLER 31mm Knob - Antique Brass', coll:'KEPLER', ptype:'Cabinetry', finish:'Antique Brass', sales:6576, units:483, gm:0.7583, st:0.1411, wc:26.37, d2c:5187, b2b:1388, uk:3315, us:2928},
+  {sku:'CDB-BOBB-235-1BR', desc:'BOBBIN 235mm Handle - Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Brass', sales:3933, units:135, gm:0.735, st:0.6109, wc:2.76, d2c:2489, b2b:1444, uk:1730, us:1974},
+  {sku:'GB-LWL-ASTE-161-1UB', desc:'ASTER Flush Mount Light - Unlacquered Brass', coll:'GOOD BONES', ptype:'Lighting', finish:'Unlacquered Brass', sales:3662, units:30, gm:0.7462, st:0.2941, wc:10.4, d2c:1859, b2b:1803, uk:3662, us:0},
+  {sku:'KIT-CKB-BOBB-STAR-025-1BR', desc:'BOBBIN 25mm Knob + ADA Star Backplate - Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Brass', sales:2236, units:123, gm:0.8098, st:0.4198, wc:5.99, d2c:1964, b2b:271, uk:1641, us:595},
+  {sku:'CDB-BOBB-235-1AB', desc:'BOBBIN 235mm Handle - Antique Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Antique Brass', sales:2209, units:69, gm:0.747, st:0.6, wc:2.89, d2c:682, b2b:1527, uk:604, us:1605},
+  {sku:'KIT-CHB-BOBB-235-1AB', desc:'BOBBIN 235mm Handle + COHEN Backplate - Antique Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Antique Brass', sales:2122, units:56, gm:0.6721, st:0.8889, wc:0.54, d2c:1535, b2b:587, uk:1137, us:985},
+  {sku:'US-KIT-EOUT-JASP-1G-1BB-BL', desc:'JASPER 1G 15A Outlet - Blackened Bronze (Black Inserts)', coll:'JASPER', ptype:'Electric', finish:'Blackened Bronze', sales:2119, units:71, gm:0.7821, st:0.71, wc:1.77, d2c:287, b2b:1832, uk:0, us:2119},
+  {sku:'KIT-CKB-BOBB-STAR-025-1AB', desc:'BOBBIN 25mm Knob + ADA Star Backplate - Antique Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Antique Brass', sales:2095, units:120, gm:0.7819, st:0.6522, wc:2.31, d2c:1571, b2b:524, uk:1531, us:565},
+  {sku:'GB-LWL-ASTE-161-1AB', desc:'ASTER Flush Mount Light - Antique Brass', coll:'GOOD BONES', ptype:'Lighting', finish:'Antique Brass', sales:1831, units:14, gm:0.7632, st:0.2222, wc:15.17, d2c:1831, b2b:0, uk:1831, us:0},
+  {sku:'KIT-CHB-ADA-FLOW-235-1AB', desc:'ADA 235mm Handle with Flower Backplates - Antique Brass', coll:'ADA', ptype:'Cabinetry', finish:'Antique Brass', sales:1713, units:54, gm:0.743, st:0.7397, wc:1.52, d2c:608, b2b:1105, uk:1055, us:489},
+  {sku:'GB-LCL-VESP-160-2CM', desc:'VESPER Conical Pendant Light - Cream Enamel & Antique Brass', coll:'GOOD BONES', ptype:'Lighting', finish:'Cream', sales:1498, units:11, gm:0.8372, st:0.55, wc:3.55, d2c:1498, b2b:0, uk:1070, us:0},
+  {sku:'CDB-ALVA-104-1PN', desc:'ALVA 104mm D Bar Handle - Polished Nickel', coll:'ALVA', ptype:'Cabinetry', finish:'Polished Nickel', sales:1426, units:80, gm:0.7229, st:0.2759, wc:11.38, d2c:1158, b2b:268, uk:998, us:429},
+  {sku:'CKN-BOBB-025-1LB', desc:'BOBBIN 25mm Knob - Pale Blue', coll:'BOBBIN', ptype:'Cabinetry', finish:'Light Blue', sales:1340, units:118, gm:0.8133, st:0.4184, wc:6.02, d2c:963, b2b:377, uk:387, us:953},
+  {sku:'KIT-CKB-BOBB-FLOW-025-1AB', desc:'BOBBIN 25mm Knob + ADA Flower Backplate - Antique Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Antique Brass', sales:1288, units:74, gm:0.7676, st:0.1188, wc:32.15, d2c:1206, b2b:82, uk:1163, us:54},
+  {sku:'GB-LWL-STELL-140-2CM', desc:'STELLA Swivel Wall Light - Cream Enamel & Antique Brass', coll:'GOOD BONES', ptype:'Lighting', finish:'Cream', sales:1192, units:11, gm:0.8412, st:0.55, wc:3.55, d2c:894, b2b:298, uk:1192, us:0},
+  {sku:'GB-LCL-VESP-160-2PB', desc:'VESPER Conical Pendant Light - Polished Brass', coll:'GOOD BONES', ptype:'Lighting', finish:'Polished Brass', sales:1155, units:10, gm:0.8151, st:0.25, wc:13.0, d2c:254, b2b:901, uk:1155, us:0},
+  {sku:'KIT-CKB-GRAY-036-1UB', desc:'GRAYSON 36mm Knob + COHEN Backplate - Unlacquered Brass', coll:'GRAYSON', ptype:'Cabinetry', finish:'Unlacquered Brass', sales:1013, units:60, gm:0.7899, st:0.3141, wc:9.46, d2c:744, b2b:269, uk:252, us:761},
+  {sku:'KIT-CHB-ALVA-228-1UB', desc:'ALVA 228mm D Bar Handle + COHEN Backplate - Unlacquered Brass', coll:'ALVA', ptype:'Cabinetry', finish:'Unlacquered Brass', sales:990, units:32, gm:0.6881, st:0.4, wc:6.5, d2c:990, b2b:0, uk:0, us:990},
+  {sku:'US-KIT-E3WT-JASP-1G-1BB-BL', desc:'JASPER 1G Toggle Switch - 3 Way - Blackened Bronze (Black Inserts)', coll:'JASPER', ptype:'Electric', finish:'Blackened Bronze', sales:959, units:34, gm:0.7327, st:1.0303, wc:-0.13, d2c:69, b2b:890, uk:0, us:959},
+  {sku:'US-EL-PLA-1GU-1HB', desc:'1G Universal Plate - Heirloom Brass', coll:'EL COMPONENT', ptype:'Electric', finish:'Heirloom Brass', sales:945, units:38, gm:0.7776, st:0.8837, wc:0.57, d2c:945, b2b:0, uk:0, us:945},
+  {sku:'KIT-CKB-BOBB-025-1AG', desc:'BOBBIN 25mm Knob + COHEN Backplate - Aged Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Aged Brass', sales:869, units:53, gm:0.8156, st:0.0648, wc:62.55, d2c:200, b2b:669, uk:179, us:690},
+  {sku:'ADH-GRAY-130-1AB', desc:'GRAYSON 130mm Hook - Antique Brass', coll:'GRAYSON', ptype:'Accessories', finish:'Antique Brass', sales:838, units:37, gm:0.7493, st:0.3109, wc:9.6, d2c:530, b2b:308, uk:371, us:467},
+  {sku:'CDB-PEYT-479-1UB', desc:'PEYTON 479mm Heavyweight Handle - Unlacquered Brass', coll:'PEYTON', ptype:'Cabinetry', finish:'Unlacquered Brass', sales:798, units:6, gm:1, st:0.24, wc:13.72, d2c:0, b2b:798, uk:0, us:798},
+  {sku:'KIT-CKB-KEPL-031-1AB', desc:'KEPLER 31mm Knob + COHEN Backplate - Antique Brass', coll:'KEPLER', ptype:'Cabinetry', finish:'Antique Brass', sales:792, units:31, gm:0.8096, st:0.0413, wc:100.65, d2c:792, b2b:0, uk:18, us:773},
+  {sku:'KIT-CHB-BOBB-235-1BR', desc:'BOBBIN 235mm Handle + COHEN Backplate - Brass', coll:'BOBBIN', ptype:'Cabinetry', finish:'Brass', sales:758, units:19, gm:0.72, st:0.19, wc:18.47, d2c:693, b2b:65, uk:758, us:0}
+];
+
+
+function setFinishView(v) {
+  finishView = v;
+  document.querySelectorAll('#finish-view-tg button').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('onclick').includes("'" + v + "'")));
+  renderFinishView();
+}
+
+function renderFinishView() {
+  const tabs = document.getElementById('finish-tabs');
+  const body = document.getElementById('finish-body');
+  const meta = document.getElementById('finish-meta');
+  if (finishView === 'overview') {
+    tabs.style.display = 'none';
+    body.style.cssText = 'display:block';
+    if (meta) meta.textContent = 'all finishes \u00b7 by sales';
+    renderFinishOverview();
+  } else {
+    tabs.style.display = '';
+    body.style.cssText = '';            // restore CSS-class grid layout
+    if (meta) meta.textContent = 'share \u00b7 trend \u00b7 top collections & SKUs';
+    renderFinish();
+  }
+}
+
+function renderFinishOverview() {
+  const rows = FINISH_NAMES.map(f => Object.assign({ name: f }, FINISH_DATA[f]))
+                           .sort((a, b) => b.total - a.total);
+  const totalFin = rows.reduce((s, r) => s + r.total, 0);
+
+  const legendHTML = rows.map(r => {
+    const share = (r.total / totalFin * 100).toFixed(1);
+    const vsCls = pClass(r.vsLQ);
+    const vsStr = r.vsLQ != null ? fmtPct(r.vsLQ) : '\u2014';
+    return `
+      <div class="fin-leg-row" style="border-left-color:${r.color}">
+        <div class="fin-leg-sw" style="background:${r.color}"></div>
+        <div style="flex:1;min-width:0">
+          <div class="fin-leg-name">${r.name}</div>
+          <div class="fin-leg-sub">${r.units.toLocaleString()} units \u00b7 ${share}% of finishes</div>
+        </div>
+        <div class="fin-leg-val">${fmtGBP(r.total)}</div>
+        <div class="fin-leg-vs ${vsCls}">${vsStr}<div class="fin-leg-share">vs LM</div></div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('finish-body').innerHTML = `
+    <div class="fin-ov-wrap">
+      <div class="fin-pie-wrap">
+        <canvas id="finish-pie" height="300" style="display:block"></canvas>
+        <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);text-align:center">Finish share of sales \u00b7 ${CM_LABEL}</div>
+      </div>
+      <div class="fin-legend">${legendHTML}</div>
+    </div>`;
+
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('finish-pie');
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = 300, H = 300;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    const cx = W / 2, cy = H / 2 - 4, R = 110;
+    let angle = -Math.PI / 2;
+    rows.forEach(r => {
+      const frac = r.total / totalFin;
+      const sweep = frac * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, R, angle, angle + sweep);
+      ctx.closePath();
+      ctx.fillStyle = r.color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (frac >= 0.04) {
+        const midA = angle + sweep / 2;
+        const lx = cx + R * 0.62 * Math.cos(midA);
+        const ly = cy + R * 0.62 * Math.sin(midA);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = "bold 11px 'IBM Plex Mono'";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((frac * 100).toFixed(0) + '%', lx, ly);
+      }
+      angle += sweep;
+    });
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+}
+
+function setFinish(f) {
+  selectedFinish = f;
+  document.querySelectorAll('.ft-btn').forEach(b => b.classList.toggle('active', b.dataset.finish === f));
+  // Update active button background to match finish color
+  document.querySelectorAll('.ft-btn').forEach(b => {
+    if (b.classList.contains('active')) {
+      b.style.background = FINISH_DATA[f].color;
+    } else {
+      b.style.background = '';
+    }
+  });
+  renderFinish();
+}
+
+function initFinishTabs() {
+  const totalSales = 476275;
+  document.getElementById('finish-tabs').innerHTML = FINISH_NAMES.map(f => {
+    const d = FINISH_DATA[f];
+    const share = (d.total / totalSales * 100).toFixed(0);
+    return `<button class="ft-btn${f===selectedFinish?' active':''}" data-finish="${f}" onclick="setFinish('${f}')"
+      style="${f===selectedFinish?'background:'+d.color+';color:#0a0d14;font-weight:700':''}">${f} <span style="opacity:.65">${share}%</span></button>`;
+  }).join('');
+}
+
+function renderFinish() {
+  const d = FINISH_DATA[selectedFinish];
+  const totalSales = 476275;
+  const share = (d.total / totalSales * 100).toFixed(1);
+
+  // Stats panel
+  const vsLQStr = fmtPct(d.vsLQ);
+  const vsLYStr = d.vsLY != null ? fmtPct(d.vsLY) : '—';
+  const d2cShare = (d.d2c / d.total * 100).toFixed(0);
+  const ukShare = (d.uk / d.total * 100).toFixed(0);
+
+  const statsHTML = `
+    <div class="finish-stats">
+      <div class="fs-main" style="border-color:${d.color}">
+        <div class="fs-lbl">${CM_LABEL} Sales</div>
+        <div class="fs-val" style="color:${d.textColor}">${fmtGBP(d.total)}</div>
+        <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px">${d.units.toLocaleString()} units · ${share}% share</div>
+      </div>
+      <div class="fs-row">
+        <span class="fs-row-lbl">vs LM (${LM_SHORT})</span>
+        <span class="fs-row-val ${pClass(d.vsLQ)}">${vsLQStr}</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-row-lbl">vs LY (${LY_SHORT})</span>
+        <span class="fs-row-val ${d.vsLY!=null?pClass(d.vsLY):'neu'}">${vsLYStr}</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-row-lbl">LQ value</span>
+        <span class="fs-row-val" style="color:var(--muted)">${fmtGBP(d.lq)}</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-row-lbl">D2C share</span>
+        <span class="fs-row-val" style="color:var(--d2c)">${d2cShare}%</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-row-lbl">🇬🇧 UK</span>
+        <span class="fs-row-val" style="color:var(--uk)">${fmtGBP(d.uk)}</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-row-lbl">🇺🇸 US</span>
+        <span class="fs-row-val" style="color:var(--us)">${fmtGBP(d.us)}</span>
+      </div>
+    </div>`;
+
+  // Top SKUs panel
+  const maxSku = d.skus[0].sales;
+  const skusHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px">Top SKUs · ${CM_LABEL}</div>
+      ${d.skus.map((s,i) => {
+        const barW = (s.sales / maxSku * 100).toFixed(0);
+        const vsStr = s.vsLQ != null ? fmtPct(s.vsLQ) : 'New';
+        const vsCls = s.vsLQ != null ? pClass(s.vsLQ) : 'neu';
+        return `
+          <div class="fsku-row" style="border-left-color:${d.color}">
+            <span style="font-family:var(--font-m);font-size:8.5px;color:var(--muted);width:12px;flex-shrink:0">${i+1}</span>
+            <div style="flex:1;min-width:0">
+              <div class="fsku-name">${s.sku}</div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+                <div style="flex:1;height:3px;background:var(--surface);border-radius:2px;overflow:hidden">
+                  <div style="width:${barW}%;height:100%;background:${d.color};opacity:.7;border-radius:2px"></div>
+                </div>
+                <span style="font-family:var(--font-m);font-size:8px;color:var(--muted)">${s.coll}</span>
+              </div>
+            </div>
+            <span class="fsku-val">${fmtGBP(s.sales)}</span>
+            <span class="fsku-vs ${vsCls}">${vsStr}</span>
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('finish-body').innerHTML = `${statsHTML}
+    <div class="finish-donut-wrap" id="finish-donut-outer">
+      <canvas id="finish-donut" height="210" style="display:block;width:100%"></canvas>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);text-align:center;margin-top:-4px">Sales by Collection</div>
+    </div>
+    ${skusHTML}`;
+
+  // Draw donut with popped-out label boxes
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('finish-donut');
+    if (!canvas) return;
+    const W = Math.max(canvas.getBoundingClientRect().width || 300, 300);
+    const H = 290;
+    canvas.width = W * window.devicePixelRatio;
+    canvas.height = H * window.devicePixelRatio;
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.clearRect(0, 0, W, H);
+
+    const collSplit = d.collSplit;
+    const entries = Object.entries(collSplit).sort((a,b) => b[1]-a[1]);
+    const total = entries.reduce((s,[,v]) => s+v, 0);
+    const cx = W/2, cy = 145, outerR = 62, innerR = 38;
+
+    const PALETTE = [d.color,
+      d.color.replace(/[\d.]+,[\d.]+,[\d.]+/,'91,156,246'),
+      d.color.replace(/[\d.]+,[\d.]+,[\d.]+/,'79,209,165'),
+      d.color.replace(/[\d.]+,[\d.]+,[\d.]+/,'240,117,96'),
+      d.color.replace(/[\d.]+,[\d.]+,[\d.]+/,'176,125,245'),
+      d.color.replace(/[\d.]+,[\d.]+,[\d.]+/,'240,192,64'),
+      'rgba(0,0,0,0.6)',
+    ];
+
+    // ── 1. Build slice geometry ──────────────────────────────────
+    const slices = [];
+    let angle = -Math.PI / 2;
+    entries.forEach(([name, val], i) => {
+      const sweep = (val / total) * Math.PI * 2;
+      slices.push({ name, val, i, sweep, startA: angle, midA: angle + sweep / 2,
+                    col: PALETTE[i] || 'rgba(0,0,0,0.75)' });
+      angle += sweep;
+    });
+
+    // ── 2. Compute label positions (left / right columns) ────────
+    const ELBOW_X   = outerR + 18;  // horizontal distance from cx to elbow
+    const LBL_GAP   = 6;            // gap between label box and elbow line
+    const LBL_H     = 30;           // box height
+    const MIN_SEP   = LBL_H + 3;   // minimum vertical gap between boxes on same side
+    const FONT      = 9;
+    ctx.font = `bold ${FONT}px 'IBM Plex Mono'`;
+
+    const buildLabel = (s) => {
+      const pct  = (s.val / total * 100).toFixed(0) + '%';
+      const nameShort = s.name === 'OTHER' ? 'Other' : s.name.substring(0, 9);
+      const line1 = nameShort;
+      const line2 = pct + '  ' + fmtGBP(s.val);
+      const w1 = ctx.measureText(line1).width;
+      const w2 = ctx.measureText(line2).width;
+      const boxW = Math.max(w1, w2) + 10;
+      const onRight = Math.cos(s.midA) >= 0;
+      // Natural y = projection of midA onto cy
+      const naturalY = cy + (outerR + ELBOW_X * 0.6) * Math.sin(s.midA);
+      return { ...s, pct, line1, line2, boxW, onRight, naturalY, labelY: naturalY };
+    };
+
+    const labels = slices.map(buildLabel);
+    const rightLabels = labels.filter(l =>  l.onRight).sort((a,b) => a.naturalY - b.naturalY);
+    const leftLabels  = labels.filter(l => !l.onRight).sort((a,b) => a.naturalY - b.naturalY);
+
+    // Push apart overlapping labels
+    const deOverlap = (group) => {
+      for (let pass = 0; pass < 6; pass++) {
+        for (let i = 1; i < group.length; i++) {
+          const overlap = MIN_SEP - (group[i].labelY - group[i-1].labelY);
+          if (overlap > 0) {
+            group[i-1].labelY -= overlap / 2;
+            group[i].labelY   += overlap / 2;
+          }
+        }
+        // Clamp to canvas bounds
+        group.forEach(l => {
+          l.labelY = Math.max(LBL_H / 2 + 6, Math.min(H - LBL_H / 2 - 6, l.labelY));
+        });
+      }
+    };
+    deOverlap(rightLabels);
+    deOverlap(leftLabels);
+
+    // ── 3. Draw slices ───────────────────────────────────────────
+    slices.forEach(s => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, outerR, s.startA, s.startA + s.sweep);
+      ctx.closePath();
+      ctx.fillStyle = s.col;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+
+    // ── 4. Donut hole + centre text ──────────────────────────────
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = d.textColor;
+    ctx.font = `bold 12px 'IBM Plex Mono'`;
+    ctx.fillText(fmtGBP(d.total), cx, cy + 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.font = `8px 'IBM Plex Mono'`;
+    ctx.fillText(CM_LABEL, cx, cy + 13);
+
+    // ── 5. Connector lines + label boxes ────────────────────────
+    const allLabels = [...rightLabels, ...leftLabels];
+    const R = 3; // box corner radius
+
+    allLabels.forEach(lbl => {
+      const elbowX  = lbl.onRight ? cx + ELBOW_X : cx - ELBOW_X;
+      const rimX    = cx + (outerR + 3) * Math.cos(lbl.midA);
+      const rimY    = cy + (outerR + 3) * Math.sin(lbl.midA);
+      const bendX   = cx + (outerR + 10) * Math.cos(lbl.midA);
+      const bendY   = cy + (outerR + 10) * Math.sin(lbl.midA);
+      const boxX    = lbl.onRight ? elbowX + LBL_GAP : elbowX - LBL_GAP - lbl.boxW;
+      const boxY    = lbl.labelY - LBL_H / 2;
+
+      // Connector: rim → bend → elbow → label edge midpoint
+      const edgeMidX = lbl.onRight ? boxX : boxX + lbl.boxW;
+      ctx.strokeStyle = lbl.col.replace(/[\d.]+\)$/, '0.7)');
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(rimX, rimY);
+      ctx.lineTo(bendX, bendY);
+      ctx.lineTo(elbowX, lbl.labelY);
+      ctx.lineTo(edgeMidX, lbl.labelY);
+      ctx.stroke();
+
+      // White label box with coloured border
+      ctx.fillStyle = 'rgba(242, 246, 255, 0.97)';
+      ctx.strokeStyle = lbl.col.replace(/[\d.]+\)$/, '0.85)');
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(boxX + R, boxY);
+      ctx.lineTo(boxX + lbl.boxW - R, boxY);
+      ctx.quadraticCurveTo(boxX + lbl.boxW, boxY, boxX + lbl.boxW, boxY + R);
+      ctx.lineTo(boxX + lbl.boxW, boxY + LBL_H - R);
+      ctx.quadraticCurveTo(boxX + lbl.boxW, boxY + LBL_H, boxX + lbl.boxW - R, boxY + LBL_H);
+      ctx.lineTo(boxX + R, boxY + LBL_H);
+      ctx.quadraticCurveTo(boxX, boxY + LBL_H, boxX, boxY + LBL_H - R);
+      ctx.lineTo(boxX, boxY + R);
+      ctx.quadraticCurveTo(boxX, boxY, boxX + R, boxY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Left-edge colour accent bar
+      ctx.fillStyle = lbl.col;
+      ctx.fillRect(boxX, boxY + R, 3, LBL_H - R * 2);
+
+      // Text: line 1 bold (name), line 2 regular (pct + value)
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#0d1018';
+      ctx.font = `bold ${FONT}px 'IBM Plex Mono'`;
+      ctx.fillText(lbl.line1, boxX + 8, boxY + FONT + 4);
+      ctx.font = `${FONT}px 'IBM Plex Mono'`;
+      ctx.fillStyle = '#3a4560';
+      ctx.fillText(lbl.line2, boxX + 8, boxY + FONT * 2 + 6);
+    });
+  });
+}
+
+// ================================================================
+// MOVERS
+// ================================================================
+function renderMovers() {
+  const sorted = [...COLLECTIONS].filter(c => c.lq_total > 0 && c.ts > 0);
+  const risers = [...sorted].sort((a,b) => b.vs_lq - a.vs_lq).slice(0, 5);
+  const fallers = [...sorted].sort((a,b) => a.vs_lq - b.vs_lq).slice(0, 5);
+
+  const mkItem = (c, cls) => `
+    <div class="mover-item">
+      <div>
+        <div class="mi-name">${c.c}</div>
+        <div class="mi-sub">${c.t} · ${fmtGBP(c.ts)}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="mi-pct ${cls}">${fmtPct(c.vs_lq)}</div>
+        <div class="mi-abs">${cls==='up'?'▲':'▼'} vs ${LM_LABEL}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('movers').innerHTML = `
+    <div class="mover-col rise">
+      <h4>▲ Rising vs LM</h4>
+      ${risers.map(c => mkItem(c, 'up')).join('')}
+    </div>
+    <div class="mover-col fall">
+      <h4>▼ Falling vs LM</h4>
+      ${fallers.map(c => mkItem(c, 'dn')).join('')}
+    </div>`;
+}
+
+// ================================================================
+// GEO + CHANNEL CARDS
+// ================================================================
+function renderGeoCards() {
+  const Q = PERIODS.q1_26, LQ = PERIODS.q4_25, LY = PERIODS.q1_25;
+  const geos = [
+    {key:'uk', flag:'🇬🇧', label:'United Kingdom', cls:'uk-card', col:'var(--uk)',
+     val:Q.uk, lq:LQ.uk, ly:LY.uk, u:Q.uk_u,
+     d2c:null, b2b:null, gm:0.718,
+     vs_lq:(Q.uk-LQ.uk)/LQ.uk, vs_ly:(Q.uk-LY.uk)/LY.uk},
+    {key:'us', flag:'🇺🇸', label:'United States', cls:'us-card', col:'var(--us)',
+     val:Q.us, lq:LQ.us, ly:LY.us, u:Q.us_u,
+     d2c:null, b2b:null, gm:0.770,
+     vs_lq:(Q.us-LQ.us)/LQ.us, vs_ly:(Q.us-LY.us)/LY.us},
+    {key:'row', flag:'🌍', label:'Rest of World', cls:'row-card', col:'var(--row)',
+     val:Q.row, lq:LQ.row, ly:LY.row, u:Q.row_u,
+     gm:0.779, vs_lq:(Q.row-LQ.row)/LQ.row, vs_ly:(Q.row-LY.row)/LY.row},
+  ];
+
+  document.getElementById('geo-cards').innerHTML = geos.map(g => {
+    const share = (g.val / Q.total * 100).toFixed(1);
+    return `
+      <div class="ro-card ${g.cls}">
+        <div class="ro-header">
+          <div>
+            <div class="ro-title">${g.flag} ${g.label}</div>
+            <div class="ro-val" style="color:${g.col}">${fmtGBP(g.val)}</div>
+            <div class="ro-sub">${fmtU(g.u)} units · ${share}% of total · GM ${(g.gm*100).toFixed(1)}%</div>
+          </div>
+        </div>
+        <div class="ro-badges">
+          <span class="badge ${badgeClass(g.vs_lq)}"><span class="badge-lbl">LM</span>${fmtPct(g.vs_lq)}</span>
+          <span class="badge ${badgeClass(g.vs_ly)}"><span class="badge-lbl">LY</span>${fmtPct(g.vs_ly)}</span>
+        </div>
+        <div class="ro-split">
+          <div class="ro-split-item">
+            <div class="ro-split-lbl">${LM_LABEL}</div>
+            <div class="ro-split-val">${fmtGBP(g.lq)}</div>
+          </div>
+          <div class="ro-split-item">
+            <div class="ro-split-lbl">${LY_LABEL} (LY)</div>
+            <div class="ro-split-val">${fmtGBP(g.ly)}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderChannelCards() {
+  const Q = PERIODS.q1_26, LQ = PERIODS.q4_25, LY = PERIODS.q1_25;
+  const channels = [
+    {label:'D2C', cls:'d2c-card', col:'var(--d2c)',
+     val:Q.d2c, lq:LQ.d2c, ly:LY.d2c, u:Q.d2c_u, gm:0.767,
+     vs_lq:(Q.d2c-LQ.d2c)/LQ.d2c, vs_ly:(Q.d2c-LY.d2c)/LY.d2c},
+    {label:'B2B', cls:'b2b-card', col:'var(--b2b)',
+     val:Q.b2b, lq:LQ.b2b, ly:LY.b2b, u:Q.b2b_u, gm:0.687,
+     vs_lq:(Q.b2b-LQ.b2b)/LQ.b2b, vs_ly:(Q.b2b-LY.b2b)/LY.b2b},
+  ];
+
+  document.getElementById('channel-cards').innerHTML = channels.map(ch => {
+    const share = (ch.val / Q.total * 100).toFixed(1);
+    return `
+      <div class="ro-card ${ch.cls}">
+        <div class="ro-header">
+          <div>
+            <div class="ro-title">${ch.label} Channel</div>
+            <div class="ro-val" style="color:${ch.col}">${fmtGBP(ch.val)}</div>
+            <div class="ro-sub">${fmtU(ch.u)} units · ${share}% share · GM ${(ch.gm*100).toFixed(1)}%</div>
+          </div>
+        </div>
+        <div class="ro-badges">
+          <span class="badge ${badgeClass(ch.vs_lq)}"><span class="badge-lbl">LM</span>${fmtPct(ch.vs_lq)}</span>
+          <span class="badge ${badgeClass(ch.vs_ly)}"><span class="badge-lbl">LY</span>${fmtPct(ch.vs_ly)}</span>
+        </div>
+        <div class="ro-split">
+          <div class="ro-split-item">
+            <div class="ro-split-lbl">${LM_LABEL}</div>
+            <div class="ro-split-val">${fmtGBP(ch.lq)}</div>
+          </div>
+          <div class="ro-split-item">
+            <div class="ro-split-lbl">${LY_LABEL} (LY)</div>
+            <div class="ro-split-val">${fmtGBP(ch.ly)}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ================================================================
+// STATUS
+// ================================================================
+function renderStatus() {
+  const tot = STATUSES.reduce((s, x) => s + x.sales, 0);
+  const SCOLS = {Continuity:'var(--uk)',Newness:'var(--d2c)',Discontinued:'var(--amber)',Dead:'var(--red)'};
+
+  document.getElementById('status-list').innerHTML = STATUSES.map(s => {
+    const share = (s.sales/tot*100).toFixed(0);
+    const barW = (s.sales/tot*100).toFixed(1);
+    const col = SCOLS[s.s] || 'var(--muted)';
+    return `
+      <div class="st-row">
+        <div class="st-hdr">
+          <span class="st-name" style="color:${col}">${s.s}</span>
+          <span class="st-share">${fmtGBP(s.sales)} · ${share}%</span>
+        </div>
+        <div class="st-track"><div class="st-fill" style="width:${barW}%;background:${col};opacity:.8"></div></div>
+        <div class="st-comps">
+          <span class="st-comp">LQ: <span class="${pClass(s.vs_lq)}">${fmtPct(s.vs_lq)}</span></span>
+          <span class="st-comp">LY: <span class="${pClass(s.vs_ly)}">${fmtPct(s.vs_ly)}</span></span>
+          <span class="st-comp">GM: ${(s.gm*100).toFixed(1)}%</span>
+          <span class="st-comp">ST: ${(s.st*100).toFixed(0)}%</span>
+          <span class="st-comp">WC: ${s.wc.toFixed(1)}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ================================================================
+// SCATTER
+// ================================================================
+function renderScatter() {
+  const canvas = document.getElementById('scatter-canvas');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width || 600, H = 260;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+
+  const padL = 55, padR = 20, padT = 15, padB = 40;
+  const cW = W - padL - padR, cH = H - padT - padB;
+  const minGM = 0.60, maxGM = 0.85;
+  const maxS = Math.max(...COLLECTIONS.map(c => c.ts));
+  const typeColors = {Cabinetry:'rgba(26,111,212,0.85)',Electric:'rgba(176,125,0,0.85)',Accessories:'rgba(106,62,194,0.85)',Lighting:'rgba(26,155,116,0.85)'};
+
+  // Grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + cH - i/4 * cH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    const lbl = '£' + Math.round(maxS * i/4 / 1000) + 'K';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.font = `9px 'IBM Plex Mono'`; ctx.textAlign = 'right';
+    ctx.fillText(lbl, padL - 5, y + 3);
+  }
+  for (let i = 0; i <= 5; i++) {
+    const x = padL + i/5 * cW;
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + cH); ctx.stroke();
+    const lbl = ((minGM + (maxGM - minGM) * i/5) * 100).toFixed(0) + '%';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.font = `9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+    ctx.fillText(lbl, x, padT + cH + 14);
+  }
+
+  // Axis labels
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.font = `9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+  ctx.fillText('Gross Margin %', padL + cW/2, H - 6);
+  ctx.save(); ctx.translate(12, padT + cH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Revenue £', 0, 0); ctx.restore();
+
+  COLLECTIONS.slice(0, 12).forEach(c => {
+    const x = padL + ((c.gm - minGM) / (maxGM - minGM)) * cW;
+    const y = padT + cH - (c.ts / maxS) * cH;
+    const r = Math.max(5, Math.min(22, Math.sqrt(c.tu) * 0.8));
+    const col = typeColors[c.t] || 'rgba(0,0,0,0.8)';
+
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = col.replace('0.85', '0.25');
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(24,24,28,0.85)';
+    ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+    ctx.fillText(c.c.substring(0,7), x, y + 3);
+
+    // vs LM arrow — position derived from bubble centre (x, y) and radius (r)
+    // so it stays anchored to its bubble at any canvas width.  Clamped so it
+    // never drifts outside the plot area when a bubble sits near an edge.
+    if (c.vs_lq !== 0) {
+      const arrowX = Math.min(x + r + 4, W - padR - 4);
+      const arrowY = Math.max(y - r + 3, padT + 8);
+      const arrowCol = c.vs_lq > 0 ? 'rgba(26,155,116,0.8)' : 'rgba(204,42,56,0.8)';
+      ctx.fillStyle = arrowCol;
+      ctx.font = `8px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText(c.vs_lq > 0 ? '▲' : '▼', arrowX, arrowY);
+    }
+  });
+}
+
+// ================================================================
+// SKU TABLE
+// ================================================================
+function sortT(k) {
+  tSortDir = tSortKey === k ? (tSortDir === 'desc' ? 'asc' : 'desc') : 'desc';
+  tSortKey = k; tPage = 0; renderTable();
+}
+function pgChange(d) {
+  const max = Math.ceil(SKUS.length/PAGE) - 1;
+  tPage = Math.max(0, Math.min(max, tPage + d));
+  renderTable();
+}
+function renderTable() {
+  const m = skuMetric === 'sales';
+  let rows = SKUS.filter(s => {
+    if (skuGeo === 'uk') return s.uk_s2 > 0;
+    if (skuGeo === 'us') return s.us_s2 > 0;
+    return true;
+  });
+
+  const sk = tSortKey;
+  rows = [...rows].sort((a,b) => {
+    const va = a[sk] ?? (tSortDir==='desc'?-Infinity:Infinity);
+    const vb = b[sk] ?? (tSortDir==='desc'?-Infinity:Infinity);
+    if (typeof va === 'string') return tSortDir==='desc'?vb.localeCompare(va):va.localeCompare(vb);
+    return tSortDir==='desc'?vb-va:va-vb;
+  });
+
+  const pg = rows.slice(tPage*PAGE, (tPage+1)*PAGE);
+  const typeMap = {Cabinetry:'tc',Electric:'te',Accessories:'ta',Lighting:'tl'};
+  const statusColors = {Continuity:'var(--uk)',Newness:'var(--green)',Discontinued:'var(--amber)',Dead:'var(--red)',New:'var(--green)'};
+
+  document.getElementById('sku-tbody').innerHTML = pg.map((s, i) => {
+    const mainVal = m ? (skuGeo==='uk' ? fmtGBP(s.uk_s2) : skuGeo==='us' ? fmtGBP(s.us_s2) : fmtGBP(s.total_sales))
+                      : (skuGeo==='uk' ? fmtU(s.uk_u)   : skuGeo==='us' ? fmtU(s.us_u)   : fmtU(s.total_units));
+    const ukDisplay = m ? (s.uk_s2 > 0 ? fmtGBP(s.uk_s2) : '—') : (s.uk_u > 0 ? fmtU(s.uk_u) : '—');
+    const usDisplay = m ? (s.us_s2 > 0 ? fmtGBP(s.us_s2) : '—') : (s.us_u > 0 ? fmtU(s.us_u) : '—');
+    const vsLQStr = fmtPct(s.vs_lq);
+    const vsLYStr = s.ly > 0 ? fmtPct((s.total_sales - s.ly) / s.ly) : '—';
+    const gmStr = (s.gm*100).toFixed(0)+'%';
+    const stStr = (s.st*100).toFixed(0)+'%';
+    const wcStr = s.wc < 0.1 ? '—' : s.wc.toFixed(1);
+    const ukPill = s.uk_s2 > 0 ? `<span class="geo-pill geo-uk">${ukDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const usPill = s.us_s2 > 0 ? `<span class="geo-pill geo-us">${usDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const sCol = statusColors[s.uk_s] || 'var(--muted)';
+
+    return `<tr>
+      <td style="color:var(--muted)">${tPage*PAGE+i+1}</td>
+      <td style="color:var(--amber);font-weight:500;font-size:9px">${s.sku}</td>
+      <td><span class="status-dot" style="background:${sCol}"></span>${s.c}</td>
+      <td><span class="ttag ${typeMap[s.t]||'tc'}">${s.t.substring(0,4)}</span></td>
+      <td class="td-r"><strong>${mainVal}</strong></td>
+      <td class="td-r" style="color:var(--muted)">${m ? fmtU(s.total_units) : fmtGBP(s.total_sales)}</td>
+      <td class="td-r">${ukPill}</td>
+      <td class="td-r">${usPill}</td>
+      <td class="td-r ${pClass(s.vs_lq)}">${vsLQStr}</td>
+      <td class="td-r" style="color:var(--muted)">${vsLYStr}</td>
+      <td class="td-r" style="color:var(--d2c)">${gmStr}</td>
+      <td class="td-r">${stStr}</td>
+      <td class="td-r ${s.wc > 4 ? 'neg' : s.wc < 1 ? 'pos' : ''}">${wcStr}</td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('thead th').forEach(th => { th.classList.remove('sort-d','sort-a'); });
+  const thEl = document.querySelector(`thead th[onclick="sortT('${tSortKey}')"]`);
+  if (thEl) thEl.classList.add(tSortDir==='desc'?'sort-d':'sort-a');
+
+  const total = rows.length, max = Math.ceil(total/PAGE) - 1;
+  document.getElementById('tbl-info').textContent = `Showing ${tPage*PAGE+1}–${Math.min((tPage+1)*PAGE, total)} of ${total}`;
+  document.getElementById('btn-prev').disabled = tPage === 0;
+  document.getElementById('btn-next').disabled = tPage >= max;
+  document.getElementById('tbl-meta').textContent = `${CM_LABEL} · sorted by ${tSortKey.replace(/_/g,' ')} ${tSortDir==='desc'?'↓':'↑'} · geo: ${skuGeo.toUpperCase()} · click headers to sort`;
+}
+
+// ================================================================
+// COLLECTION ANALYSIS TABS (like Finish Analysis)
+// ================================================================
+function setCollTab(c) {
+  selectedColl = c;
+  document.querySelectorAll('.coll-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.coll === c);
+    b.style.background = b.classList.contains('active') ? COLL_ANALYSIS[c].color : '';
+  });
+  renderCollAnalysis();
+}
+
+function initCollTabs() {
+  const el = document.getElementById('coll-tabs');
+  if (!el) return;
+  el.innerHTML = COLL_NAMES.map(c => {
+    const d = COLL_ANALYSIS[c];
+    const share = (d.sales / TOTAL_SALES * 100).toFixed(0);
+    return `<button class="ft-btn coll-tab-btn${c===selectedColl?' active':''}" data-coll="${c}" onclick="setCollTab('${c}')"
+      style="${c===selectedColl?'background:'+d.color+';color:#0a0d14;font-weight:700':''}">${c} <span style="opacity:.65">${share}%</span></button>`;
+  }).join('');
+}
+
+function renderCollAnalysis() {
+  const d = COLL_ANALYSIS[selectedColl];
+  const share = (d.sales / TOTAL_SALES * 100).toFixed(1);
+  const vsLQ = d.lq > 0 ? (d.sales - d.lq) / d.lq : null;
+
+  const statsHTML = `
+    <div class="finish-stats">
+      <div class="fs-main" style="border-color:${d.color}">
+        <div class="fs-lbl">${CM_LABEL} Sales</div>
+        <div class="fs-val" style="color:${d.color}">${fmtGBP(d.sales)}</div>
+        <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px">${d.units.toLocaleString()} units · ${share}% share</div>
+      </div>
+      <div class="fs-row"><span class="fs-row-lbl">vs LM (${LM_SHORT})</span><span class="fs-row-val ${vsLQ!=null?pClass(vsLQ):'neu'}">${vsLQ!=null?fmtPct(vsLQ):'—'}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">Gross Margin</span><span class="fs-row-val" style="color:var(--d2c)">${(d.gm*100).toFixed(1)}%</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">Sell Through</span><span class="fs-row-val">${(d.st*100).toFixed(0)}%</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">Weeks Cover</span><span class="fs-row-val ${d.wc>4?'neg':d.wc<1?'pos':''}">${d.wc.toFixed(1)} wks</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">D2C Share</span><span class="fs-row-val" style="color:var(--d2c)">${(d.d2c/d.sales*100).toFixed(0)}%</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">🇬🇧 UK</span><span class="fs-row-val" style="color:var(--uk)">${fmtGBP(d.uk)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">🇺🇸 US</span><span class="fs-row-val" style="color:var(--us)">${fmtGBP(d.us)}</span></div>
+    </div>`;
+
+  // Top SKUs for this collection from main SKUS array
+  const collSkus = SKUS.filter(s => s.c === selectedColl).slice(0, 8);
+  const maxSku = collSkus[0] ? collSkus[0].total_sales : 1;
+  const skusHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px">Top SKUs · ${CM_LABEL}</div>
+      ${collSkus.length ? collSkus.map((s,i) => {
+        const bW = (s.total_sales / maxSku * 100).toFixed(0);
+        const vsStr = s.vs_lq != null ? fmtPct(s.vs_lq) : '—';
+        return `
+          <div class="fsku-row" style="border-left-color:${d.color}">
+            <span style="font-family:var(--font-m);font-size:8.5px;color:var(--muted);width:12px;flex-shrink:0">${i+1}</span>
+            <div style="flex:1;min-width:0">
+              <div class="fsku-name">${s.sku}</div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+                <div style="flex:1;height:3px;background:var(--surface);border-radius:2px;overflow:hidden">
+                  <div style="width:${bW}%;height:100%;background:${d.color};opacity:.7;border-radius:2px"></div>
+                </div>
+                <span style="font-family:var(--font-m);font-size:8px;color:var(--muted)">GM ${(s.gm*100).toFixed(0)}%</span>
+              </div>
+            </div>
+            <span class="fsku-val">${fmtGBP(s.total_sales)}</span>
+            <span class="fsku-vs ${pClass(s.vs_lq)}">${vsStr}</span>
+          </div>`;
+      }).join('') : '<div style="font-family:var(--font-m);font-size:10px;color:var(--muted);padding:12px">No SKU data in top 25</div>'}
+    </div>`;
+
+  document.getElementById('coll-body').innerHTML = `${statsHTML}
+    <div class="finish-donut-wrap" id="coll-donut-outer">
+      <canvas id="coll-donut" height="210" style="display:block;width:100%"></canvas>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);text-align:center;margin-top:-4px">Geo &amp; Channel Split</div>
+    </div>
+    ${skusHTML}`;
+
+  // Draw donut — Geo split (UK / US / ROW) + D2C/B2B ring
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('coll-donut');
+    if (!canvas) return;
+    const W = Math.max(canvas.getBoundingClientRect().width || 300, 300);
+    const H = 290;
+    canvas.width = W * window.devicePixelRatio;
+    canvas.height = H * window.devicePixelRatio;
+    canvas.style.height = H + 'px';
+    const ctx2 = canvas.getContext('2d');
+    ctx2.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx2.clearRect(0, 0, W, H);
+
+    const geo = [
+      {name:'UK',  val:d.uk,  col:'rgba(91,156,246,0.9)'},
+      {name:'US',  val:d.us,  col:'rgba(240,192,64,0.9)'},
+      {name:'ROW', val:d.row || (d.sales - d.uk - d.us), col:'rgba(201,122,232,0.8)'},
+    ];
+    const ch = [
+      {name:'D2C', val:d.d2c, col:'rgba(79,209,165,0.9)'},
+      {name:'B2B', val:d.b2b, col:'rgba(240,117,96,0.9)'},
+    ];
+
+    const cx = W/2, cy = 135, outerR = 65, midR = 44, innerR = 28;
+    const total = d.sales;
+
+    // Draw outer ring = geo
+    [geo, ch].forEach((slices, ring) => {
+      const r1 = ring === 0 ? outerR : midR;
+      const r0 = ring === 0 ? midR + 2 : innerR;
+      let a = -Math.PI/2;
+      slices.forEach(s => {
+        const sweep = (s.val / total) * Math.PI * 2;
+        ctx2.beginPath();
+        ctx2.arc(cx, cy, r1, a, a+sweep);
+        ctx2.arc(cx, cy, r0, a+sweep, a, true);
+        ctx2.closePath();
+        ctx2.fillStyle = s.col;
+        ctx2.fill();
+        ctx2.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx2.lineWidth = 1.5;
+        ctx2.stroke();
+        a += sweep;
+      });
+    });
+
+    // Centre hole
+    ctx2.beginPath();
+    ctx2.arc(cx, cy, innerR, 0, Math.PI*2);
+    ctx2.fillStyle = '#ffffff';
+    ctx2.fill();
+
+    // Centre text
+    ctx2.textAlign = 'center';
+    ctx2.fillStyle = d.color;
+    ctx2.font = `bold 11px 'IBM Plex Mono'`;
+    ctx2.fillText(fmtGBP(d.sales), cx, cy + 2);
+    ctx2.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx2.font = `8px 'IBM Plex Mono'`;
+    ctx2.fillText(share + '% share', cx, cy + 13);
+
+    // Popped-out labels for geo (outer ring) with connector lines
+    const FONT = 9;
+    ctx2.font = `bold ${FONT}px 'IBM Plex Mono'`;
+    const LBL_H = 28, R = 3, ELBOW_X = outerR + 16, LBL_GAP = 5;
+
+    const allLabels = [];
+    let ga = -Math.PI/2;
+    geo.forEach((s, i) => {
+      const sweep = (s.val / total) * Math.PI * 2;
+      const midA = ga + sweep/2;
+      const pct = (s.val/total*100).toFixed(0)+'%';
+      const line1 = s.name;
+      const line2 = pct + ' · ' + fmtGBP(s.val);
+      const boxW = Math.max(ctx2.measureText(line1).width, ctx2.measureText(line2).width) + 10;
+      allLabels.push({midA, line1, line2, boxW, col:s.col, onRight:Math.cos(midA)>=0, naturalY: cy + (outerR+10)*Math.sin(midA)});
+      ga += sweep;
+    });
+
+    const rL = allLabels.filter(l=>l.onRight).sort((a,b)=>a.naturalY-b.naturalY);
+    const lL = allLabels.filter(l=>!l.onRight).sort((a,b)=>a.naturalY-b.naturalY);
+    [[...rL],[...lL]].forEach(grp => {
+      for (let pass=0;pass<6;pass++) for(let i=1;i<grp.length;i++){const ov=(LBL_H+4)-(grp[i].naturalY-grp[i-1].naturalY);if(ov>0){grp[i-1].naturalY-=ov/2;grp[i].naturalY+=ov/2;}}
+    });
+    [...rL,...lL].forEach(lbl => {
+      const elbX = lbl.onRight ? cx+ELBOW_X : cx-ELBOW_X;
+      const rimX = cx+(outerR+3)*Math.cos(lbl.midA), rimY = cy+(outerR+3)*Math.sin(lbl.midA);
+      const bendX = cx+(outerR+9)*Math.cos(lbl.midA), bendY = cy+(outerR+9)*Math.sin(lbl.midA);
+      const boxX = lbl.onRight ? elbX+LBL_GAP : elbX-LBL_GAP-lbl.boxW;
+      const boxY = lbl.naturalY - LBL_H/2;
+      const edgeX = lbl.onRight ? boxX : boxX+lbl.boxW;
+      ctx2.strokeStyle = lbl.col.replace(/[\d.]+\)$/,'0.7)'); ctx2.lineWidth=1;
+      ctx2.beginPath(); ctx2.moveTo(rimX,rimY); ctx2.lineTo(bendX,bendY); ctx2.lineTo(elbX,lbl.naturalY); ctx2.lineTo(edgeX,lbl.naturalY); ctx2.stroke();
+      ctx2.fillStyle='rgba(242,246,255,0.97)'; ctx2.strokeStyle=lbl.col.replace(/[\d.]+\)$/,'0.85)'); ctx2.lineWidth=1.5;
+      ctx2.beginPath();
+      ctx2.moveTo(boxX+R,boxY); ctx2.lineTo(boxX+lbl.boxW-R,boxY);
+      ctx2.quadraticCurveTo(boxX+lbl.boxW,boxY,boxX+lbl.boxW,boxY+R);
+      ctx2.lineTo(boxX+lbl.boxW,boxY+LBL_H-R); ctx2.quadraticCurveTo(boxX+lbl.boxW,boxY+LBL_H,boxX+lbl.boxW-R,boxY+LBL_H);
+      ctx2.lineTo(boxX+R,boxY+LBL_H); ctx2.quadraticCurveTo(boxX,boxY+LBL_H,boxX,boxY+LBL_H-R);
+      ctx2.lineTo(boxX,boxY+R); ctx2.quadraticCurveTo(boxX,boxY,boxX+R,boxY); ctx2.closePath();
+      ctx2.fill(); ctx2.stroke();
+      ctx2.fillStyle=lbl.col; ctx2.fillRect(boxX,boxY+R,3,LBL_H-R*2);
+      ctx2.textAlign='left'; ctx2.fillStyle='#0d1018'; ctx2.font=`bold ${FONT}px 'IBM Plex Mono'`;
+      ctx2.fillText(lbl.line1,boxX+8,boxY+FONT+4);
+      ctx2.font=`${FONT}px 'IBM Plex Mono'`; ctx2.fillStyle='#3a4560';
+      ctx2.fillText(lbl.line2,boxX+8,boxY+FONT*2+6);
+    });
+
+    // Inner ring legend (D2C/B2B) — simple inline below canvas
+    let lx2 = cx - 60, ly2 = cy + outerR + 30;
+    ch.forEach(s => {
+      ctx2.fillStyle=s.col; ctx2.fillRect(lx2,ly2-8,8,8);
+      ctx2.fillStyle='rgba(0,0,0,0.8)'; ctx2.font=`8.5px 'IBM Plex Mono'`; ctx2.textAlign='left';
+      const pct=(s.val/total*100).toFixed(0)+'%';
+      ctx2.fillText(`${s.name} ${pct} · ${fmtGBP(s.val)}`,lx2+11,ly2);
+      lx2 += 140;
+    });
+    ctx2.fillStyle='rgba(0,0,0,0.75)'; ctx2.font=`8px 'IBM Plex Mono'`; ctx2.textAlign='center';
+    ctx2.fillText('outer=geo · inner=channel',cx,cy+outerR+18);
+  });
+}
+
+// ================================================================
+// CATEGORY ANALYSIS
+// ================================================================
+// CAT_ANALYSIS computed from COLLECTIONS — single source of truth
+const CAT_ANALYSIS = (() => {
+  const out = {};
+  const catColors = {
+    Cabinetry:'rgba(26,111,212,0.9)', Electric:'rgba(176,125,0,0.9)',
+    Accessories:'rgba(106,62,194,0.9)', Lighting:'rgba(26,155,116,0.9)'
+  };
+  ['Cabinetry','Electric','Accessories','Lighting'].forEach(t => {
+    const rows  = COLLECTIONS.filter(c => c.t === t);
+    const sales = rows.reduce((s,c) => s+c.ts, 0);
+    const d2c   = rows.reduce((s,c) => s+c.d2c, 0);
+    const b2b   = rows.reduce((s,c) => s+c.b2b, 0);
+    const uk    = rows.reduce((s,c) => s+c.uk_s, 0);
+    const us    = rows.reduce((s,c) => s+c.us_s, 0);
+    const gm    = rows.reduce((s,c) => s+c.gm*c.ts, 0) / (sales||1);
+    const units = rows.reduce((s,c) => s+c.tu, 0);
+    // LQ totals derived from COLLECTIONS — same source as TYPE_DATA, no manual values
+    const lq    = rows.reduce((s,c) => s+c.lq_total, 0);
+    const lq_uk = rows.reduce((s,c) => s+c.lq_uk, 0);
+    const lq_us = rows.reduce((s,c) => s+c.lq_us, 0);
+    // collSplit: top 7 by revenue, rest as OTHER
+    const sorted = [...rows].sort((a,b)=>b.ts-a.ts);
+    const collSplit = {};
+    let otherSum = 0;
+    sorted.forEach((c,i) => { if(i<7) collSplit[c.c]=Math.round(c.ts); else otherSum+=c.ts; });
+    if(otherSum > 0) collSplit['OTHER'] = Math.round(otherSum);
+    out[t] = {color:catColors[t], sales, lq, lq_uk, lq_us,
+              units, gm, d2c, b2b, uk, us, collSplit};
+  });
+  return out;
+})();
+const CAT_NAMES = Object.keys(CAT_ANALYSIS);
+let selectedCat = CAT_NAMES[0];
+
+// Top SKUs per category — true top 8 by gross sales, sourced directly
+// from the full By SKU sheet (NOT limited to the overall top-25 SKUS array)
+const CAT_SKUS = {
+  Cabinetry: [
+    {sku:"KH-BECKER-170-AB", d:"BECKER 170mm D Bar Handle - Antique", c:"BECKER", sales:14430, vs_lq:0.3723, gm:0.7671, uk:2669, us:10926},
+    {sku:"CDB-BOBB-175-1BR", d:"BOBBIN 175mm Handle - Brass", c:"BOBBIN", sales:12890, vs_lq:-0.1051, gm:0.7695, uk:4070, us:7923},
+    {sku:"KH-KEPLER-160-AB", d:"KEPLER 160m T Bar Handle - Antique", c:"KEPLER", sales:10085, vs_lq:0.0892, gm:0.7649, uk:2984, us:7061},
+    {sku:"KH-BECKER-230-AB", d:"BECKER 230mm D Bar Handle - Antique", c:"BECKER", sales:9588, vs_lq:0.0342, gm:0.7199, uk:5214, us:4374},
+    {sku:"KH-KEPLER-220-AB", d:"KEPLER 220mm T Bar Handle - Antique", c:"KEPLER", sales:8154, vs_lq:0.0541, gm:0.7829, uk:2660, us:5494},
+    {sku:"KH-KEPLER-280-AB", d:"KEPLER 280mm T Bar Handle - Antique", c:"KEPLER", sales:6755, vs_lq:0.0544, gm:0.7909, uk:2521, us:4234},
+    {sku:"CKN-REVI-025-1AB", d:"REVILL 25mm Knurled Knob - Antique Brass", c:"KEPLER", sales:6690, vs_lq:1.045, gm:0.8325, uk:1007, us:5612},
+    {sku:"CKN-KEPL-031-1AB", d:"KEPLER 31mm Knob - Antique Brass", c:"KEPLER", sales:6576, vs_lq:-0.0435, gm:0.7583, uk:3315, us:2928}
+  ],
+  Electric: [
+    {sku:"GB-EDP-SOCK-2GS-2AB-BK", d:"SYLVIE Double Plug Socket - Antique Brass (Black Insert)", c:"SYLVIE", sales:12917, vs_lq:-0.1764, gm:0.7529, uk:12917, us:0},
+    {sku:"GB-EDU-SOCK-2GU-2AB-BK", d:"SYLVIE Double USB Plug Socket - Antique Brass (Black Insert)", c:"SYLVIE", sales:7058, vs_lq:-0.1731, gm:0.7235, uk:7058, us:0},
+    {sku:"GB-EDP-SOCK-2GS-2BR-W", d:"SYLVIE Double Plug Socket - Brass (White Insert)", c:"SYLVIE", sales:3174, vs_lq:0.195, gm:0.7799, uk:3174, us:0},
+    {sku:"GB-KIT-ETOG-KEPL-1G-1AB", d:"KEPLER 1G Two Way Knurled Toggle - Antique Brass", c:"KEPLER", sales:2455, vs_lq:-0.4366, gm:0.7043, uk:2455, us:0},
+    {sku:"GB-KIT-ETOG-KEPL-2G-1AB", d:"KEPLER 2G Two Way Knurled Toggle - Antique Brass", c:"KEPLER", sales:2226, vs_lq:-0.2471, gm:0.6545, uk:2226, us:0},
+    {sku:"US-KIT-EOUT-JASP-1G-1BB-BL", d:"JASPER 1G 15A Outlet - Blackened Bronze (Black Inserts)", c:"JASPER", sales:2119, vs_lq:4.234, gm:0.7821, uk:0, us:2119},
+    {sku:"GB-KIT-EDIM-KEPL-1G-1AB", d:"KEPLER 1G Knurled Dimmer - Antique Brass", c:"KEPLER", sales:1905, vs_lq:-0.2543, gm:0.6768, uk:1905, us:0},
+    {sku:"GB-EDU-SOCK-2GU-2BR-W", d:"SYLVIE Double USB Plug Socket - Brass (White Insert)", c:"SYLVIE", sales:1384, vs_lq:-0.3137, gm:0.7433, uk:1384, us:0}
+  ],
+  Accessories: [
+    {sku:"ASH-PULL-052-1AB", d:"PULLMAN 52mm Hook - Antique Brass", c:"PULLMAN", sales:3608, vs_lq:1.0245, gm:0.7906, uk:1249, us:2359},
+    {sku:"S5-ADH-HOFF-090-1BK", d:"HOFFMAN Set of 5 90mm Hook  - Black", c:"HOFFMAN", sales:2211, vs_lq:1.5858, gm:0.8156, uk:0, us:2211},
+    {sku:"ADH-HOFF-090-3BK-R", d:"HOFFMAN 90mm Hook - Black", c:"HOFFMAN", sales:1787, vs_lq:0.1232, gm:0.7307, uk:992, us:794},
+    {sku:"HK-PULLMAN-52-AL-BK", d:"PULLMAN 52mm Hook - Black", c:"PULLMAN", sales:1468, vs_lq:-0.2085, gm:0.8243, uk:389, us:1079},
+    {sku:"S5-ADH-LEVI-080-1BK", d:"LEVI Set of 5 80mm Hooks - Black", c:"LEVI", sales:1468, vs_lq:-0.185, gm:0.7027, uk:488, us:883},
+    {sku:"S5-ADH-HOFF-090-1AB", d:"HOFFMAN Set of 5 90mm Hooks  - Antique Brass", c:"HOFFMAN", sales:1413, vs_lq:0.2646, gm:0.755, uk:1064, us:349},
+    {sku:"S5-ASH-PULL-052-1AB", d:"PULLMAN Set of 5 52mm Hooks - Antique Brass", c:"PULLMAN", sales:1307, vs_lq:0.5077, gm:0.7756, uk:777, us:530},
+    {sku:"HK-LEVI-80-BK", d:"LEVI 80mm Hook - Black", c:"LEVI", sales:1043, vs_lq:-0.0437, gm:0.7306, uk:325, us:718}
+  ],
+  Lighting: [
+    {sku:"GB-LWL-ASTE-161-1UB", d:"ASTER Flush Mount Light - Unlacquered Brass", c:"GOOD BONES", sales:3662, vs_lq:0.7221, gm:0.7462, uk:3662, us:0},
+    {sku:"GB-LWL-ASTE-161-1AB", d:"ASTER Flush Mount Light - Antique Brass", c:"GOOD BONES", sales:1831, vs_lq:0.3979, gm:0.7632, uk:1831, us:0},
+    {sku:"GB-LCL-VESP-160-2CM", d:"VESPER Conical Pendant Light - Cream Enamel & Antique Brass", c:"GOOD BONES", sales:1498, vs_lq:1.3128, gm:0.8372, uk:1070, us:0},
+    {sku:"GB-LWL-STELL-140-2CM", d:"STELLA Swivel Wall Light - Cream Enamel & Antique Brass", c:"GOOD BONES", sales:1192, vs_lq:-0.3724, gm:0.8412, uk:1192, us:0},
+    {sku:"GB-LCL-VESP-160-2PB", d:"VESPER Conical Pendant Light - Polished Brass", c:"GOOD BONES", sales:1155, vs_lq:0.7447, gm:0.8151, uk:1155, us:0},
+    {sku:"GB-LWL-NOVI-014-6WN", d:"NOVI Donut Small Light - Dark Stain Oak", c:"NOVI", sales:1126, vs_lq:0.0164, gm:0.7537, uk:1126, us:0},
+    {sku:"GB-LWL-NOVI-014-4GR", d:"NOVI Donut Small Light- Khaki Green", c:"NOVI", sales:1122, vs_lq:7.5, gm:0.7544, uk:1122, us:0},
+    {sku:"GB-LWL-NOVI-014-4RD", d:"NOVI Donut Small Light - Red Rust", c:"NOVI", sales:957, vs_lq:0.2083, gm:0.7661, uk:957, us:0}
+  ]
+};
+
+
+function setCatTab(c){
+  selectedCat=c;
+  document.querySelectorAll('.cat-tab-btn').forEach(b=>{
+    const on=b.dataset.cat===c;
+    b.classList.toggle('active',on);
+    b.style.background=on?CAT_ANALYSIS[c].color:'';
+    b.style.color=on?'#fff':'';
+  });
+  renderCatAnalysis();
+}
+
+function initCatTabs(){
+  const el=document.getElementById('cat-tabs');
+  if(!el)return;
+  el.innerHTML=CAT_NAMES.map(c=>{
+    const d=CAT_ANALYSIS[c];
+    const share=(d.sales/TOTAL_SALES*100).toFixed(0);
+    const gm=(d.gm*100).toFixed(0);
+    const act=c===selectedCat;
+    return `<button class="ft-btn cat-tab-btn${act?' active':''}" data-cat="${c}" onclick="setCatTab('${c}')" style="${act?'background:'+d.color+';color:#fff;font-weight:700':''}">${c} <span style="opacity:.65">${share}% · GM${gm}%</span></button>`;
+  }).join('');
+}
+
+function renderCatAnalysis(){
+  const d=CAT_ANALYSIS[selectedCat];
+  const share=(d.sales/TOTAL_SALES*100).toFixed(1);
+  const vsLQ=d.lq>0?(d.sales-d.lq)/d.lq:null;
+  const vsLY=d.ly>0?(d.sales-d.ly)/d.ly:null;
+  const catSkus=(CAT_SKUS[selectedCat]||[]).slice(0,8);
+  const maxSku=catSkus[0]?catSkus[0].sales:1;
+
+  const statsHTML=`<div class="finish-stats">
+    <div class="fs-main" style="border-color:${d.color}">
+      <div class="fs-lbl">${CM_LABEL} Sales</div>
+      <div class="fs-val" style="color:${d.color}">${fmtGBP(d.sales)}</div>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px">${d.units.toLocaleString()} units &middot; ${share}% of total</div>
+    </div>
+    <div class="fs-row"><span class="fs-row-lbl">Gross Margin</span><span class="fs-row-val" style="color:var(--d2c)">${(d.gm*100).toFixed(1)}%</span></div>
+    <div class="fs-row"><span class="fs-row-lbl">vs LM (${LM_SHORT})</span><span class="fs-row-val ${vsLQ!=null?pClass(vsLQ):'neu'}">${vsLQ!=null?fmtPct(vsLQ):'&#8212;'}</span></div>
+    <div class="fs-row"><span class="fs-row-lbl">vs LY (${LY_SHORT})</span><span class="fs-row-val ${vsLY!=null?pClass(vsLY):'neu'}">${vsLY!=null?fmtPct(vsLY):'&#8212;'}</span></div>
+    <div class="fs-row"><span class="fs-row-lbl">D2C Share</span><span class="fs-row-val" style="color:var(--d2c)">${(d.d2c/d.sales*100).toFixed(0)}%</span></div>
+    <div class="fs-row"><span class="fs-row-lbl">&#127468;&#127463; UK</span><span class="fs-row-val" style="color:var(--uk);display:flex;align-items:center;gap:5px">${fmtGBP(d.uk)}<span class="badge ${d.lq_uk>0?pClass((d.uk-d.lq_uk)/d.lq_uk):'neu'}" style="font-size:8px;padding:1px 5px">${d.lq_uk>0?fmtPct((d.uk-d.lq_uk)/d.lq_uk):'—'} MoM</span></span></div>
+    <div class="fs-row"><span class="fs-row-lbl">&#127482;&#127480; US</span><span class="fs-row-val" style="color:var(--us);display:flex;align-items:center;gap:5px">${fmtGBP(d.us)}<span class="badge ${d.lq_us>0?pClass((d.us-d.lq_us)/d.lq_us):'neu'}" style="font-size:8px;padding:1px 5px">${d.lq_us>0?fmtPct((d.us-d.lq_us)/d.lq_us):'—'} MoM</span></span></div>
+    <div class="fs-row"><span class="fs-row-lbl">LQ value</span><span class="fs-row-val" style="color:var(--muted)">${fmtGBP(d.lq)}</span></div>
+  </div>`;
+
+  const skusHTML=`<div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px">Top SKUs</div>
+    ${catSkus.map((s,i)=>{
+      const bW=(s.sales/maxSku*100).toFixed(0);
+      const shareStr=(s.sales/TOTAL_SALES*100).toFixed(1)+'%';
+      return `<div class="fsku-row" style="border-left-color:${d.color}">
+        <span style="font-family:var(--font-m);font-size:8.5px;color:var(--muted);width:14px;flex-shrink:0">${i+1}</span>
+        <div style="flex:1;min-width:0">
+          <div class="fsku-name">${s.sku}</div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+            <div style="flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden">
+              <div style="width:${bW}%;height:100%;background:${d.color};opacity:.7;border-radius:2px"></div>
+            </div>
+            <span style="font-family:var(--font-m);font-size:7.5px;color:var(--muted)">${shareStr}</span>
+          </div>
+        </div>
+        <span class="fsku-val">${fmtGBP(s.sales)}</span>
+        <span class="fsku-vs ${pClass(s.vs_lq)}">${s.vs_lq!=null?fmtPct(s.vs_lq):'&#8212;'}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  document.getElementById('cat-body').innerHTML=statsHTML+`
+    <div class="finish-donut-wrap">
+      <canvas id="cat-donut" height="210" style="display:block;width:100%"></canvas>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);text-align:center;margin-top:-4px">Sales by Collection</div>
+    </div>`+skusHTML;
+
+  requestAnimationFrame(()=>{
+    const canvas=document.getElementById('cat-donut');
+    if(!canvas)return;
+    const W=Math.max(canvas.getBoundingClientRect().width||300,300);
+    const H=290;
+    canvas.width=W*window.devicePixelRatio; canvas.height=H*window.devicePixelRatio;
+    canvas.style.height=H+'px';
+    const ctx=canvas.getContext('2d');
+    ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
+    ctx.clearRect(0,0,W,H);
+    const entries=Object.entries(d.collSplit).sort((a,b)=>b[1]-a[1]);
+    const total=entries.reduce((s,[,v])=>s+v,0);
+    const cx=W/2,cy=145,outerR=62,innerR=38;
+    const m=d.color.match(/rgba\((\d+),(\d+),(\d+)/);
+    const [br,bg,bb]=[+m[1],+m[2],+m[3]];
+    const PAL=[d.color,
+      `rgba(${Math.min(255,br+60)},${Math.min(255,bg+30)},${Math.max(0,bb-20)},0.9)`,
+      `rgba(${Math.max(0,br-30)},${Math.min(255,bg+80)},${Math.min(255,bb+60)},0.9)`,
+      `rgba(${Math.min(255,br+40)},${Math.max(0,bg-30)},${Math.min(255,bb+80)},0.9)`,
+      `rgba(${Math.max(0,br-60)},${Math.max(0,bg-10)},${Math.min(255,bb+40)},0.9)`,
+      `rgba(${Math.min(255,br+80)},${Math.min(255,bg+60)},${Math.max(0,bb-40)},0.9)`,
+      'rgba(120,130,145,0.7)','rgba(150,140,130,0.7)'];
+    const slices=[];let angle=-Math.PI/2;
+    entries.forEach(([name,val],i)=>{
+      const sweep=(val/total)*Math.PI*2;
+      slices.push({name,val,sweep,startA:angle,midA:angle+sweep/2,col:PAL[i]||'rgba(120,130,145,0.6)'});
+      angle+=sweep;
+    });
+    slices.forEach(s=>{
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,outerR,s.startA,s.startA+s.sweep);
+      ctx.closePath();ctx.fillStyle=s.col;ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=1.5;ctx.stroke();
+    });
+    ctx.beginPath();ctx.arc(cx,cy,innerR,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();
+    ctx.textAlign='center';ctx.fillStyle=d.color;ctx.font="bold 12px 'IBM Plex Mono'";
+    ctx.fillText(fmtGBP(d.sales),cx,cy+2);
+    ctx.fillStyle='rgba(0,0,0,0.65)';ctx.font="8px 'IBM Plex Mono'";
+    ctx.fillText(share+'% share',cx,cy+13);
+    const FONT=9,LBL_H=30,R=3,ELBOW_X=outerR+18,LBL_GAP=5;
+    ctx.font=`bold ${FONT}px 'IBM Plex Mono'`;
+    const allL=slices.map(s=>{
+      const pct=(s.val/total*100).toFixed(0)+'%';
+      const nm=s.name==='OTHER'?'Other':s.name.substring(0,10);
+      const l1=nm,l2=pct+'  '+fmtGBP(s.val);
+      const bW=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+10;
+      return {midA:s.midA,line1:l1,line2:l2,boxW:bW,col:s.col,onRight:Math.cos(s.midA)>=0,naturalY:cy+(outerR+10)*Math.sin(s.midA)};
+    });
+    const rL=allL.filter(l=>l.onRight).sort((a,b)=>a.naturalY-b.naturalY);
+    const lL=allL.filter(l=>!l.onRight).sort((a,b)=>a.naturalY-b.naturalY);
+    [rL,lL].forEach(grp=>{for(let p=0;p<6;p++)for(let i=1;i<grp.length;i++){const ov=(LBL_H+4)-(grp[i].naturalY-grp[i-1].naturalY);if(ov>0){grp[i-1].naturalY-=ov/2;grp[i].naturalY+=ov/2;}}});
+    [...rL,...lL].forEach(lbl=>{
+      const elbX=lbl.onRight?cx+ELBOW_X:cx-ELBOW_X;
+      const rimX=cx+(outerR+3)*Math.cos(lbl.midA),rimY=cy+(outerR+3)*Math.sin(lbl.midA);
+      const bendX=cx+(outerR+9)*Math.cos(lbl.midA),bendY=cy+(outerR+9)*Math.sin(lbl.midA);
+      const boxX=lbl.onRight?elbX+LBL_GAP:elbX-LBL_GAP-lbl.boxW;
+      const boxY=lbl.naturalY-LBL_H/2;
+      const edgeX=lbl.onRight?boxX:boxX+lbl.boxW;
+      ctx.strokeStyle=lbl.col.replace(/[\d.]+\)$/,'0.6)');ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(rimX,rimY);ctx.lineTo(bendX,bendY);ctx.lineTo(elbX,lbl.naturalY);ctx.lineTo(edgeX,lbl.naturalY);ctx.stroke();
+      ctx.fillStyle='rgba(250,251,255,0.97)';ctx.strokeStyle=lbl.col.replace(/[\d.]+\)$/,'0.8)');ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(boxX+R,boxY);ctx.lineTo(boxX+lbl.boxW-R,boxY);ctx.quadraticCurveTo(boxX+lbl.boxW,boxY,boxX+lbl.boxW,boxY+R);ctx.lineTo(boxX+lbl.boxW,boxY+LBL_H-R);ctx.quadraticCurveTo(boxX+lbl.boxW,boxY+LBL_H,boxX+lbl.boxW-R,boxY+LBL_H);ctx.lineTo(boxX+R,boxY+LBL_H);ctx.quadraticCurveTo(boxX,boxY+LBL_H,boxX,boxY+LBL_H-R);ctx.lineTo(boxX,boxY+R);ctx.quadraticCurveTo(boxX,boxY,boxX+R,boxY);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.fillStyle=lbl.col;ctx.fillRect(boxX,boxY+R,3,LBL_H-R*2);
+      ctx.textAlign='left';ctx.fillStyle='#0d1018';ctx.font=`bold ${FONT}px 'IBM Plex Mono'`;
+      ctx.fillText(lbl.line1,boxX+8,boxY+FONT+4);
+      ctx.font=`${FONT}px 'IBM Plex Mono'`;ctx.fillStyle='#5a6870';
+      ctx.fillText(lbl.line2,boxX+8,boxY+FONT*2+6);
+    });
+  });
+}
+
+// ================================================================
+// NEWNESS TABLE
+// ================================================================
+let nSortKey = 'sales', nSortDir = 'desc', nPage = 0, nView = 'all';
+const N_PAGE = 10;
+
+function setNewView(v) {
+  nView = v; nPage = 0;
+  document.querySelectorAll('#new-view-tg button').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick').includes("'"+v+"'"));
+  });
+  renderNewness();
+}
+function sortN(k) {
+  nSortDir = nSortKey === k ? (nSortDir === 'desc' ? 'asc' : 'desc') : 'desc';
+  nSortKey = k; nPage = 0; renderNewness();
+}
+function newPgChange(d) {
+  const filtered = getNewFiltered();
+  const max = Math.ceil(filtered.length / N_PAGE) - 1;
+  nPage = Math.max(0, Math.min(max, nPage + d));
+  renderNewness();
+}
+function getNewFiltered() {
+  const map = {cab:'Cabinetry', light:'Lighting', acc:'Accessories', elec:'Electric'};
+  return NEWNESS_SKUS.filter(s => nView === 'all' || s.ptype === map[nView]);
+}
+function renderNewness() {
+  let rows = getNewFiltered();
+  rows = [...rows].sort((a, b) => {
+    const va = a[nSortKey] ?? (nSortDir==='desc'?-Infinity:Infinity);
+    const vb = b[nSortKey] ?? (nSortDir==='desc'?-Infinity:Infinity);
+    return nSortDir === 'desc' ? vb - va : va - vb;
+  });
+
+  const pg = rows.slice(nPage * N_PAGE, (nPage + 1) * N_PAGE);
+  const typeMap = {Cabinetry:'tc', Electric:'te', Accessories:'ta', Lighting:'tl'};
+
+  document.getElementById('new-tbody').innerHTML = pg.map((s, i) => {
+    const ukPill = s.uk > 0 ? `<span class="geo-pill geo-uk">${fmtGBP(s.uk)}</span>` : '<span style="color:var(--muted);font-size:8px">—</span>';
+    const usPill = s.us > 0 ? `<span class="geo-pill geo-us">${fmtGBP(s.us)}</span>` : '<span style="color:var(--muted);font-size:8px">—</span>';
+    const stStr  = s.st >= 1 ? '100%' : (s.st*100).toFixed(0)+'%';
+    const wcStr  = s.wc <= 0 ? '—' : s.wc.toFixed(1);
+    const wcCls  = s.wc > 4 ? 'neg' : (s.wc > 0 && s.wc < 1) ? 'pos' : '';
+    return `<tr>
+      <td style="color:var(--muted)">${nPage*N_PAGE+i+1}</td>
+      <td style="color:var(--amber);font-weight:500;font-size:9px">${s.sku}</td>
+      <td title="${s.desc}">${s.desc.length > 38 ? s.desc.substring(0,36)+'…' : s.desc}</td>
+      <td>${s.coll}</td>
+      <td style="font-size:8.5px;color:var(--muted)">${s.finish}</td>
+      <td class="td-r"><strong>${fmtGBP(s.sales)}</strong></td>
+      <td class="td-r" style="color:var(--muted)">${fmtU(s.units)}</td>
+      <td class="td-r">${ukPill}</td>
+      <td class="td-r">${usPill}</td>
+      <td class="td-r" style="color:var(--d2c)">${fmtGBP(s.d2c)}</td>
+      <td class="td-r" style="color:var(--muted)">${fmtGBP(s.b2b)}</td>
+      <td class="td-r" style="color:var(--d2c)">${(s.gm*100).toFixed(0)}%</td>
+      <td class="td-r">${stStr}</td>
+      <td class="td-r ${wcCls}">${wcStr}</td>
+    </tr>`;
+  }).join('');
+
+  // Sort indicators
+  document.querySelectorAll('#new-tbody').forEach(() => {});
+  document.querySelectorAll('th[onclick^="sortN"]').forEach(th => {
+    th.classList.remove('sort-d','sort-a');
+    if (th.getAttribute('onclick') === `sortN('${nSortKey}')`)
+      th.classList.add(nSortDir==='desc'?'sort-d':'sort-a');
+  });
+
+  // KPI bar
+  const total = rows.reduce((s,r) => s+r.sales, 0);
+  const totalU = rows.reduce((s,r) => s+r.units, 0);
+  const avgGM  = rows.reduce((s,r) => s+r.gm*r.sales, 0) / (total||1);
+  const pctOf  = (total/TOTAL_SALES*100).toFixed(1);
+  document.getElementById('newness-kpis').innerHTML =
+    `<div class="kpi" style="min-width:0;padding:6px 12px">
+       <div class="kpi-lbl">Newness Sales</div>
+       <div class="kpi-val" style="font-size:18px;color:var(--green)">${fmtGBP(total)}</div>
+       <div class="kpi-badges"><div class="badge flat">${pctOf}% of total</div></div>
+     </div>
+     <div class="kpi" style="min-width:0;padding:6px 12px">
+       <div class="kpi-lbl">Units</div>
+       <div class="kpi-val" style="font-size:18px">${totalU.toLocaleString()}</div>
+     </div>
+     <div class="kpi" style="min-width:0;padding:6px 12px">
+       <div class="kpi-lbl">Avg GM</div>
+       <div class="kpi-val" style="font-size:18px;color:var(--d2c)">${(avgGM*100).toFixed(1)}%</div>
+     </div>`;
+
+  const count = rows.length, max = Math.ceil(count/N_PAGE)-1;
+  document.getElementById('new-info').textContent =
+    `Showing ${nPage*N_PAGE+1}–${Math.min((nPage+1)*N_PAGE, count)} of ${count} newness SKUs`;
+  document.getElementById('new-prev').disabled = nPage === 0;
+  document.getElementById('new-next').disabled = nPage >= max;
+}
+
+// ================================================================
+// INIT
+// ================================================================
+function renderAllCharts() {
+  renderTrend();
+  renderTypeChart();
+  renderScatter();
+  renderFinishView();
+  renderCollAnalysis();
+  renderCatAnalysis();
+}
+
+window.addEventListener('load', function () {
+  // Synchronous DOM renders (no canvas sizing needed)
+  renderGeoCards();
+  renderChannelCards();
+  renderStatus();
+  renderCollections();
+  renderMovers();
+  initFinishTabs();
+  initCollTabs();
+  initCatTabs();
+  renderTable();
+  renderNewness();
+
+  // Canvas renders: double-RAF guarantees layout is fully calculated
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      renderAllCharts();
+      // Re-render once web fonts are ready (prevents font-metric sizing bugs)
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { renderAllCharts(); });
+      }
+    });
+  });
+});
+
+window.addEventListener('resize', function () {
+  clearTimeout(window._resizeTimer);
+  window._resizeTimer = setTimeout(renderAllCharts, 120);
+});
+
+</script>
+</body>
+</html>
