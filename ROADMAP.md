@@ -183,11 +183,12 @@ dashboard · Yotpo/reviews scanner
 
 - **Lena / Daisy** — the three open returns decisions (exchange definition, family axis,
   trade-in-headline; D2 above).
-- **Whoever's closest to the live sheet** — confirm what the live sheet's "Returns (inc
-  VAT)" column actually totals per month/country, and whether it's genuinely
-  order-cohort-adjusted as `trading_logic_spec.md` describes (§5, §7) — this is the one
-  remaining question blocking the `line_ab` code fix; per-order forensics are not needed
-  either way, per the 2026-08-05 reconciliation.
+- **Whoever's closest to the live sheet** — cohort-attribution mechanism is now confirmed
+  (July 2026 check, 2026-08-05); still owed: the **same "Returns (inc VAT)" per-country
+  breakdown for April, May, and June**, so the magnitude question can be checked against
+  the three months already fully reconciled on the Matrixify side, rather than
+  extrapolated from July (flagged elsewhere in this repo as an atypical,
+  mid-warehouse-move month with actively churning order data). See §5, §7.
 - **Maintainer** — the custom/project instructions that still cite "GitHub Pages behind
   Cloudflare Access" need updating to Option A (self-contained file → Slack/Drive).
 
@@ -225,16 +226,32 @@ they are exactly where a naive rebuild goes silently wrong.
 > cohort-returns figure (theorised ≈£3.1K for May) that US, unlike UK, actually needs.
 > Cancelled orders were a red herring for this residual (see below).
 >
-> **PENDING CONFIRMATION** — not yet verified against a primary source. The decisive
-> test is reading the live sheet's actual "Returns (inc VAT)" column, per month per
-> country, and checking it's (a) small and (b) close to the residuals above (~£0–500 UK,
-> ~£3.1K US) rather than the ≈£23–26K processing-window figures. **Ask whoever's closest
-> to the live sheet:** *what does "Returns (inc VAT)" total for a given month, and is it
-> genuinely order-cohort-adjusted as `trading_logic_spec.md` describes?* If small and
-> cohort-based → fix is "subtract the sheet's Returns figure, not raw refund lines," not
-> "stop netting returns." If it turns out to be large (≈£23–26K) after all, this
-> reconciliation is wrong in a different way and the gap is elsewhere — re-open from
-> scratch, do not re-guess.
+> **Cohort-attribution mechanism: CONFIRMED, 2026-08-05, empirically** — not just
+> asserted. Read directly off the live sheet for July 2026: col O totals −£6,624.46
+> (GBP, inc-VAT, 116 lines) UK and −$8,343.00 (USD, 52 lines) US, ROW £0. The whole tab
+> is scoped to July-created orders only (no June-or-earlier order leaks in), and at least
+> one return sits on an order last-updated **1 Aug** (processed after month-end) yet is
+> still attributed to its **July** order — the exact signature of order-cohort
+> attribution, not processing-date attribution. This part of the theory is settled.
+>
+> **Magnitude / the actual fix formula: STILL PENDING — new tension, not yet resolved.**
+> July's real cohort-returns (≈£12,920 combined GBP-equivalent, ≈£6,624 UK alone — call
+> it ~2.5% of a typical month's UK revenue) is **not** the £0–500 "negligible" figure
+> theorised above. That creates a puzzle: UK's order-discount total (the term `B`
+> subtracts) runs **£10,930–£13,665/month** across April/May/June — if those months'
+> *own* cohort-returns were similarly non-trivial (not the ~£0–500 assumed), there should
+> be no room left for `B` (discounts only, zero returns) to land within ±0.2% of the
+> oracle three months running, yet it does. Two live possibilities, not yet
+> distinguished: **(a)** July is a flagged-atypical month elsewhere in this repo
+> (`build.py`'s own July notes: mid-warehouse-move, live order data confirmed churning
+> ~5% between two pulls minutes apart) and April/May/June's own cohort-returns really
+> were much smaller than July's; or **(b)** order-discounts and cohort-returns are
+> correlated in a way that makes `B`'s fit partly coincidental across all three months,
+> not just one. **Next decisive step (needs live-sheet access this session doesn't
+> have):** pull the same per-country "Returns (inc VAT)" breakdown for April, May, and
+> June — the three months already fully reconciled on the Matrixify side — so the
+> comparison is apples-to-apples against real data instead of extrapolated from an
+> admittedly-unusual July.
 
 - **Confirmed and banked regardless of how the returns question resolves** (2026-08-04/05
   diagnostics — `trading/build_matrixify.py recomposition`, see `RECONCILE_HANDOFF.md`):
@@ -376,15 +393,18 @@ Still open:
   label and document the returns-netting — needs the glossary owner's sign-off. (Reopened
   2026-08-05: briefly marked moot during the same-day flip; revenue is net-of-returns
   again, so the "gross sales" label is a genuine mislabel once more.)
-- **Returns-basis confirmation (blocking the code fix) — owed by whoever's closest to
-  the live sheet:** does the live sheet's "Returns (inc VAT)" column really total a small,
-  order-cohort-adjusted figure per month (theorised ≈£0–500 UK / ≈£3.1K US for May), or
-  is it large? See §5's PENDING CONFIRMATION callout for the exact question and the
-  decision this settles.
-- **Returns-basis code fix:** once confirmed, `revenue.py`'s `line_ab` needs to subtract
-  the sheet's order-cohort returns figure (not raw processing-window refund lines) and
-  add the confirmed order-level-discount term, then re-gate against all committed months.
-  Do not ship the discount term alone first — see §5.
+- **Returns-basis magnitude (blocking the code fix) — owed by whoever's closest to the
+  live sheet:** cohort-attribution *mechanism* confirmed 2026-08-05 (July check); still
+  need the same "Returns (inc VAT)" per-country breakdown for April/May/June, since
+  July's real figure (≈£6,624 UK, not negligible) doesn't obviously square with those
+  three months' `B` (discounts-only, no returns) already matching the oracle within
+  ±0.2% — see §5's magnitude callout for the exact tension and why July (an atypical,
+  actively-churning month per `build.py`) may not generalise.
+- **Returns-basis code fix:** once April/May/June's own cohort-returns figures are in
+  hand, `revenue.py`'s `line_ab` needs to subtract the sheet's real order-cohort returns
+  figure (not raw processing-window refund lines) and add the confirmed
+  order-level-discount term, then re-gate against all committed months. Do not ship the
+  discount term alone first — see §5.
 - **Oracle's own Gross Unit Sold reliability:** doesn't foot internally (UK+US+ROW vs.
   Total disagrees, sign flips month to month) and a returned-units-double-counted
   hypothesis only partially explains it (fails for ROW) — treat the oracle's unit
