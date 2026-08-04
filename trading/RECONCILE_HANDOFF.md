@@ -1,12 +1,15 @@
 # Trading reconciliation handoff (resume here)
 
-**Updated:** 2026-08-05 (twice, same day) — first reconciles the 2026-08-04 flip below against
-`trading_logic_spec.md` (revert to net-of-returns), then adds a real primary-source July check that
-confirms the cohort-attribution *mechanism* but opens a new *magnitude* question (see the two
-2026-08-05 sections below; neither supersedes the underlying numbers in 2026-08-04's section, which
-are still accurate and now reinterpreted twice). Governing docs: `ROADMAP.md` (§5's revenue
-definition was flipped 2026-08-04 and REVERTED 2026-08-05 — see there), `trading_logic_spec.md`
-(primary source for the live sheet's actual `AB` formula).
+**Updated:** 2026-08-05 (three times, same day) — reconciles the 2026-08-04 flip against
+`trading_logic_spec.md` (revert to net-of-returns), then a July primary-source check (confirms the
+cohort-attribution *mechanism*, opens a *magnitude* question), then a June primary-source check that
+runs the actual decisive test against a real committed oracle: **subtracting both the order-discount
+term and the sheet's real current returns overshoots badly — ruled out — and the residual pattern
+points at report-generation timing (maturity), not a wrong formula shape.** See the three
+2026-08-05 sections below in order; none supersedes 2026-08-04's underlying numbers, which are still
+accurate and now reinterpreted a third time. Governing docs: `ROADMAP.md` (§5 flipped 2026-08-04,
+reverted 2026-08-05, refined again same day — see there), `trading_logic_spec.md` (primary source
+for the live sheet's actual `AB` formula).
 
 ---
 
@@ -101,13 +104,74 @@ explanations are live and not yet distinguished:
 per-country "Returns (inc VAT)" breakdown for **April, May, and June** — the three months already
 fully reconciled on the Matrixify side (real exports committed, real oracle workbooks committed) —
 so the comparison is apples-to-apples against months we can fully cross-check, instead of
-extrapolated from an admittedly-unusual July. Once those three figures are in hand: if they're
-genuinely small (≈£0–500-ish, unlike July), explanation (a) is confirmed and the fix is exactly
-"subtract the sheet's real order-cohort figure, which happens to be small most months, plus the
-order-discount term." If they're comparable in size to July's, explanation (b) is live and the
-order-discount finding needs re-examining — possibly it and the true returns figure are not both
-independently additive, and the current UK fit is a real coincidence needing a different
-formula entirely.
+extrapolated from an admittedly-unusual July.
+
+---
+
+## ✔ June 2026 primary-source check — decisive, but not the way either explanation predicted
+
+Read directly off the live sheet, col O, June 2026:
+
+| country | col O (native currency) | return lines |
+|---|---|---|
+| UK | −£16,579.12 (GBP, inc-VAT) | 298 |
+| US | −$11,256.40 (USD, ex-tax) ≈ −£8,495.40 @1.325 | 81 |
+| ROW | −£202.43 | 3 |
+| Total (GBP-equivalent) | ≈ −£25,276.95 | 382 |
+
+**Cohort attribution confirmed again, more strongly.** Every June row is scoped to June-created
+orders (1–30 Jun); return lines are last-updated as late as **31 Jul** — a full month after the
+order's own month closed — yet still attributed to June. **June's returns are ~2× July's**
+(−28,037.95 mixed-currency vs −14,967.46), exactly what a maturing cohort predicts: June had ~5–9
+more weeks to accrue returns by the time of this pull than July's 3-day-old snapshot did.
+
+**The decisive test — run against June, since it's one of the three months with a real committed
+Matrixify export AND a real committed oracle:**
+
+| formula | UK | US | ROW | Total |
+|---|---|---|---|---|
+| `B` alone (order-discounts, no returns) — the 2026-08-04 finding | **+0.116%** | −1.351% | −0.011% | −0.620% |
+| `A − O` (gross minus today's real returns, no order-discount term) | −1.691% | −1.093% | +0.145% | −1.336% |
+| `B − O` (order-discounts AND today's real returns both subtracted) | **−6.869%** | −4.727% | −1.299% | −5.628% |
+
+**`B − O` is ruled out cleanly:** subtracting *both* the confirmed order-discount term and today's
+real cohort-returns overshoots dramatically — worse than `B` alone in every bucket. "Add the sheet's
+real returns on top of the order-discount fix" is **not** the complete formula; that combination was
+one of the two live explanations above and it's now falsified by real numbers, not theory.
+
+**`A − O` alone is closer but still off, and the direction is informative.** Both `A − O` and `B − O`
+land *below* the oracle (undershoot). That's exactly the signature you'd expect if the oracle's own
+frozen return figure — whatever `line_ab`'s `O` was at whatever moment `2026-06_Monthly_Trading_
+Report.xlsx` was actually generated — was **smaller** than the return figure just pulled today,
+weeks after June closed. Subtracting today's larger, more-mature number over-corrects.
+
+**New leading hypothesis: report-generation timing, not formula shape.** The exact cell references
+`trading_logic_spec.md` cites for the dashboard's UK/US/ROW cells (`AT7`/`CD7`/`DN7`) are confirmed
+to be columns 46/82/118 — precisely the same cells `_read_oracle_row7()` reads from the committed
+`Monthly_Trading_Report.xlsx` oracle fixtures. **This is the same artifact, not two different
+reports** — ruling out "the oracle and the live sheet are just different things" as an explanation.
+Given that, the most consistent read of all the evidence so far: if the historical monthly oracle
+files were generated close to each month's own close (similar few-day cadence to July's 3-Aug pull
+for July), their own baked-in `O` would have been small — small enough that `B` (order-discounts
+only, ~zero returns) fits almost exactly. Today's live pull, taken weeks after the fact, sees a much
+larger, *more mature* `O` for the same month — which is real and correct **as of today**, but is not
+what the frozen oracle number reflects. If so, `line_ab` cannot simply "subtract the sheet's current
+`O`" and expect to match a *historical* frozen oracle — it would need to reproduce the oracle's own
+maturity window, which is a materially harder problem than a one-line formula change.
+
+**This also reopens the order-discount finding's certainty.** It fit `B` to the oracle almost
+exactly for UK across three months — but if the true target is "gross minus a very-early-maturity
+returns figure" rather than "gross minus order-discounts," that fit could be a structural
+coincidence (both terms happen to be a similar few-thousand-pound size) rather than the real
+mechanism. Not disproven, but no longer certain either.
+
+**The single most valuable next fact (more valuable than more per-country `O` pulls at this point):
+when is `Monthly_Trading_Report.xlsx` typically generated/frozen relative to each month's close?**
+A "few days after month-end" cadence would support the maturity-timing hypothesis directly. A "much
+later / repeatedly revised" cadence would mean this hypothesis doesn't hold either, and the residual
+is something else again. April/May's own `O` breakdowns are still useful (confirms/refutes whether
+June's ~2x-July pattern holds generally), but the generation-timing fact would settle more of the
+puzzle than another data point of the same shape.
 
 ---
 
