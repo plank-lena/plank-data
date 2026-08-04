@@ -1,5 +1,9 @@
 """Acceptance checks for the quarterly trading builder (BRIEF step 5), run
-against the real committed Q2 2026 (Apr+May+Jun) oracle monthly fixtures.
+against the real committed Q2 2026 (Apr+May+Jun) oracle monthly fixtures,
+chained off the real committed Q1 2026 quarterly contract as LQ (Lena
+supplied the Q1 2026 quarterly oracle workbook after the initial Step 5
+build, closing what was the LQ-unavailable bootstrap gap -- see
+quarterly.py's module docstring and ROADMAP.md).
 
 Run:  python trading/tests/test_quarterly.py
 """
@@ -22,6 +26,7 @@ MONTH_XLSX = [
     os.path.join(HERE, "fixtures", f"2026-{m}_Monthly_Trading_Report.xlsx")
     for m in ("04", "05", "06")
 ]
+Q1_CONTRACT = os.path.join(HERE, "fixtures", "2026-Q1_contract.json")
 TEMPLATE_HTML = os.path.join(DASHBOARD_DIR, "template", "dashboard.template.html")
 FIXTURE_CONTRACT = os.path.join(HERE, "fixtures", "2026-Q2_contract.json")
 
@@ -38,8 +43,10 @@ Q2_TARGETS = {
 def check_additive_components_match_targets():
     """§6 bullet 1: additive measures (revenue, units) = sum of the three
     monthly oracles within 0.1%, matching brief §2's target table exactly.
+    LQ chaining (Q1 as lq_contract) only affects vs_lq fields, never the
+    additive components themselves -- targets hold with or without it.
     """
-    contract = emit_contract_from_oracle_quarter(MONTH_XLSX)
+    contract = emit_contract_from_oracle_quarter(MONTH_XLSX, lq_contract=Q1_CONTRACT)
     cur = contract["current"]
     computed = {
         "total": cur["total_sales"], "uk": cur["uk_gbp"], "us": cur["us_gbp"],
@@ -117,21 +124,38 @@ def check_completeness_tripwire(contract):
 
 
 def check_lq_ly_provenance(contract):
-    """§6 bullet 5: LQ/LY provenance stamped (bootstrap for Q2 -- no
-    committed prior quarterly contract exists yet, and LQ specifically has
-    no data source at all this run; see quarterly.py's module docstring).
+    """§6 bullet 5: LQ/LY provenance stamped. Originally LQ was unavailable
+    (no committed prior quarterly contract existed) -- now that Q1 2026 is
+    committed and passed as lq_contract, LQ is real too: both are checked
+    as real, non-fabricated figures, matching quarterly.py's "self-heals
+    once a prior quarter is committed" design (ROADMAP.md).
     """
     prov = contract["provenance"]
     pm = contract["period_model"]
     print("\n=== LQ/LY provenance stamped (§6 bullet 5) ===")
-    print(f"  lq_ly_source: {prov['lq_ly_source']}")
+    print(f"  lq_ly_source: {prov['lq_ly_source']}, lq_source_period: {prov.get('lq_source_period')}")
     print(f"  cm label: {pm['cm']['label']}, lm label: {pm['lm']['label']}, ly label: {pm['ly']['label']}")
     print(f"  ly.total (real, reconstructed): £{contract['ly']['total']:,.2f}")
-    print(f"  lm.total (LQ, unavailable):     £{contract['lm']['total']:,.2f}")
+    print(f"  lm.total (LQ, now real via Q1): £{contract['lm']['total']:,.2f}")
     labels_correct = pm["cm"]["label"] == "Q2 2026" and pm["lm"]["label"] == "Q1 2026" and pm["ly"]["label"] == "Q2 2025"
     ly_real = contract["ly"]["total"] > 0
-    lq_honestly_zero = contract["lm"]["total"] == 0
-    return labels_correct and ly_real and lq_honestly_zero
+    lq_real = contract["lm"]["total"] > 0 and prov["lq_source_period"] == "Q1 2026"
+    return labels_correct and ly_real and lq_real
+
+
+def check_movers_populate_from_real_lq(contract):
+    """Once real LQ SKU-level data exists (Q1 as lq_contract), QoQ movers
+    must actually populate -- the whole point of chaining a prior quarter
+    in. An empty movers list here would mean the self-heal silently isn't
+    working, not just an unavailable-data disclosure.
+    """
+    from compute import compute_movers
+    movers = compute_movers(contract["skus_all"])
+    n_with_real_vslq = sum(1 for s in contract["skus_all"] if s.get("vslq") is not None)
+    print("\n=== QoQ movers populate now that Q1 is a real LQ ===")
+    print(f"  SKUs with a real vs_lq: {n_with_real_vslq} of {len(contract['skus_all'])}")
+    print(f"  rising: {len(movers['rising'])}, falling: {len(movers['falling'])}")
+    return n_with_real_vslq > 0 and len(movers["rising"]) == 10 and len(movers["falling"]) == 10
 
 
 def check_template_renders_no_monthly_leak(contract):
@@ -160,17 +184,18 @@ def check_template_renders_no_monthly_leak(contract):
 
 
 def check_frozen_fixture():
-    """§6 bullet 7: freeze 2026-Q2_contract.json as the quarterly
-    regression fixture; confirm re-emitting reproduces it exactly.
+    """§6 bullet 7: freeze 2026-Q2_contract.json (chained off the real Q1
+    2026 quarterly contract) as the quarterly regression fixture; confirm
+    re-emitting reproduces it exactly.
     """
     print("\n=== Frozen fixture (§6 bullet 7) ===")
     if not os.path.exists(FIXTURE_CONTRACT):
-        emit_contract_from_oracle_quarter(MONTH_XLSX, out_path=FIXTURE_CONTRACT)
+        emit_contract_from_oracle_quarter(MONTH_XLSX, lq_contract=Q1_CONTRACT, out_path=FIXTURE_CONTRACT)
         print(f"  wrote {FIXTURE_CONTRACT} (first run -- committed as the quarterly regression baseline)")
 
     with open(FIXTURE_CONTRACT) as f:
         frozen = json.load(f)
-    fresh = emit_contract_from_oracle_quarter(MONTH_XLSX)
+    fresh = emit_contract_from_oracle_quarter(MONTH_XLSX, lq_contract=Q1_CONTRACT)
 
     mismatches = [k for k in PAYLOAD_KEYS if frozen[k] != fresh[k]]
     print(f"  payload mismatches vs frozen fixture: {mismatches or 'none -- reproduces exactly'}")
@@ -203,6 +228,7 @@ def main():
         "country_ties_and_row_present": check_country_ties_and_row_present(contract),
         "completeness_tripwire": check_completeness_tripwire(contract),
         "lq_ly_provenance": check_lq_ly_provenance(contract),
+        "movers_populate_from_real_lq": check_movers_populate_from_real_lq(contract),
         "template_renders_no_monthly_leak": check_template_renders_no_monthly_leak(contract),
         "frozen_fixture": check_frozen_fixture(),
         "valid_and_publishable": check_valid_and_publishable(contract),

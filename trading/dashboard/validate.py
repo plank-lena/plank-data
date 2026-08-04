@@ -84,31 +84,33 @@ def _completeness_errors(skus_all, prod_types, finishes, collections):
 
 def _toggle_reconciliation_errors(collections, tol=0.001):
     """BRIEF #4 step 4 §10: 'each toggle state reconciles to the same
-    total' -- UK + US + ROW cash summed across ALL collections must tie to
-    the summed collection total, within the same 0.1% relative tolerance
-    the country-level gate uses (ROADMAP.md §5).
+    total' -- UK + US + ROW cash summed across every NAMED-department
+    collection must tie to the summed collection total, within the same
+    0.1% relative tolerance the country-level gate uses (ROADMAP.md §5).
 
-    Deliberately a single aggregate check, not a per-collection one: a
-    handful of real rows (a few blank-department "Unknown" collections,
-    e.g. ALERIA/a second BECKER/CANTO, together ~£600 of £476K in the May
-    fixture) carry zero country attribution in the sheet's own By
-    Collection UK/US/ROW columns despite a nonzero total -- a pre-existing,
-    tiny, disclosed sheet quirk (same family as the ~0.09% By
-    Collection-vs-Monthly-Summary cross-sheet gap already noted in
-    validate_contract below), not a systemic leak. Asserting per-collection
-    would hard-fail the gate on that quirk alone; asserting in aggregate
-    (like the country-level check itself) still catches a real leak -- many
-    collections losing their country split, or one large one -- while
-    tolerating a few small legacy rows.
+    Deliberately a single aggregate check, not a per-collection one, AND
+    deliberately excludes 'Unknown'-department collections (e.g. ALERIA/a
+    second BECKER/CANTO/HAYLEY) -- same exception as the completeness
+    tripwire's missing_depts check. These carry zero country attribution
+    in the sheet's own By Collection UK/US/ROW columns despite a nonzero
+    total -- a pre-existing, disclosed sheet quirk, not a systemic leak,
+    and its size is NOT stable across periods (~£600 of £476K in the May
+    monthly fixture, ~£5,200 of £1.34M in the Q1 2026 quarterly one) --
+    large enough some quarters to blow a blanket tolerance that was only
+    ever calibrated against the smaller monthly instances of it. Excluding
+    the already-disclosed cause is more precise than loosening the
+    tolerance for everyone: a real leak in a NAMED department still
+    fails loudly, at the original 0.1%.
     """
-    total_ts = sum(c.get('ts') or 0 for c in collections)
-    total_parts = sum((c.get('uk_s') or 0) + (c.get('us_s') or 0) + (c.get('row_s', 0) or 0) for c in collections)
+    named = [c for c in collections if c.get('t') != 'Unknown']
+    total_ts = sum(c.get('ts') or 0 for c in named)
+    total_parts = sum((c.get('uk_s') or 0) + (c.get('us_s') or 0) + (c.get('row_s', 0) or 0) for c in named)
     if not total_ts:
         return []
     rel_gap = abs(total_parts - total_ts) / abs(total_ts)
     if rel_gap > tol:
         return [
-            f"Collections: UK+US+ROW cash summed {total_parts:,.2f} != "
+            f"Collections (named departments only): UK+US+ROW cash summed {total_parts:,.2f} != "
             f"collection totals summed {total_ts:,.2f} (gap {rel_gap:.4%}, tolerance {tol:.1%})"
         ]
     return []
@@ -280,7 +282,7 @@ def validate_contract(contract, tol=0.001):
     # gap well under 100% would instead mean a finish in skus_all has no
     # matching Finish-table row at all.
     finishes = contract.get("finishes", {})
-    finish_sales_sum = sum(f["total"] for f in finishes.values())
+    finish_sales_sum = sum(f.get("total") or 0 for f in finishes.values())
     if total_sales:
         finish_share = finish_sales_sum / total_sales
         warnings.append(f"finishes cover {finish_share:.1%} of total_sales")

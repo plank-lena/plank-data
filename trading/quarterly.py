@@ -62,7 +62,7 @@ for _p in (_HERE, _DASHBOARD_DIR):
 from extract import extract_all  # trading/dashboard/extract.py
 from contract import (
     PAYLOAD_KEYS, _wrap_contract, _add_headline_kpis, _is_el_component,
-    _strip_vestigial, _git_commit, _vs, _MONTH_NAMES,
+    _strip_vestigial, _git_commit, _vs, _MONTH_NAMES, _current_to_lm_shape,
     emit_contract_from_matrixify, load_contract, can_publish,
 )
 from common.reconciliation_gate import assert_country_reconciles
@@ -174,7 +174,7 @@ def quarter_period_model(month_period_models):
 
 # ── Per-block aggregation ─────────────────────────────────────────────────────
 
-def _aggregate_current(months):
+def _aggregate_current(months, lq=None):
     current = {f: sum((m['current'].get(f) or 0) for m in months) for f in _ADDITIVE_CURRENT_FIELDS}
     current['gm_pct'] = _weighted_avg([(m['current'].get('gm_pct'), m['current'].get('total_sales')) for m in months])
     current['d2c_gm'] = _weighted_avg([(m['current'].get('d2c_gm'), m['current'].get('d2c_gbp')) for m in months])
@@ -192,12 +192,23 @@ def _aggregate_ly(months):
 def _zero_lm():
     """LQ (previous quarter) has no data source this run -- see module
     docstring. Zeros, never a fabricated figure; _vs()'s own zero-guard
-    turns every vs_lm/vs_lq field into None downstream.
+    turns every vs_lm/vs_lq field into None downstream. Superseded by a
+    real _current_to_lm_shape(lq['current']) once a prior quarterly
+    contract is passed in as `lq_contract` -- see emit_contract_from_
+    oracle_quarter.
     """
     return {f: 0 for f in _LY_LM_FIELDS}
 
 
-def _aggregate_statuses(months):
+def _aggregate_statuses(months, lq=None):
+    """lq: a previously-committed quarter's own payload (PAYLOAD_KEYS-
+    shaped), or None. When given, vs_lq is REAL -- a direct comparison
+    against that quarter's own absolute sales, not a reconstruction --
+    since lq carries genuine absolute figures at this grain, unlike the
+    vs_ly reconstruction above (which exists only because the *monthly*
+    sheet gives no absolute prior-year value at department/status grain).
+    """
+    lq_by_name = {s['s']: s for s in lq['statuses']} if lq else {}
     names = _union_ordered([m['statuses'] for m in months], 's')
     out = []
     for name in names:
@@ -206,11 +217,14 @@ def _aggregate_statuses(months):
         units = sum((r['units'] if r else 0) or 0 for r in rows)
         gm = _weighted_avg([(r['gm'], r['sales']) for r in rows if r])
         vs_ly = _recompute_yoy([(r['sales'], r.get('vs_ly')) for r in rows if r])
-        out.append({'s': name, 'sales': sales, 'units': units, 'vs_lq': None, 'vs_ly': vs_ly, 'gm': gm})
+        prior = lq_by_name.get(name)
+        vs_lq = _vs(sales, prior['sales']) if prior else None
+        out.append({'s': name, 'sales': sales, 'units': units, 'vs_lq': vs_lq, 'vs_ly': vs_ly, 'gm': gm})
     return out
 
 
-def _aggregate_prod_types(months):
+def _aggregate_prod_types(months, lq=None):
+    lq_by_name = {t['t']: t for t in lq['prod_types']} if lq else {}
     dept_names = _union_ordered([m['prod_types'] for m in months], 't')
     out = []
     for name in dept_names:
@@ -219,7 +233,10 @@ def _aggregate_prod_types(months):
         units = sum((r['units'] if r else 0) or 0 for r in rows)
         gm = _weighted_avg([(r['gm'], r['sales']) for r in rows if r])
         vs_ly = _recompute_yoy([(r['sales'], r.get('vs_ly')) for r in rows if r])
+        prior = lq_by_name.get(name)
+        vs_lq = _vs(sales, prior['sales']) if prior else None
 
+        lq_subcats = {sc['name']: sc for sc in prior.get('subcats', [])} if prior else {}
         subcat_names = _union_ordered([r.get('subcats', []) if r else [] for r in rows], 'name')
         subcats = []
         for sc_name in subcat_names:
@@ -227,14 +244,18 @@ def _aggregate_prod_types(months):
             sc_sales = sum((sc['sales'] if sc else 0) or 0 for sc in sc_rows)
             sc_units = sum((sc['units'] if sc else 0) or 0 for sc in sc_rows)
             sc_vs_ly = _recompute_yoy([(sc['sales'], sc.get('vs_ly')) for sc in sc_rows if sc])
-            subcats.append({'name': sc_name, 'sales': sc_sales, 'units': sc_units, 'vs_ly': sc_vs_ly})
+            sc_prior = lq_subcats.get(sc_name)
+            sc_vs_lq = _vs(sc_sales, sc_prior['sales']) if sc_prior else None
+            subcats.append({'name': sc_name, 'sales': sc_sales, 'units': sc_units,
+                            'vs_lq': sc_vs_lq, 'vs_ly': sc_vs_ly})
 
-        out.append({'t': name, 'sales': sales, 'units': units, 'vs_lq': None,
+        out.append({'t': name, 'sales': sales, 'units': units, 'vs_lq': vs_lq,
                     'vs_ly': vs_ly, 'gm': gm, 'subcats': subcats})
     return out
 
 
-def _aggregate_finishes(months):
+def _aggregate_finishes(months, lq=None):
+    lq_finishes = lq['finishes'] if lq else {}
     names = []
     seen = set()
     for m in months:
@@ -245,10 +266,12 @@ def _aggregate_finishes(months):
     out = {}
     for name in names:
         rows = [m['finishes'].get(name) for m in months]
+        total = sum((r['total'] if r else 0) or 0 for r in rows)
+        prior = lq_finishes.get(name)
         out[name] = {
-            'total': sum((r['total'] if r else 0) or 0 for r in rows),
+            'total': total,
             'units': sum((r['units'] if r else 0) or 0 for r in rows),
-            'vsLQ': None, 'vsLY': None,
+            'vsLQ': _vs(total, prior.get('total')) if prior else None, 'vsLY': None,
             'd2c': sum((r['d2c'] if r else 0) or 0 for r in rows),
             'b2b': sum((r['b2b'] if r else 0) or 0 for r in rows),
             'uk': sum((r['uk'] if r else 0) or 0 for r in rows),
@@ -257,19 +280,25 @@ def _aggregate_finishes(months):
     return out
 
 
-def _aggregate_skus(months):
+def _aggregate_skus(months, lq=None):
     """Union of every SKU that sold in any of the 3 months (BRIEF step 5
     §4). Cash/units sum directly. gm is revenue-weighted across the
     months the SKU appeared in. 'ly' (last-YEAR-same-month sales) is the
     sheet's own ABSOLUTE prior-year column -- not a ratio -- so it sums
     directly across months into a real Q(-1y) per-SKU figure, no
     reconstruction needed. 'lq'/'vslq' (last quarter / QoQ movement) are
-    None -- no Q1 2026 SKU-level data exists this run (see module
-    docstring); this is what makes this quarter's QoQ movers empty.
+    real once `lq` (a previously-committed quarter's own payload) is
+    given -- a direct lookup of that SKU's own prior-quarter gross, the
+    same absolute-value comparison as vs_ly above, just one quarter back
+    instead of one year. This is what lets QoQ movers populate for real
+    once a prior quarterly contract exists; None (never fabricated) the
+    first time a quarter is built, same as every other "no prior period
+    committed yet" case in this codebase.
     Static attributes (desc/coll/type_/finish/status) take the LATEST
     month's value where present -- "as of quarter end", same convention
     the Matrixify path's newness_bucket already uses (BRIEF step 5 §4).
     """
+    lq_skus = {s['sku']: s for s in lq['skus_all']} if lq else {}
     totals = {}
     for m in months:  # months must already be in chronological order
         for s in m['skus_all']:
@@ -298,25 +327,31 @@ def _aggregate_skus(months):
 
     skus_all = []
     for sku, t in totals.items():
+        prior = lq_skus.get(sku)
+        prior_gross = prior['gross'] if prior else None
         skus_all.append({
             'rank': None, 'sku': sku, 'desc': t.get('desc') or sku,
             'coll': t.get('coll') or '', 'type_': t.get('type_') or 'Unknown',
             'finish': t.get('finish') or '', 'uk_status': t.get('uk_status') or '',
             'us_status': t.get('us_status') or '',
-            'gross': t['gross'], 'units': t['units'], 'vslq': None,
+            'gross': t['gross'], 'units': t['units'],
+            'vslq': _vs(t['gross'], prior_gross) if prior_gross is not None else None,
             'gm': (t['gm_num'] / t['gm_den']) if t['gm_den'] else None,
             'd2c': t['d2c'], 'b2b': t['b2b'], 'uk': t['uk'], 'uk_u': t['uk_u'],
             'us': t['us'], 'us_u': t['us_u'],
-            'lq': None, 'ly': (t['ly'] if t['_ly_seen'] else None),
+            'lq': prior_gross, 'ly': (t['ly'] if t['_ly_seen'] else None),
         })
     return skus_all
 
 
-def _aggregate_collections(months, skus_all):
+def _aggregate_collections(months, skus_all, lq=None):
     """Cash/units summed directly from each month's own By Collection
     figures (accurate at source -- not reconstructed from SKU residuals).
     'skus' (distinct-SKU count) is recomputed from the aggregated quarter
     SKU set, since a COUNT of distinct things needs the union, unlike cash.
+    vs_lq is real once `lq` (a previously-committed quarter's own payload)
+    is given -- direct comparison against that quarter's own ts for the
+    same (department, collection) key.
 
     Keyed on (department, collection name) jointly, not name alone: several
     real collection names collide across different (mostly blank/'Unknown')
@@ -335,11 +370,14 @@ def _aggregate_collections(months, skus_all):
     def _find_coll(coll_rows, dept, coll):
         return next((r for r in coll_rows if r['t'] == dept and r['c'] == coll), None)
 
+    lq_collections = lq['collections'] if lq else []
+
     agg = {}
     for dept, coll in keys:
         rows = [_find_coll(m['collections'], dept, coll) for m in months]
         ts = sum((r['ts'] if r else 0) or 0 for r in rows)
         gm = _weighted_avg([(r['gm'], r['ts']) for r in rows if r])
+        prior = _find_coll(lq_collections, dept, coll)
         agg[(dept, coll)] = {
             'ts': ts,
             'tu': sum((r['tu'] if r else 0) or 0 for r in rows),
@@ -349,24 +387,31 @@ def _aggregate_collections(months, skus_all):
             'us_s': sum((r['us_s'] if r else 0) or 0 for r in rows),
             'row_s': sum((r.get('row_s', 0) if r else 0) or 0 for r in rows),
             'gm': gm, 'skus': sku_count.get((dept, coll), 0),
+            'vs_lq': _vs(ts, prior['ts']) if prior else None,
         }
 
     ordered = sorted(agg.items(), key=lambda kv: -kv[1]['ts'])
     return [{
         'r': i + 1, 't': dept, 'c': coll, 'ts': v['ts'], 'tu': v['tu'],
-        'vs_lq': None, 'gm': v['gm'],
+        'vs_lq': v['vs_lq'], 'gm': v['gm'],
         'd2c': v['d2c'], 'b2b': v['b2b'], 'uk_s': v['uk_s'], 'us_s': v['us_s'],
         'row_s': v['row_s'], 'lq_total': 0.0, 'lq_uk': 0.0, 'lq_us': 0.0,
         'uk_vs': None, 'us_vs': None, 'skus': v['skus'],
     } for i, ((dept, coll), v) in enumerate(ordered)]
 
 
-def _aggregate_quarter_payload(months):
+def _aggregate_quarter_payload(months, lq=None):
     """months: 3 dicts, chronological order, each shaped like a single-
     period contract payload (PAYLOAD_KEYS) -- whichever front-end produced
     them (extract_all() directly for oracle, load_contract(emit_contract_
     from_matrixify(...)) for Matrixify; both converge on this one shape,
     same principle as BRIEF #3's single-schema, dual-emitter design).
+    lq: a previously-committed QUARTERLY contract's own payload (already
+    load_contract()-ed), or None. When given, every vs_lq at every grain
+    (headline, statuses, prod_types/subcats, finishes, collections,
+    skus_all) is a REAL comparison against that quarter's own absolute
+    figures -- not a reconstruction, an exact prior-period lookup, since
+    a committed prior quarter genuinely has the data other periods don't.
     Returns a payload dict, mode='quarter', current['vs_*'] already
     computed, ready for _add_headline_kpis + _is_el_component + strip +
     _wrap_contract.
@@ -374,7 +419,7 @@ def _aggregate_quarter_payload(months):
     period_model = quarter_period_model([m['period_model'] for m in months])
 
     current = _aggregate_current(months)
-    lm = _zero_lm()
+    lm = _current_to_lm_shape(lq['current']) if lq else _zero_lm()
     ly = _aggregate_ly(months)
     current['vs_lm'] = _vs(current['total_sales'], lm['total'])
     current['vs_ly'] = _vs(current['total_sales'], ly['total'])
@@ -385,16 +430,16 @@ def _aggregate_quarter_payload(months):
     current['us_vs_lm'] = _vs(current['us_gbp'], lm['us'])
     current['us_vs_ly'] = _vs(current['us_gbp'], ly['us'])
 
-    skus_all = _aggregate_skus(months)
-    collections = _aggregate_collections(months, skus_all)
+    skus_all = _aggregate_skus(months, lq=lq)
+    collections = _aggregate_collections(months, skus_all, lq=lq)
 
     return {
         'mode': 'quarter',
         'period_model': period_model,
         'current': current, 'lm': lm, 'ly': ly,
-        'statuses': _aggregate_statuses(months),
-        'prod_types': _aggregate_prod_types(months),
-        'finishes': _aggregate_finishes(months),
+        'statuses': _aggregate_statuses(months, lq=lq),
+        'prod_types': _aggregate_prod_types(months, lq=lq),
+        'finishes': _aggregate_finishes(months, lq=lq),
         'collections': collections,
         'skus_all': skus_all,
     }
@@ -402,11 +447,18 @@ def _aggregate_quarter_payload(months):
 
 # ── Oracle front-end ─────────────────────────────────────────────────────────
 
-def emit_contract_from_oracle_quarter(month_xlsx_paths, out_path=None):
+def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_path=None):
     """The oracle-sourced quarterly contract (BRIEF step 5) -- aggregates 3
     monthly oracle workbooks, in chronological order, into the exact shape
     emit_contract_from_oracle produces for a month. Correct now; this is
     what Step 5 is validated against (brief §2/§6).
+
+    lq_contract: a previously-committed quarterly contract (dict or path to
+    its .json), or None. Passing the prior quarter's own contract here is
+    what makes LQ (vs_lq) real instead of zero/None -- e.g. Q2 2026 passing
+    the committed Q1 2026 contract. Self-heals going forward with no code
+    change: build and commit each quarter in order, and it becomes the next
+    quarter's lq_contract.
     """
     if len(month_xlsx_paths) != 3:
         raise ValueError(f"emit_contract_from_oracle_quarter needs exactly 3 monthly oracle files, got {len(month_xlsx_paths)}")
@@ -417,7 +469,8 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, out_path=None):
             raise ValueError(f"{p}: expected a MONTHLY oracle workbook (got mode={m['mode']!r}) -- "
                               "aggregate 3 monthly files, don't pass an already-quarterly one")
 
-    payload = _aggregate_quarter_payload(months)
+    lq = load_contract(lq_contract) if lq_contract is not None else None
+    payload = _aggregate_quarter_payload(months, lq=lq)
     _add_headline_kpis(payload['current'])
     for sku in payload['skus_all']:
         sku['is_el_component'] = _is_el_component(sku.get('coll'))
@@ -432,11 +485,14 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, out_path=None):
         'enrichment_coverage': None,
         'unmatched_sku_revenue_share': None,
         'country_gaps_vs_oracle': None,
-        # LY is real (reconstructed from each month's own LY_BLOCK); LQ
-        # (previous quarter) has no data source this run -- see module
-        # docstring. Both are disclosed here, not silently merged into one
-        # "bootstrap" label that would overstate what's actually backed by data.
-        'lq_ly_source': 'ly_from_monthly_oracle_blocks__lq_unavailable',
+        # LY is always real (reconstructed from each month's own LY_BLOCK).
+        # LQ is real only once a prior quarterly contract was supplied as
+        # lq_contract -- disclosed explicitly here rather than silently
+        # merged into one "bootstrap" label that would overstate what's
+        # actually backed by data on a quarter's first-ever build.
+        'lq_ly_source': ('ly_from_monthly_oracle_blocks__lq_from_committed_quarter' if lq
+                          else 'ly_from_monthly_oracle_blocks__lq_unavailable'),
+        'lq_source_period': lq['period_model']['cm']['label'] if lq else None,
         'aggregated_from': [os.path.basename(p) for p in month_xlsx_paths],
         'built_at': datetime.now(timezone.utc).isoformat(),
         'commit': _git_commit(),
@@ -450,9 +506,11 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, out_path=None):
 
 # ── Matrixify front-end ──────────────────────────────────────────────────────
 
-def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, out_path=None):
+def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, lq_contract=None, out_path=None):
     """The Matrixify-sourced quarterly contract. month_specs: 3
-    (period, uk_csv, us_csv) tuples in chronological order.
+    (period, uk_csv, us_csv) tuples in chronological order. lq_contract:
+    same meaning as emit_contract_from_oracle_quarter's -- a previously-
+    committed quarterly contract to chain real vs_lq from.
 
     NOT runnable today: only trading/source/orders_2026-05_{UK,US}.csv are
     committed -- April and June Matrixify exports don't exist in this repo
@@ -484,7 +542,8 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     months = [load_contract(c) for c in month_contracts]
     all_reconciled = all(c['provenance']['reconciled'] for c in month_contracts)
 
-    payload = _aggregate_quarter_payload(months)
+    lq = load_contract(lq_contract) if lq_contract is not None else None
+    payload = _aggregate_quarter_payload(months, lq=lq)
     _add_headline_kpis(payload['current'])
     for sku in payload['skus_all']:
         sku['is_el_component'] = _is_el_component(sku.get('coll'))

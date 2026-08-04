@@ -259,10 +259,39 @@ def extract_collections(ws_coll, ws_sku, mode='month'):
 
 # ── By SKU ────────────────────────────────────────────────────────────────────
 
+def _detect_sku_layout(ws_sku):
+    """Detect the real column layout for the 'Gross Sales £' onward block
+    from the sheet's own header row, rather than trusting the fixed
+    SKU_COL. Found building the Step 5 quarterly aggregator: the Q1 2026
+    quarterly export has an extra 'RRP (exVAT)' column (absent from the
+    monthly layout AND from the Q2 quarterly export) that shifts every
+    field from 'Gross Sales £' onward right by one -- silently reading
+    UK Status text into the units slot and None into gross sales. Same
+    bug CLASS as the By Collection shift (_detect_coll_layout) and
+    April's monthly 'vs LY LM' gap, just a different sheet/direction
+    (an extra column, not a missing one) -- column layout is a property
+    of the specific export's vintage, not of month-vs-quarter or sheet
+    type, confirmed again here.
+    """
+    header_row = None
+    for row in range(1, min(ws_sku.max_row, 10) + 1):
+        vals = [c.value for c in ws_sku[row]]
+        if 'SKU' in vals and 'Gross Sales £' in vals:
+            header_row = row
+            break
+    if header_row is None:
+        raise ValueError("extract_skus_all: could not find the header row to detect column layout")
+    header_vals = [c.value for c in ws_sku[header_row]]
+    shift = header_vals.index('Gross Sales £') - SKU_COL['gross']
+    if shift == 0:
+        return SKU_COL
+    return {k: (v + shift if v >= SKU_COL['gross'] else v) for k, v in SKU_COL.items()}
+
+
 def extract_skus_all(ws_sku):
     """Return list of ALL SKU dicts from By SKU sheet (row 5+)."""
     skus = []
-    C = SKU_COL
+    C = _detect_sku_layout(ws_sku)
     for row in ws_sku.iter_rows(min_row=5, values_only=True):
         if row[C['sku']] is None:
             continue
