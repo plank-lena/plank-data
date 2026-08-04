@@ -60,37 +60,50 @@ STATUS_COLS = {
     'gm': 'S', 'st': 'Q', 'wc': 'R', 'inv': 'P',
 }
 
-# ── Product-Type rows ─────────────────────────────────────────────────────────
-TYPE_ROWS = {
-    'Cabinetry': 16, 'Electric': 33, 'Accessories': 24, 'Lighting': 39, 'Components': 44,
-}
+# ── Product-Type column mapping (rows are discovered dynamically -- see
+#    extract.extract_product_types; a fixed row dict silently hid whichever
+#    departments weren't hand-listed, e.g. Taps/Door) ────────────────────────
 TYPE_COLS = {'sales': 'F', 'units': 'J', 'vs_lq': 'G', 'gm': 'S'}
 
-# ── Finish rows ───────────────────────────────────────────────────────────────
-FINISH_ROWS = {
-    'Antique Brass':     47,
-    'Brass':             48,
-    'Aged Brass':        49,
-    'Unlacquered Brass': 52,
-    'Polished Nickel':   55,
-    'Black':             56,
-    'Stainless Steel':   59,
-    'Burgundy':          69,
-}
+# ── Finish column mapping (rows discovered dynamically -- see
+#    extract.extract_finishes; the sheet carries ~29 named finishes, not the
+#    8 previously hand-curated) ───────────────────────────────────────────────
 FINISH_COLS = {
     'total': 'F', 'units': 'J', 'vsLQ': 'G', 'vsLY': 'I',
     'd2c': 'V', 'b2b': 'AH', 'uk': 'AT', 'us': 'CD',
 }
-FINISH_COLORS = {
-    'Antique Brass':     ('rgba(176,125,0,0.9)',   'rgba(140,90,0,1)'),
-    'Brass':             ('rgba(140,100,0,0.9)',   'rgba(120,80,0,1)'),
-    'Aged Brass':        ('rgba(130,95,20,0.9)',   'rgba(110,75,0,1)'),
-    'Unlacquered Brass': ('rgba(160,135,50,0.9)', 'rgba(130,100,20,1)'),
-    'Polished Nickel':   ('rgba(90,110,140,0.9)', 'rgba(60,80,110,1)'),
-    'Black':             ('rgba(40,40,50,0.9)',    'rgba(20,20,30,1)'),
-    'Stainless Steel':   ('rgba(70,100,140,0.9)', 'rgba(50,80,120,1)'),
-    'Burgundy':          ('rgba(150,30,55,0.9)',   'rgba(120,20,40,1)'),
-}
+
+# Deterministic colour cycle for an arbitrary-length, data-driven finish
+# list (BRIEF #4 step 4 §5) -- assigned by rank (sorted by total sales
+# descending) rather than by name, same convention as COLL_COLORS below.
+FINISH_PALETTE = [
+    ('rgba(176,125,0,0.9)',   'rgba(140,90,0,1)'),     # antique brass
+    ('rgba(140,100,0,0.9)',   'rgba(120,80,0,1)'),     # brass
+    ('rgba(130,95,20,0.9)',   'rgba(110,75,0,1)'),     # aged brass
+    ('rgba(160,135,50,0.9)',  'rgba(130,100,20,1)'),   # unlacquered brass
+    ('rgba(90,110,140,0.9)',  'rgba(60,80,110,1)'),    # polished nickel
+    ('rgba(40,40,50,0.9)',    'rgba(20,20,30,1)'),     # black
+    ('rgba(70,100,140,0.9)',  'rgba(50,80,120,1)'),    # stainless steel
+    ('rgba(150,30,55,0.9)',   'rgba(120,20,40,1)'),    # burgundy
+    ('rgba(180,150,90,0.9)',  'rgba(150,120,60,1)'),   # shiny brass
+    ('rgba(190,170,120,0.9)', 'rgba(160,140,90,1)'),   # polished brass
+    ('rgba(180,180,190,0.9)', 'rgba(140,140,150,1)'),  # polished silver / silver
+    ('rgba(150,170,190,0.9)', 'rgba(110,130,150,1)'),  # polished chrome
+    ('rgba(60,90,60,0.9)',    'rgba(40,70,40,1)'),     # colours / green
+    ('rgba(90,60,140,0.9)',   'rgba(70,40,110,1)'),    # purple
+    ('rgba(190,60,60,0.9)',   'rgba(160,40,40,1)'),    # red
+    ('rgba(90,130,170,0.9)',  'rgba(60,100,140,1)'),   # light blue / blue
+    ('rgba(150,110,70,0.9)',  'rgba(120,85,50,1)'),    # paintable / cream / wood
+    ('rgba(120,120,120,0.9)', 'rgba(90,90,90,1)'),     # other / uncategorised
+]
+
+
+def finish_color(rank):
+    """Colour for the finish at this rank (0-based, sorted by total sales
+    descending) -- cycles the palette so an arbitrary number of finishes
+    (not just the previous fixed 8) always gets a colour.
+    """
+    return FINISH_PALETTE[rank % len(FINISH_PALETTE)]
 
 # ── By SKU column indices (0-based) ──────────────────────────────────────────
 SKU_COL = {

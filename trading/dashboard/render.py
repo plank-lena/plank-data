@@ -4,6 +4,16 @@ import re
 import sys
 from pathlib import Path
 
+# NOTE: the tokenise()/_HTML_STATIC/_JS_BLOCKS/_JS_STATIC machinery below is
+# frozen, one-time bootstrap history -- it converted the pre-redesign
+# dashboard_current.html into dashboard.template.html (BRIEF #4 step 4 §0:
+# that source predates all 13 redesign changes). pipeline.py only calls
+# tokenise() when TEMPLATE doesn't exist yet; the redesigned template is
+# hand-authored directly and always exists now, so this path never runs
+# again. Kept for history, same convention as this repo's other superseded
+# paths (trading/shopify_feed.py, trading/build.py) -- not exercised, not
+# deleted.
+
 
 # ── One-time tokenisation ─────────────────────────────────────────────────────
 
@@ -256,8 +266,9 @@ def fill_template(template: str, tokens: dict) -> str:
 
 def build_token_dict(
     periods_js, collections_js, statuses_js, prod_types_js, skus_js,
-    finish_data_js, total_sales, coll_analysis_js, newness_skus_js, cat_skus_js,
+    finish_data_js, total_sales, coll_analysis_js, newness_skus_js,
     kpi_tokens, ribbon_tokens,
+    cat_top_collections_js=None, movers_js=None, matrix_js=None,
 ):
     """Combine all token sources into a single flat dict for fill_template."""
     toks = {}
@@ -272,5 +283,7 @@ def build_token_dict(
     toks['TOTAL_SALES']         = total_sales
     toks['BLOCK_COLL_ANALYSIS'] = coll_analysis_js
     toks['BLOCK_NEWNESS_SKUS']  = newness_skus_js
-    toks['BLOCK_CAT_SKUS']      = cat_skus_js
+    toks['BLOCK_CAT_TOP_COLLECTIONS'] = cat_top_collections_js or 'const CAT_TOP_COLLECTIONS = {};'
+    toks['BLOCK_MOVERS']              = movers_js or 'const MOVERS = {rising:[],falling:[]};'
+    toks['BLOCK_MATRIX']              = matrix_js or 'const MATRIX = {points:[],size_key:{min:0,max:0,label:"units"}};'
     return toks

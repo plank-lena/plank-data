@@ -4,13 +4,15 @@ import json
 import math
 
 from config import (
-    FINISH_COLORS, COLL_COLORS, STATUS_ABBREV,
-    fmt_gbp, fmt_pct, badge_class, arrow_color, fmt_inv,
+    finish_color, COLL_COLORS, STATUS_ABBREV,
+    fmt_gbp, fmt_pct, badge_class, arrow_color,
 )
 
-# Source spreadsheet stores cover as inventory_units / monthly_sales_units (months).
-# Multiply by 52/12 to convert to weeks everywhere before display.
-_MONTHS_TO_WEEKS = 52 / 12
+# BRIEF #4 step 4 item 4: a SKU counts as "live" for movers regardless of
+# which of the two status vocabularies its source used -- see contract.py's
+# LIVE_STATUS_VALUES docstring for why both "Live" (Line Detail's raw enum)
+# and "Continuity"/"Newness" (the oracle's coarse bucket) mean the same thing.
+LIVE_STATUS_VALUES = {"Live", "Continuity", "Newness"}
 
 # ── Period model ──────────────────────────────────────────────────────────────
 
@@ -91,9 +93,6 @@ def compute_statuses(statuses_raw):
             'vs_lq': _r4(s.get('vs_lq')),
             'vs_ly': _r4(s.get('vs_ly')),
             'gm':    _r4(s.get('gm')),
-            'st':    _r4(s.get('st')),
-            'wc':    round(s['wc'] * _MONTHS_TO_WEEKS, 3) if s.get('wc') else 0,
-            'inv':   int(s['inv']) if s.get('inv') else 0,
         })
     return out
 
@@ -110,16 +109,67 @@ def _r4(v):
 # ── PROD_TYPES ────────────────────────────────────────────────────────────────
 
 def compute_prod_types(types_raw):
+    """Per-category bars data (BRIEF #4 step 4 §2/§6): current + LY value
+    (both absolute, for the bar label) plus yoy_dir (direction-only colour
+    cue via badge_class -- never the YoY % itself, so a new/near-zero-LY
+    category like Taps doesn't read as a spurious "+900%"), and the
+    subcategory breakdown for the drill toggle. Categories/subcategories are
+    whatever the data has -- no fixed list or count (§5/§10).
+    """
     out = []
     for t in types_raw:
+        vs_ly = _r4(t.get('vs_ly'))
+        sales = round(t['sales']) if t.get('sales') else 0
+        denom = 1 + vs_ly if vs_ly is not None else None
+        ly_sales = round(sales / denom) if denom and abs(denom) > 1e-9 else None
         out.append({
-            't':      t['t'],
-            'sales':  round(t['sales']) if t.get('sales') else 0,
-            'units':  int(t['units']) if t.get('units') else 0,
-            'vs_lq':  _r4(t.get('vs_lq')),
-            'gm':     _r4(t.get('gm')),
+            't':        t['t'],
+            'sales':    sales,
+            'ly_sales': ly_sales,
+            'units':    int(t['units']) if t.get('units') else 0,
+            'vs_lq':    _r4(t.get('vs_lq')),
+            'vs_ly':    vs_ly,
+            'yoy_dir':  badge_class(vs_ly),
+            'gm':       _r4(t.get('gm')),
+            'subcats': [{
+                'name':  sc['name'],
+                'sales': round(sc['sales']) if sc.get('sales') else 0,
+                'units': int(sc['units']) if sc.get('units') else 0,
+                'vs_ly': _r4(sc.get('vs_ly')),
+            } for sc in t.get('subcats', [])],
         })
     return out
+
+
+# ── Category top collections (BRIEF #4 step 4 §2/§6) ─────────────────────────
+# Derived from COLLECTIONS at compute time, same convention this codebase
+# already uses for CAT_ANALYSIS/TYPE_DATA (HANDOFF.md: "derived at runtime
+# from these -- do not generate those by hand"). Every toggle state
+# (cash/units x UK/US/Total) is pre-computed here so the template's JS does
+# no arithmetic, only show/hide.
+
+def compute_category_top_collections(collections_computed, top_n=8):
+    """{category: [{c, cash:{uk,us,total}, units:{uk,us,total}, b2b_share}]}
+    top_n collections per category by total cash, from the already-computed
+    COLLECTIONS array (compute_collections' output).
+    """
+    by_cat = {}
+    for c in collections_computed:
+        by_cat.setdefault(c['t'], []).append(c)
+
+    result = {}
+    for cat, rows in by_cat.items():
+        top = sorted(rows, key=lambda c: -c['ts'])[:top_n]
+        result[cat] = []
+        for c in top:
+            channel_total = c['d2c'] + c['b2b']
+            result[cat].append({
+                'c': c['c'],
+                'cash': {'uk': c['uk_s'], 'us': c['us_s'], 'total': c['ts']},
+                'units': {'uk': None, 'us': None, 'total': c['tu']},  # per-country units not tracked at collection grain
+                'b2b_share': round(c['b2b'] / channel_total, 4) if channel_total else None,
+            })
+    return result
 
 
 # ── SKUS (top 25 overall) ─────────────────────────────────────────────────────
@@ -144,9 +194,7 @@ def compute_skus(skus_all):
             'vs_lq':       _r4(s.get('vslq')),
             'vs_ly':       vs_ly_val,
             'gm':          _r4(s.get('gm')),
-            'st':          _r4(s.get('st')),
-            'wc':          round(s['wc'] * _MONTHS_TO_WEEKS, 3) if s.get('wc') else 0,
-            'inv':         s['inv'],
+            'is_el_component': bool(s.get('is_el_component')),
             'uk_s2':       round(s['uk'], 2),
             'uk_u':        s['uk_u'],
             'us_s2':       round(s['us'], 2),
@@ -178,8 +226,6 @@ def compute_newness_skus(skus_all):
             'sales': round(s['gross']),
             'units': s['units'],
             'gm':    _r4(s.get('gm')),
-            'st':    _r4(s.get('st')),
-            'wc':    round(s['wc'] * _MONTHS_TO_WEEKS, 2) if s.get('wc') else 0,
             'd2c':   round(s['d2c']),
             'b2b':   round(s['b2b']),
             'uk':    round(s['uk']),
@@ -188,25 +234,11 @@ def compute_newness_skus(skus_all):
     return out
 
 
-# ── CAT_SKUS (top 8 per category from full By SKU) ───────────────────────────
-
-def compute_cat_skus(skus_all):
-    cats = ['Cabinetry', 'Electric', 'Accessories', 'Lighting']
-    result = {}
-    for cat in cats:
-        cat_rows = [s for s in skus_all if s['type_'] == cat]
-        top8 = sorted(cat_rows, key=lambda s: -s['gross'])[:8]
-        result[cat] = [{
-            'sku':   s['sku'],
-            'd':     s['desc'],
-            'c':     s['coll'],
-            'sales': round(s['gross']),
-            'vs_lq': _r4(s.get('vslq')),
-            'gm':    _r4(s.get('gm')),
-            'uk':    round(s['uk']),
-            'us':    round(s['us']),
-        } for s in top8]
-    return result
+# NOTE: the previous "top 8 SKUs per category" block (compute_cat_skus /
+# CAT_SKUS, keyed by a hardcoded 4-category list) is retired -- BRIEF #4
+# step 4 item 9 replaces category analysis's top-SKUs view with top-
+# COLLECTIONS (compute_category_top_collections / CAT_TOP_COLLECTIONS
+# above), which is also fully dynamic (§5/§10: no fixed category list).
 
 
 # ── COLLECTIONS (js array) ────────────────────────────────────────────────────
@@ -222,8 +254,6 @@ def compute_collections(collections_raw):
             'tu':       c['tu'],
             'vs_lq':    _r4(c.get('vs_lq')),
             'gm':       _r4(c.get('gm')),
-            'st':       _r4(c.get('st')),
-            'wc':       round(c['wc'] * _MONTHS_TO_WEEKS, 3) if c.get('wc') else 0,
             'd2c':      round(c['d2c'], 2),
             'b2b':      round(c['b2b'], 2),
             'uk_s':     round(c['uk_s'], 2),
@@ -241,9 +271,16 @@ def compute_collections(collections_raw):
 
 # ── FINISH_DATA ───────────────────────────────────────────────────────────────
 
-def compute_finish_data(finishes_raw, skus_all):
+def compute_finish_data(finishes_raw, skus_all, top_n=8):
+    """Finish analysis now shows top COLLECTIONS per finish, not top SKUs
+    (BRIEF #4 step 4 §2/§9) -- whatever finishes exist in the data render
+    (§5/§10), coloured by rank (config.finish_color) rather than a fixed
+    per-name palette, so an arbitrary-length, real (~29-finish) list is
+    always covered, not just a curated 8.
+    """
+    ranked = sorted(finishes_raw.items(), key=lambda kv: -(kv[1].get('total') or 0))
     result = {}
-    for name, raw in finishes_raw.items():
+    for rank, (name, raw) in enumerate(ranked):
         total = raw.get('total') or 0
         vsLQ  = raw.get('vsLQ') or 0
         denom = 1 + vsLQ
@@ -254,71 +291,63 @@ def compute_finish_data(finishes_raw, skus_all):
             if s['finish'] == name and s['gross'] > 0
         ]
 
-        top8 = sorted(finish_skus, key=lambda s: -s['gross'])[:8]
+        coll_totals = {}
+        for s in finish_skus:
+            ct = coll_totals.setdefault(s['coll'], {'sales': 0.0, 'units': 0, 'd2c': 0.0, 'b2b': 0.0})
+            ct['sales'] += s.get('gross') or 0
+            ct['units'] += s.get('units') or 0
+            ct['d2c']   += s.get('d2c') or 0
+            ct['b2b']   += s.get('b2b') or 0
 
-        def _coll_split(field):
-            sums = {}
-            for s in finish_skus:
-                sums[s['coll']] = sums.get(s['coll'], 0) + (s.get(field) or 0)
-            sorted_c = sorted(sums.items(), key=lambda x: -x[1])
-            split, other = {}, 0.0
-            for i, (cn, v) in enumerate(sorted_c):
-                if i < 7: split[cn] = round(v)
-                else: other += v
-            if other > 0: split['OTHER'] = round(other)
-            return split
+        top_colls = sorted(coll_totals.items(), key=lambda kv: -kv[1]['sales'])[:top_n]
+        top_collections = []
+        for cname, ct in top_colls:
+            channel_total = ct['d2c'] + ct['b2b']
+            top_collections.append({
+                'c':         cname,
+                'sales':     round(ct['sales']),
+                'units':     ct['units'],
+                'b2b_share': round(ct['b2b'] / channel_total, 4) if channel_total else None,
+            })
 
-        color, text_color = FINISH_COLORS[name]
+        color, text_color = finish_color(rank)
+        channel_total = (raw.get('d2c') or 0) + (raw.get('b2b') or 0)
         result[name] = {
-            'color':        color,
-            'textColor':    text_color,
-            'total':        round(total),
-            'lq':           round(lq),
-            'ly':           0,
-            'units':        int(raw.get('units') or 0),
-            'vsLQ':         _r4(vsLQ),
-            'vsLY':         None,
-            'd2c':          round(raw.get('d2c') or 0),
-            'b2b':          round(raw.get('b2b') or 0),
-            'uk':           round(raw.get('uk') or 0),
-            'us':           round(raw.get('us') or 0),
-            'lq_uk':        0,
-            'lq_us':        0,
-            'collSplit':    _coll_split('gross'),
-            'collSplitUK':  _coll_split('uk'),
-            'collSplitUS':  _coll_split('us'),
-            'skus': [{
-                'sku':  s['sku'],
-                'coll': s['coll'],
-                'sales': round(s['gross']),
-                'vsLQ': _r4(s.get('vslq')),
-                'gm':   _r4(s.get('gm')),
-                'uk':   round(s.get('uk') or 0),
-                'us':   round(s.get('us') or 0),
-            } for s in top8],
+            'color':           color,
+            'textColor':       text_color,
+            'total':           round(total),
+            'lq':              round(lq),
+            'ly':              0,
+            'units':           int(raw.get('units') or 0),
+            'vsLQ':            _r4(vsLQ),
+            'vsLY':            None,
+            'd2c':             round(raw.get('d2c') or 0),
+            'b2b':             round(raw.get('b2b') or 0),
+            'b2b_share':       round((raw.get('b2b') or 0) / channel_total, 4) if channel_total else None,
+            'uk':              round(raw.get('uk') or 0),
+            'us':              round(raw.get('us') or 0),
+            'lq_uk':           0,
+            'lq_us':           0,
+            'top_collections': top_collections,
         }
     return result
 
 
-# ── COLL_ANALYSIS (top 10 deep-dive) ─────────────────────────────────────────
+# ── COLL_ANALYSIS -- merged Collection Performance + Analysis drill-down
+#    (BRIEF #4 step 4 §3/§6: top 10 collections, each exposing every
+#    toggle-state value + movement, and its own top-10 SKUs with
+#    cash/units x UK/US, % share of the collection's take, and movement).
+#    The drill-down responds to the same cash/units + UK/US/Total toggles
+#    as its parent bar chart -- all pre-computed here, no client-side math.
 
-def compute_coll_analysis(collections_raw, skus_all):
+def compute_coll_analysis(collections_raw, skus_all, top_n_skus=10):
     top10 = sorted(collections_raw, key=lambda c: -c['ts'])[:10]
 
-    # Build (type, coll) → top 6 sku objects from full By SKU sheet
+    # Build (type, coll) → sorted sku objects from full By SKU sheet
     sku_by_coll = {}
     for s in sorted(skus_all, key=lambda s: -s['gross']):
         key = (s['type_'], s['coll'])
-        if key not in sku_by_coll:
-            sku_by_coll[key] = []
-        if len(sku_by_coll[key]) < 6:
-            sku_by_coll[key].append({
-                'sku':   s['sku'],
-                'd':     s['desc'],
-                'sales': round(s['gross']),
-                'vs_lq': _r4(s.get('vslq')),
-                'gm':    _r4(s.get('gm')),
-            })
+        sku_by_coll.setdefault(key, []).append(s)
 
     result = {}
     seen_names = {}
@@ -330,8 +359,23 @@ def compute_coll_analysis(collections_raw, skus_all):
             key = f'{name}_{t[0]}'
         seen_names[name] = t
 
+        coll_total = c['ts'] or 0
+        top_skus = sku_by_coll.get((t, name), [])[:top_n_skus]
+        skus_list = []
+        for s in top_skus:
+            skus_list.append({
+                'sku':        s['sku'],
+                'd':          s['desc'],
+                'cash':       {'uk': round(s.get('uk') or 0, 2), 'us': round(s.get('us') or 0, 2), 'total': round(s['gross'], 2)},
+                'units':      {'uk': s.get('uk_u') or 0, 'us': s.get('us_u') or 0, 'total': s.get('units') or 0},
+                'share':      round(s['gross'] / coll_total, 4) if coll_total else None,
+                'vs_lq':      _r4(s.get('vslq')),
+                'yoy_dir':    badge_class(s.get('vslq')),
+                'gm':         _r4(s.get('gm')),
+            })
+
         color = COLL_COLORS[i % len(COLL_COLORS)]
-        skus_list = sku_by_coll.get((t, name), [])[:6]
+        vs_lq = _r4(c.get('vs_lq'))
         result[key] = {
             'color':    color,
             'sales':    round(c['ts']),
@@ -340,8 +384,8 @@ def compute_coll_analysis(collections_raw, skus_all):
             'lq_us':    round(c['lq_us']),
             'units':    c['tu'],
             'gm':       _r4(c.get('gm')),
-            'st':       _r4(c.get('st')),
-            'wc':       round(c['wc'] * _MONTHS_TO_WEEKS, 3) if c.get('wc') else 0,
+            'vs_lq':    vs_lq,
+            'yoy_dir':  badge_class(vs_lq),
             'd2c':      round(c['d2c']),
             'b2b':      round(c['b2b']),
             'uk':       round(c['uk_s']),
@@ -350,6 +394,51 @@ def compute_coll_analysis(collections_raw, skus_all):
             'skus':     skus_list,
         }
     return result
+
+
+# ── MOVERS -- top-10 rising + top-10 falling, Live-status only ──────────────
+# (BRIEF #4 step 4 item 4). "Live" spans both status vocabularies a SKU's
+# uk_status/us_status might carry (see LIVE_STATUS_VALUES above) --
+# Discontinued/Dead/Not For Sale/Pre-Launch/Disco to Resource are excluded
+# on both sides, same for a SKU with no live status at all.
+
+def compute_movers(skus_all, top_n=10):
+    live = [
+        s for s in skus_all
+        if (s.get('uk_status') in LIVE_STATUS_VALUES or s.get('us_status') in LIVE_STATUS_VALUES)
+        and s.get('vslq') is not None
+    ]
+    rising = sorted(live, key=lambda s: -s['vslq'])[:top_n]
+    falling = sorted(live, key=lambda s: s['vslq'])[:top_n]
+
+    def _mk(s):
+        return {
+            'sku': s['sku'], 'desc': s['desc'], 'coll': s['coll'], 'type_': s['type_'],
+            'sales': round(s['gross']), 'vs_lq': _r4(s.get('vslq')),
+        }
+
+    return {'rising': [_mk(s) for s in rising], 'falling': [_mk(s) for s in falling]}
+
+
+# ── MATRIX -- revenue x GM bubble points + size-legend values ───────────────
+# (BRIEF #4 step 4 §4/§6). GM lives only here now that the headline KPI
+# slot is YoY growth%. Size metric is units (bubble area), matching the
+# pre-redesign scatter's own "size = units" convention.
+
+def compute_matrix(collections_raw, top_n=40):
+    rows = [c for c in collections_raw if c.get('ts') and c['ts'] > 0 and c.get('gm') is not None]
+    top = sorted(rows, key=lambda c: -c['ts'])[:top_n]
+    points = [{
+        'c': c['c'], 't': c['t'],
+        'revenue': round(c['ts'], 2), 'gm': _r4(c.get('gm')), 'size': c.get('tu') or 0,
+    } for c in top]
+    sizes = [p['size'] for p in points if p['size']]
+    size_key = {
+        'min': min(sizes) if sizes else 0,
+        'max': max(sizes) if sizes else 0,
+        'label': 'units',
+    }
+    return {'points': points, 'size_key': size_key}
 
 
 # ── Static KPI tokens ─────────────────────────────────────────────────────────
@@ -361,6 +450,9 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
     lm_tot  = lm['total']
     d2c_share     = c['d2c_gbp'] / total if total else 0
     lm_d2c_share  = lm_d2c / lm_tot if lm_tot else 0
+    lm_b2b_share  = (lm.get('b2b') / lm_tot) if lm_tot else None
+    b2b_share     = c.get('b2b_share')
+    b2b_share_delta = (b2b_share - lm_b2b_share) if (b2b_share is not None and lm_b2b_share is not None) else None
     cm_lbl = pm['cm']['label']
     lm_lbl = pm['lm']['label']
     ly_lbl = pm['ly']['label']
@@ -376,8 +468,6 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
     prev_period_abbr   = 'LQ' if is_q else 'LM'
     period_comp_label  = 'QoQ' if is_q else 'MoM'
     period_trend_label = 'Quarter-on-Quarter' if is_q else 'Month-on-Month'
-
-    inv_units = c.get('inventory', 0) or 0
 
     # period labels JS array
     period_labels = (
@@ -417,15 +507,27 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
         'KPI_UNITS_LY_CLS':  badge_class(c.get('units_vs_ly')),
         'KPI_UNITS_LY':      fmt_pct(c.get('units_vs_ly')),
 
-        # KPI — Gross Margin
-        'KPI_GM_VAL': f"{c['gm_pct']*100:.1f}%" if c.get('gm_pct') else '—',
-        'KPI_GM_D2C': f"{c['d2c_gm']*100:.1f}%" if c.get('d2c_gm') else '—',
-        'KPI_GM_B2B': f"{c['b2b_gm']*100:.1f}%" if c.get('b2b_gm') else '—',
+        # KPI — YoY Growth % (replaces the headline GM% slot -- BRIEF #4
+        # step 4 §1/§6, item 11. GM itself is not deleted, it moves to the
+        # revenue x GM matrix only.)
+        'KPI_YOY_VAL':     fmt_pct(c.get('yoy_growth_pct')),
+        'KPI_YOY_UK_CLS':  badge_class(c.get('uk_vs_ly')),
+        'KPI_YOY_UK':      fmt_pct(c.get('uk_vs_ly')),
+        'KPI_YOY_US_CLS':  badge_class(c.get('us_vs_ly')),
+        'KPI_YOY_US':      fmt_pct(c.get('us_vs_ly')),
 
         # KPI — D2C Share
         'KPI_D2C_SHARE':    f'{d2c_share*100:.1f}%',
         'KPI_D2C_LM_CLS':   badge_class(d2c_share - lm_d2c_share),
         'KPI_D2C_LM':       ('+' if d2c_share >= lm_d2c_share else '') + f'{(d2c_share - lm_d2c_share)*100:.1f}pp',
+
+        # KPI — B2B Share of Revenue (new -- BRIEF #4 step 4 §1/§6, item 1.
+        # Labelled "share of revenue", not "B2B %", because D2C% + B2B%
+        # does not sum to 100 -- channel doesn't partition the total,
+        # country does; see contract.py's _add_headline_kpis docstring.)
+        'KPI_B2B_SHARE':    fmt_pct(b2b_share, force_sign=False),
+        'KPI_B2B_LM_CLS':   badge_class(b2b_share_delta),
+        'KPI_B2B_LM':       (('+' if b2b_share_delta >= 0 else '') + f'{b2b_share_delta*100:.1f}pp') if b2b_share_delta is not None else '—',
 
         # KPI — UK
         'KPI_UK_VAL':    fmt_gbp(c.get('uk_gbp')),
@@ -440,11 +542,6 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
         'KPI_US_LM':     fmt_pct(c.get('us_vs_lm')),
         'KPI_US_LY_CLS': badge_class(c.get('us_vs_ly')),
         'KPI_US_LY':     fmt_pct(c.get('us_vs_ly')),
-
-        # KPI — Sell-Through
-        'KPI_ST_VAL':  f"{c['sell_through']*100:.1f}%" if c.get('sell_through') else '—',
-        'KPI_WC_VAL':  f"WC {c['weeks_cover'] * _MONTHS_TO_WEEKS:.1f} wks" if c.get('weeks_cover') else '—',
-        'KPI_INV_VAL': fmt_inv(inv_units),
     }
 
     # MoM Ribbon — Total trajectory
@@ -456,8 +553,13 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
     return toks
 
 
-def compute_ribbon_tokens(current, lm, ly, pm):
-    """Return ribbon tokens for the MoM ribbon section."""
+def compute_ribbon_tokens(current, lm, ly, pm, mode='month'):
+    """Return ribbon tokens for the MoM/QoQ ribbon section. BRIEF #4 step 4
+    §9: the comparator label must come from `mode`, not be hardcoded, so
+    quarterly reuses this unchanged and correctly says "QoQ" instead of
+    "MoM" -- vs-LY stays "YoY" in both modes per the same section.
+    """
+    period_comp_label = 'QoQ' if mode == 'quarter' else 'MoM'
     cm_total = current.get('total_sales', 0)
     lm_total = lm.get('total', 0)
     ly_total = ly.get('total', 0)
@@ -493,7 +595,7 @@ def compute_ribbon_tokens(current, lm, ly, pm):
         'RIB_TOTAL_CM_PERIOD':  f'{cm_lbl} (CM)',
         'RIB_TOTAL_CM_VAL':     fmt_gbp(cm_total),
         'RIB_TOTAL_LM_CLS':     badge_class(total_vs_lm),
-        'RIB_TOTAL_LM_BADGE':   f'{_sign_pct(total_vs_lm)} MoM',
+        'RIB_TOTAL_LM_BADGE':   f'{_sign_pct(total_vs_lm)} {period_comp_label}',
         'RIB_TOTAL_LY_CLS':     badge_class(total_vs_ly),
         'RIB_TOTAL_LY_BADGE':   f'{_sign_pct(total_vs_ly)} YoY',
 
@@ -504,7 +606,7 @@ def compute_ribbon_tokens(current, lm, ly, pm):
         'RIB_UK_ARR2_COLOR': arrow_color(lm_uk, cm_uk),
         'RIB_UK_CM_VAL':     fmt_gbp(cm_uk),
         'RIB_UK_LM_CLS':     badge_class(uk_vs_lm),
-        'RIB_UK_LM_BADGE':   f'{_sign_pct(uk_vs_lm)} MoM',
+        'RIB_UK_LM_BADGE':   f'{_sign_pct(uk_vs_lm)} {period_comp_label}',
         'RIB_UK_LY_CLS':     badge_class(uk_vs_ly),
         'RIB_UK_LY_BADGE':   f'{_sign_pct(uk_vs_ly)} YoY',
 
@@ -515,7 +617,7 @@ def compute_ribbon_tokens(current, lm, ly, pm):
         'RIB_US_ARR2_COLOR': arrow_color(lm_us, cm_us),
         'RIB_US_CM_VAL':     fmt_gbp(cm_us),
         'RIB_US_LM_CLS':     badge_class(us_vs_lm),
-        'RIB_US_LM_BADGE':   f'{_sign_pct(us_vs_lm)} MoM',
+        'RIB_US_LM_BADGE':   f'{_sign_pct(us_vs_lm)} {period_comp_label}',
         'RIB_US_LY_CLS':     badge_class(us_vs_ly),
         'RIB_US_LY_BADGE':   f'{_sign_pct(us_vs_ly)} YoY',
     }
@@ -583,12 +685,11 @@ def js_block_collections(collections):
         uk_vs = f'{c["uk_vs"]}' if c.get('uk_vs') is not None else 'null'
         us_vs = f'{c["us_vs"]}' if c.get('us_vs') is not None else 'null'
         gm    = f'{c["gm"]}' if c.get('gm') is not None else '0'
-        st    = f'{c["st"]}' if c.get('st') is not None else '0'
         vs_lq = f'{c["vs_lq"]}' if c.get('vs_lq') is not None else '0'
         rows.append(
             f'  {{r:{c["r"]},t:"{c["t"]}",c:"{c["c"]}",'
             f'ts:{c["ts"]},tu:{c["tu"]},vs_lq:{vs_lq},'
-            f'gm:{gm},st:{st},wc:{c["wc"]},'
+            f'gm:{gm},'
             f'd2c:{c["d2c"]},b2b:{c["b2b"]},'
             f'uk_s:{c["uk_s"]},us_s:{c["us_s"]},row_s:{c["row_s"]},'
             f'lq_total:{c["lq_total"]},lq_uk:{c["lq_uk"]},lq_us:{c["lq_us"]},'
@@ -605,8 +706,7 @@ def js_block_statuses(statuses):
         rows.append(
             f'  {{s:"{s["s"]}",sales:{s["sales"]},units:{s["units"]},'
             f'vs_lq:{vs_lq},vs_ly:{vs_ly},'
-            f'gm:{_js_val(s["gm"])},st:{_js_val(s["st"])},'
-            f'wc:{s["wc"]},inv:{s["inv"]}}}'
+            f'gm:{_js_val(s["gm"])}}}'
         )
     return 'const STATUSES = [\n' + ',\n'.join(rows) + '\n];'
 
@@ -614,12 +714,60 @@ def js_block_statuses(statuses):
 def js_block_prod_types(prod_types):
     rows = []
     for t in prod_types:
+        subcats = '[' + ','.join(
+            f'{{name:{_js_val(sc["name"])},sales:{sc["sales"]},units:{sc["units"]},vs_ly:{_js_val(sc["vs_ly"])}}}'
+            for sc in t.get('subcats', [])
+        ) + ']'
         rows.append(
-            f'  {{t:"{t["t"]}",sales:{t["sales"]},units:{t["units"]},'
-            f'vs_lq:{_js_val(t["vs_lq"])},vs_ly:null,'
-            f'gm:{_js_val(t["gm"])}}}'
+            f'  {{t:"{t["t"]}",sales:{t["sales"]},ly_sales:{_js_val(t.get("ly_sales"))},units:{t["units"]},'
+            f'vs_lq:{_js_val(t["vs_lq"])},vs_ly:{_js_val(t.get("vs_ly"))},yoy_dir:{_js_val(t.get("yoy_dir"))},'
+            f'gm:{_js_val(t["gm"])},subcats:{subcats}}}'
         )
     return 'const PROD_TYPES = [\n' + ',\n'.join(rows) + '\n];'
+
+
+def js_block_cat_top_collections(cat_top_collections):
+    parts = ['const CAT_TOP_COLLECTIONS = {']
+    for cat, rows in cat_top_collections.items():
+        rows_str = '[' + ','.join(
+            f'{{c:{_js_val(r["c"])},'
+            f'cash:{{uk:{_js_val(r["cash"]["uk"])},us:{_js_val(r["cash"]["us"])},total:{_js_val(r["cash"]["total"])}}},'
+            f'units:{{uk:{_js_val(r["units"]["uk"])},us:{_js_val(r["units"]["us"])},total:{_js_val(r["units"]["total"])}}},'
+            f'b2b_share:{_js_val(r["b2b_share"])}}}'
+            for r in rows
+        ) + ']'
+        parts.append(f'  {_js_key(cat)}:{rows_str},')
+    parts[-1] = parts[-1].rstrip(',')
+    parts.append('};')
+    return '\n'.join(parts)
+
+
+def js_block_movers(movers):
+    def _row(m):
+        return (f'{{sku:{_js_val(m["sku"])},desc:{_js_val(m["desc"])},coll:{_js_val(m["coll"])},'
+                f't:{_js_val(m["type_"])},sales:{m["sales"]},vs_lq:{_js_val(m["vs_lq"])}}}')
+    rising = ',\n'.join('  ' + _row(m) for m in movers['rising'])
+    falling = ',\n'.join('  ' + _row(m) for m in movers['falling'])
+    return (
+        'const MOVERS = {\n'
+        f'  rising: [\n{rising}\n  ],\n'
+        f'  falling: [\n{falling}\n  ]\n'
+        '};'
+    )
+
+
+def js_block_matrix(matrix):
+    points = ',\n'.join(
+        f'  {{c:{_js_val(p["c"])},t:{_js_val(p["t"])},revenue:{p["revenue"]},gm:{_js_val(p["gm"])},size:{p["size"]}}}'
+        for p in matrix['points']
+    )
+    sk = matrix['size_key']
+    return (
+        'const MATRIX = {\n'
+        f'  points: [\n{points}\n  ],\n'
+        f'  size_key: {{min:{sk["min"]}, max:{sk["max"]}, label:{_js_val(sk["label"])}}}\n'
+        '};'
+    )
 
 
 def js_block_skus(skus):
@@ -631,8 +779,8 @@ def js_block_skus(skus):
             f't:"{s["t"]}",uk_s:"{s["uk_s"]}",us_s:"{s["us_s"]}",'
             f'total_sales:{s["total_sales"]},total_units:{s["total_units"]},'
             f'vs_lq:{_js_val(s["vs_lq"])},vs_ly:{vs_ly},'
-            f'gm:{_js_val(s["gm"])},st:{_js_val(s["st"])},wc:{s["wc"]},'
-            f'inv:{s["inv"]},uk_s2:{s["uk_s2"]},uk_u:{s["uk_u"]},'
+            f'gm:{_js_val(s["gm"])},is_el:{_js_val(s["is_el_component"])},'
+            f'uk_s2:{s["uk_s2"]},uk_u:{s["uk_u"]},'
             f'us_s2:{s["us_s2"]},us_u:{s["us_u"]},'
             f'd2c:{s["d2c"]},b2b:{s["b2b"]},'
             f'lq:{s["lq"]},ly:{s["ly"]}}}'
@@ -645,24 +793,18 @@ def js_block_finish_data(finish_data):
     for name, fd in finish_data.items():
         vsLY = 'null' if fd['vsLY'] is None else str(fd['vsLY'])
         ly   = 'null' if fd['ly'] == 0 else str(fd['ly'])
-        def _cs(d): return '{' + ','.join(f'"{k}":{v}' for k, v in d.items()) + '}'
-        skus_str = '[' + ','.join(
-            f'{{sku:"{s["sku"]}",coll:"{s["coll"]}",sales:{s["sales"]},'
-            f'vsLQ:{_js_val(s["vsLQ"])},gm:{_js_val(s["gm"])},'
-            f'uk:{s["uk"]},us:{s["us"]}}}'
-            for s in fd['skus']
+        top_collections_str = '[' + ','.join(
+            f'{{c:{_js_val(tc["c"])},sales:{tc["sales"]},units:{tc["units"]},b2b_share:{_js_val(tc["b2b_share"])}}}'
+            for tc in fd['top_collections']
         ) + ']'
         parts.append(
             f"  '{name}': {{\n"
             f"    color:'{fd['color']}', textColor:'{fd['textColor']}',\n"
             f"    total:{fd['total']}, lq:{fd['lq']}, ly:{ly},"
             f" units:{fd['units']}, vsLQ:{fd['vsLQ']}, vsLY:{vsLY},\n"
-            f"    d2c:{fd['d2c']}, b2b:{fd['b2b']},"
+            f"    d2c:{fd['d2c']}, b2b:{fd['b2b']}, b2b_share:{_js_val(fd.get('b2b_share'))},"
             f" uk:{fd['uk']}, us:{fd['us']}, lq_uk:{fd['lq_uk']}, lq_us:{fd['lq_us']},\n"
-            f"    collSplit:{_cs(fd['collSplit'])},\n"
-            f"    collSplitUK:{_cs(fd['collSplitUK'])},\n"
-            f"    collSplitUS:{_cs(fd['collSplitUS'])},\n"
-            f"    skus:{skus_str}\n"
+            f"    top_collections:{top_collections_str}\n"
             f"  }},"
         )
     parts[-1] = parts[-1].rstrip(',')
@@ -674,15 +816,18 @@ def js_block_coll_analysis(coll_analysis):
     parts = ['const COLL_ANALYSIS = {']
     for key, ca in coll_analysis.items():
         skus_str = '[' + ','.join(
-            f"{{sku:'{_esc(s['sku'])}',d:'{_esc(s['d'])}',sales:{s['sales']},"
-            f"vs_lq:{_js_val(s['vs_lq'])},gm:{_js_val(s['gm'])}}}"
+            f"{{sku:'{_esc(s['sku'])}',d:'{_esc(s['d'])}',"
+            f"cash:{{uk:{s['cash']['uk']},us:{s['cash']['us']},total:{s['cash']['total']}}},"
+            f"units:{{uk:{s['units']['uk']},us:{s['units']['us']},total:{s['units']['total']}}},"
+            f"share:{_js_val(s['share'])},vs_lq:{_js_val(s['vs_lq'])},yoy_dir:{_js_val(s['yoy_dir'])},"
+            f"gm:{_js_val(s['gm'])}}}"
             for s in ca['skus']
         ) + ']'
         parts.append(
             f"  {_js_key(key)}:{{color:'{ca['color']}', sales:{ca['sales']},"
             f" lq:{ca['lq']},lq_uk:{ca['lq_uk']}, lq_us:{ca['lq_us']},"
             f" units:{ca['units']}, gm:{_js_val(ca['gm'])},"
-            f"st:{_js_val(ca['st'])},wc:{ca['wc']},"
+            f" vs_lq:{_js_val(ca['vs_lq'])}, yoy_dir:{_js_val(ca['yoy_dir'])},"
             f" d2c:{ca['d2c']}, b2b:{ca['b2b']},"
             f" uk:{ca['uk']}, us:{ca['us']}, row:{ca['row']}, skus:{skus_str}}},"
         )
@@ -698,27 +843,10 @@ def js_block_newness_skus(newness_skus):
             f"  {{sku:'{s['sku']}', desc:'{_esc(s['desc'])}', coll:'{s['coll']}',"
             f" ptype:'{s['ptype']}', finish:'{_esc(s['finish'])}',"
             f" sales:{s['sales']}, units:{s['units']},"
-            f" gm:{_js_val(s['gm'])}, st:{_js_val(s['st'])}, wc:{s['wc']},"
+            f" gm:{_js_val(s['gm'])},"
             f" d2c:{s['d2c']}, b2b:{s['b2b']}, uk:{s['uk']}, us:{s['us']}}}"
         )
     return 'const NEWNESS_SKUS = [\n' + ',\n'.join(rows) + '\n];'
-
-
-def js_block_cat_skus(cat_skus):
-    parts = ['const CAT_SKUS = {']
-    for cat, skus in cat_skus.items():
-        rows = []
-        for s in skus:
-            rows.append(
-                f"    {{sku:\"{s['sku']}\", d:\"{_esc(s['d'])}\","
-                f" c:\"{s['c']}\", sales:{s['sales']},"
-                f" vs_lq:{_js_val(s['vs_lq'])}, gm:{_js_val(s['gm'])},"
-                f" uk:{s['uk']}, us:{s['us']}}}"
-            )
-        parts.append(f"  {cat}: [\n" + ',\n'.join(rows) + '\n  ],')
-    parts[-1] = parts[-1].rstrip(',')
-    parts.append('};')
-    return '\n'.join(parts)
 
 
 def _esc(s):

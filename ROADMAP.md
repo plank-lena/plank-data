@@ -198,81 +198,30 @@ A failed gate prints the offending figures and the gap, and writes **no output**
       template-fill step (headline = orders-based rate; flag still-maturing recent months)
 - [ ] Lock Q1 (and any other closed period) as a regression fixture
 
-### Phase B — Monthly Trading builder *(source pivoted to Matrixify, 2026-08-03 — see below)*
-- [x] Investigate the trading Google Sheet (Cowork, 3 Aug) — logic fully reverse-engineered;
-      **Path B confirmed** (port to code; retire Supermetrics; sheet stays as spec + oracle)
-- [x] **SUPERSEDED, 2026-08-03: live Shopify Admin GraphQL as the trading source.** Built and
-      genuinely worked (real AB/country/channel logic, monthly FX, a real >50-line-item
-      pagination bug found and fixed, a real Shopify search-index date-boundary bug found and
-      fixed) — but ultimately abandoned as the *source*, not because the logic was wrong.
-      Two live-data findings drove the pivot, kept here because they'll bite anyone tempted to
-      go back to a live query for a monthly (i.e. frozen-in-time) report:
-      - Shopify's `created_at:<...` search filter is **not reliable near "now"**: an order
-        created `2026-08-01T05:38:23Z` matched `created_at:<2026-08-01T00:00:00Z` even with an
-        explicit UTC timestamp. A client-side re-filter against the real `createdAt` fixed this.
-      - The store's data is **genuinely live and mutating** during the multi-minute span of a
-        full pull — two identical queries a few minutes apart returned the same *count* but a
-        ~5% *different set* of orders. Lena confirmed this isn't a bug: Plank is mid-warehouse-move,
-        so July's order/return data is in real operational flux. A live query can never hit an
-        exact match against a report that must be a frozen point-in-time snapshot.
-      - (Also found/fixed along the way, still true and reusable: the real Shopify Draft Order
-        `sourceName` literal is `"shopify_draft_order"`, not `"draft_order"`; and Shopify's
-        `-source_name:X` negation search syntax does **not** do exact-match negation — it
-        excluded ~113 orders when only ~2 real drafts existed. Client-side filtering is safer
-        than trusting either.)
-      - `trading/shopify_feed.py`, `trading/revenue.py` (AB formula, country/channel — reused
-        as-is by the new source), `trading/build.py`, `trading/order_scope_diff.py` are the
-        artifacts of this path. Kept in the repo (the AB/gate logic is sound and now reused) but
-        **do not run `trading/build.py` against live Shopify for a real report** — see below.
-- [x] **Matrixify migration (current path).** Same AB/country/channel/reconciliation-gate logic,
-      new ingestion: a Matrixify **export** is a frozen, point-in-time CSV snapshot — the actual
-      property a monthly report needs, which no amount of live-query correctness can substitute
-      for. `trading/matrixify_source.py` parses the export; `trading/build_matrixify.py` is the
-      new entrypoint. Confirmed on a real export (`trading/source/orders_2026-05_US.csv`,
-      committed as the frozen snapshot, per convention — unlike everything else under `source/`
-      at repo root, `trading/source/*.csv` is deliberately **not** gitignored: it's the auditable
-      record, not a dropped feed):
-      - A refund shares the **same `Line: ID`** as its original `Line Item` row, as one or more
-        `Refund Line` rows with negative Quantity/Total/Tax Total — dedup/aggregate on `Line: ID`
-        directly recovers the same O/S the GraphQL engine computed from `refundLineItems`.
-        Verified against a real multi-unit refund (order `#US29002`): 3 units, 3 refund rows,
-        tax nets out exactly.
-      - Month bucketing is done by parsing `Created At` (Matrixify exports it with an explicit
-        UTC offset, `%Y-%m-%d %H:%M:%S %z`) and converting to **Europe/London** in Python
-        (`matrixify_source.order_month_london`) — no remote search-index date filter involved at
-        all, which is what actually fixes the boundary-leakage class of bug (not just the
-        warehouse-move instability).
-      - **Known gap, not yet explained:** US May 2026 reconciles to only ~91.3% of the sheet's US
-        figure (£195,392.35 computed vs £214,063.73 expected, units 8,973 vs 9,436). Better
-        *behaved* than the GraphQL path (a single stable frozen number, not a moving target) but
-        not yet *correct*. Leading suspects, untested as of 2026-08-03: order-level `Discount`
-        row type (55 rows in the May US export) may not be netted into `Line: Total` the way
-        line-level discounts are — `build_lines()` currently only reads `Line Item` and `Refund
-        Line`/`Shipping Line` rows, ignoring standalone `Discount` rows entirely; and cancelled
-        orders' treatment hasn't been checked against this source yet.
-      - **UK is fully blocked**: only the `Matrixify-PlankUS` MCP connector was available this
-        session — `Matrixify-PlankUK` was never connected, so no UK export exists and `uk+us+row`
-        cannot be checked at all yet. Connect it before continuing.
-      - July export not yet created via Matrixify; the 28-order scope question (are the sheet's
-        missing orders cancelled? use `Cancelled At` + `Payment: Status`, both present in the
-        export) is directly testable once it is, but hasn't been run.
-- [ ] Investigate the May US Matrixify gap (Discount rows, cancelled-order handling) before
-      trusting any Matrixify-sourced figure
-- [ ] Connect `Matrixify-PlankUK`; export + reconcile UK May 2026; only then does `uk+us+row`
-      become checkable
-- [ ] Export + reconcile July via Matrixify; resolve the 28-order scope question with
-      `Cancelled At` + `Payment: Status`
-- [ ] Add GM (`Line: Variant Cost`, Line Detail fallback) and inventory; reproduce sell-through
-      and months-cover
-- [ ] Recompute vs-LM / vs-LY live from shifted-window pulls (not hand-carried)
-- [ ] Emit the values-only Monthly Trading workbook (Monthly Summary / By Collection / By SKU),
-      feed the existing `trading/dashboard/` template-fill step
-- [ ] Gate: `uk + us + row` within 0.1%, ROW present, VAT-by-tax, frozen FX, row-count tie
-- [ ] Regress against a committed month (May/Jun/Jul 2026) before shipping; **relabel the
-      headline honestly** (not "gross") and update the glossary
-- [ ] Once May and July reconcile via Matrixify, remove `trading/shopify_feed.py` /
-      `trading/build.py`'s live-query path and `trading/order_scope_diff.py` (superseded)
+### Phase B — Monthly Trading builder (source = Matrixify; ROW + enrichment landed 2026-08)
 
+⚠️ Reconciliation finding — supersedes the earlier "US ~91.3%" framing. Once revenue is bucketed by ship-to country (not by store-of-origin), the picture is not "US is short, UK nearly passes." Both markets are short by the same sign and order of magnitude — UK −5.16%, US −6.5% — and ROW is effectively a match (+0.69%). The old "+0.62% UK overshoot" was a wrong comparison (a store grand-total, not a country bucket) and has been corrected in RECONCILE_HANDOFF.md.
+
+FX is ruled out as the driver: UK is native GBP with no FX in its path, yet it is short too.
+Discount-netting is ruled out as the remedy: un-netted order discounts push computed higher, and subtracting them made UK worse. Wrong direction.
+The cause is a common, upstream order-scope under-capture in both stores — the builder is missing value/orders the sheet has. The lead is cancelled/scope handling (excluding cancelled orders hurt US units, i.e. the sheet counts cancelled-order units the builder drops); this is the same 28-order July scope question in a different hat.
+Cheap test first: the shortfall ≈ the by-value return rate (~6.58% Q1). Before per-order forensics, confirm whether the oracle's country figures are net or gross of returns (the columns are labelled "Gross Sales" but the pinned basis is net-of-returns/AB). If they're gross while the builder computes net, that alone explains a both-stores shortfall ≈ the return rate — and no forensics would ever close it. Settle via TRADING_logic_spec.md or oracle − May returns ≈ builder?.
+ Investigate the trading Google Sheet — logic reverse-engineered; Path B confirmed (as before).
+ SUPERSEDED: live Shopify Admin GraphQL as the trading source (kept for the pagination / date-boundary findings; not the source — as before).
+ Matrixify migration (US). Frozen point-in-time export; matrixify_source.py + build_matrixify.py; refunds dedup on Line: ID; month-bucket via Created At→Europe/London.
+ Matrixify-PlankUK connected. UK export now available; uk + us + row is checkable.
+ #5 — ROW bucket + three-way country reconcile. compute_combined() unions UK+US lines and buckets by ship-to (GB→UK, US→US, else→ROW; store-fallback only on blank). Grand total computed independently of the country buckets so the leak check is real. common/reconciliation_gate.     assert_matches_oracle added; the gate aborts loudly (exit 1, no false PASS) on failure. ROW is first-class and near-exact (£14,556.43 vs £14,456.95, +0.69%); uk+us+row ties with residual 0. Frozen fixture + regression test lock the bucketing logic. Each bucket vs oracle is not yet within 0.1% — the gate correctly refuses (see finding above).
+ #2 — Line Detail enrichment (commit 7263ad2). trading/line_detail.py parses the real workbook, de-dupes, validates the §4 status enum, derives is_live_uk/us, newness_bucket (as-of report-month end, not wall-clock), GM%, and left-joins without dropping a line. Live-only and EL are carried as flags, not row-drops. Coverage 98.37% of revenue (target ≥99%; unmatched go to an Unknown bucket, never dropped). Uses Line Detail's own resolved department field, not the SKU-code taxonomy (documented, not drift). EL-exclusion scope: Lena said ignore — flag carried, no logic.
+[~] #3 — data-contract emission (spec'd: BRIEF #3; in progress). The contract is the shape of extract_all(); the Matrixify builder emits it, load_contract() replaces the oracle scrape, and compute.py/render.py/template are reused unchanged. Dual front-ends on one schema: emit_contract_from_oracle (correct now, for template dev) and emit_contract_from_matrixify (gated). Gate FAIL → contract written reconciled:false → PROVISIONAL banner + publish refused. LQ/LY read from committed prior contracts (oracle bootstrap until they accumulate).
+ #4 — dashboard redesign (BRIEF #4 step 4, oracle-sourced contract). Recomposed the headline KPI row (yoy_growth_pct/b2b_share added; GM/ST/WC/inventory-feed dependency removed from trading entirely — st/wc/inv now stripped from the contract at emission, not just left unread). Category bars now show current + LY value with a direction-only colour cue (badge_class on the YoY movement, never the % itself) plus a subcategory drill toggle; category/finish "top SKUs" replaced by "top collections" + B2B share. Collection Performance and Collection Analysis merged into one bar-chart-with-click-to-drill view (top-10 SKUs per collection: cash/units × UK/US, % share, movement), everything responding to the same Cash/Units × UK/US/Total toggles, all permutations pre-baked server-side (no client-side math). MoM movers switched from collections to SKUs, top-10 rising/falling, Live-status only (matches across both the Line Detail raw enum and the oracle's coarse status bucket — see contract.py's LIVE_STATUS_VALUES). Rev × GM matrix gained a bubble-size legend. Retired the fixed "exactly 8 SKUs/finishes" row dicts (TYPE_ROWS/FINISH_ROWS) in favour of dynamically discovering every Product Type/Finish block in the sheet — this was hiding real data (Taps, a "Door" department, and 21 of 29 real finishes never rendered before). Period/comparator labels (MoM vs QoQ, LM vs LQ) are now driven by `mode`, not hardcoded, so quarterly (step 5) can reuse this template unchanged. EL-component exclusion stays parked (flag carried on every SKU, filter off) per Lena.
+ Deferred: close the both-stores order-scope under-capture. Run the cancelled/scope diagnostic symmetrically across UK and US for the common excluded slice; resolve the 28-order July scope question the same way. Run the net-vs-gross return-basis check first (above). Only when a Matrixify-sourced contract reaches reconciled:true is it publishable.
+ Add inventory feed (Supermetrics or Shopify get-inventory-levels) → real st/wc/inv (months_cover); until then the contract emits null → renders —. (GM already lands via #2.)
+ Frozen FX: pick the dated GBP/USD series to commit (needed for deterministic re-runs; not the reconciliation blocker).
+ Regress against a committed month before shipping; relabel the headline honestly (not "gross") and update the glossary (owner sign-off).
+ Once May + July reconcile via Matrixify, remove the superseded live-query path.
+§7 edits
+Under "Still open", replace the ROW derivation/Channel lines' implication that trading is unverified with: "ROW / three-way reconcile → built (#5); ROW first-class, gate live. Buckets not yet within 0.1% — see Phase B finding (order-scope under-capture, both stores)."
+Add to "Still open": "Return-basis (net vs gross): confirm the oracle country columns' returns treatment — cheap test that may explain the whole both-stores shortfall before any per-order forensics."
 ### Phase C — Quarterly Trading builder
 - [ ] Roll the three monthly builds into the quarter (the returns model already shows the
       month→quarter `SUMIF` rollup pattern — reuse it)

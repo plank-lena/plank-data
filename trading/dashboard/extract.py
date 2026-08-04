@@ -7,8 +7,8 @@ import openpyxl
 
 from config import (
     MS_ROW7, LM_BLOCK, LY_BLOCK, PERIOD_CELLS,
-    STATUS_ROWS, STATUS_COLS, TYPE_ROWS, TYPE_COLS,
-    FINISH_ROWS, FINISH_COLS, COLL_COL, COLL_COL_Q, SKU_COL,
+    STATUS_ROWS, STATUS_COLS, TYPE_COLS,
+    FINISH_COLS, COLL_COL, COLL_COL_Q, SKU_COL,
 )
 
 
@@ -60,24 +60,84 @@ def extract_statuses(ws):
 # ── Product Type rows ─────────────────────────────────────────────────────────
 
 def extract_product_types(ws):
-    rows = []
-    for name, row in TYPE_ROWS.items():
-        r = {'t': name}
-        for field, col in TYPE_COLS.items():
-            r[field] = ws[f'{col}{row}'].value
-        rows.append(r)
-    return rows
+    """Dynamically discover every Product Type block from the Monthly
+    Summary 'Product Type | Product Category' table -- a department's row
+    is marked by Product Category == 'TOTAL'; every row after it (until the
+    next TOTAL row or the table's blank terminator) is one of its
+    subcategories (BRIEF #4 step 4 §5/§10: retire the fixed row dict --
+    it silently hid Taps and Door, which only ever had £0 in the frozen May
+    snapshot but must render like any other department once real data
+    exists for them).
+    """
+    header_row = None
+    for row in range(1, ws.max_row + 1):
+        if ws[f'B{row}'].value == 'Product Type' and ws[f'C{row}'].value == 'Product Category':
+            header_row = row
+            break
+    if header_row is None:
+        raise ValueError("extract_product_types: 'Product Type' header row not found")
+
+    depts = []
+    current = None
+    r = header_row + 1
+    while True:
+        b = ws[f'B{r}'].value
+        c = ws[f'C{r}'].value
+        if b is None and c is None:
+            break
+        if c == 'TOTAL':
+            if current is not None:
+                depts.append(current)
+            current = {
+                't':       str(b).strip(),
+                'sales':   ws[f'F{r}'].value or 0,
+                'units':   ws[f'J{r}'].value or 0,
+                'vs_lq':   ws[f'G{r}'].value,
+                'vs_ly':   ws[f'I{r}'].value,
+                'gm':      ws[f'S{r}'].value,
+                'subcats': [],
+            }
+        elif current is not None:
+            current['subcats'].append({
+                'name':  str(c).strip(),
+                'sales': ws[f'F{r}'].value or 0,
+                'units': ws[f'J{r}'].value or 0,
+                'vs_ly': ws[f'I{r}'].value,
+            })
+        r += 1
+    if current is not None:
+        depts.append(current)
+    return depts
 
 
 # ── Finish rows ───────────────────────────────────────────────────────────────
 
 def extract_finishes(ws):
+    """Dynamically discover every named Finish row (BRIEF #4 step 4 §5/§10:
+    the previous fixed 8-row curation only ever read a hand-picked subset --
+    the real sheet carries ~29 named finishes. Whatever finishes exist in
+    the data render; a consumer that wants a curated top-N does that as a
+    display cut, not by dropping rows here.
+    """
+    header_row = None
+    for row in range(1, ws.max_row + 1):
+        if ws[f'B{row}'].value == 'Finish':
+            header_row = row
+            break
+    if header_row is None:
+        raise ValueError("extract_finishes: 'Finish' header row not found")
+
     finishes = {}
-    for name, row in FINISH_ROWS.items():
+    r = header_row + 1
+    while True:
+        name = ws[f'B{r}'].value
+        if name is None:
+            break
         f = {}
         for field, col in FINISH_COLS.items():
-            f[field] = ws[f'{col}{row}'].value
-        finishes[name] = f
+            f[field] = ws[f'{col}{r}'].value
+        finishes[str(name).strip()] = f
+        r += 1
     return finishes
 
 
@@ -107,7 +167,11 @@ def extract_collections(ws_coll, ws_sku, mode='month'):
         gross = row[C['gross']]
         if not gross or gross <= 0:
             continue
-        t = str(row[C['type_']] or '').strip()
+        # A handful of real rows (e.g. ALERIA, a blank-typed BECKER distinct
+        # from Cabinetry's BECKER) never got a Product Type populated in the
+        # sheet -- same "Unknown" convention as an unmatched SKU's
+        # department elsewhere, not a blank/empty department key.
+        t = str(row[C['type_']] or '').strip() or 'Unknown'
         c = str(row[C['coll']] or '').strip()
         uk_s = row[C['uk']] or 0
         us_s = row[C['us']] or 0

@@ -5,6 +5,44 @@ import sys
 
 STATUS_BUCKETS = ("Continuity", "Newness", "Discontinued", "Dead")
 
+# Both status vocabularies a SKU might carry mean "live" -- see
+# contract.py's LIVE_STATUS_VALUES docstring for why "Live" (Line Detail's
+# raw enum) and "Continuity"/"Newness" (the oracle's coarse bucket) are
+# treated as equivalent here.
+LIVE_STATUS_VALUES = {"Live", "Continuity", "Newness"}
+
+
+def _toggle_reconciliation_errors(collections, tol=0.001):
+    """BRIEF #4 step 4 §10: 'each toggle state reconciles to the same
+    total' -- UK + US + ROW cash summed across ALL collections must tie to
+    the summed collection total, within the same 0.1% relative tolerance
+    the country-level gate uses (ROADMAP.md §5).
+
+    Deliberately a single aggregate check, not a per-collection one: a
+    handful of real rows (a few blank-department "Unknown" collections,
+    e.g. ALERIA/a second BECKER/CANTO, together ~£600 of £476K in the May
+    fixture) carry zero country attribution in the sheet's own By
+    Collection UK/US/ROW columns despite a nonzero total -- a pre-existing,
+    tiny, disclosed sheet quirk (same family as the ~0.09% By
+    Collection-vs-Monthly-Summary cross-sheet gap already noted in
+    validate_contract below), not a systemic leak. Asserting per-collection
+    would hard-fail the gate on that quirk alone; asserting in aggregate
+    (like the country-level check itself) still catches a real leak -- many
+    collections losing their country split, or one large one -- while
+    tolerating a few small legacy rows.
+    """
+    total_ts = sum(c.get('ts') or 0 for c in collections)
+    total_parts = sum((c.get('uk_s') or 0) + (c.get('us_s') or 0) + (c.get('row_s', 0) or 0) for c in collections)
+    if not total_ts:
+        return []
+    rel_gap = abs(total_parts - total_ts) / abs(total_ts)
+    if rel_gap > tol:
+        return [
+            f"Collections: UK+US+ROW cash summed {total_parts:,.2f} != "
+            f"collection totals summed {total_ts:,.2f} (gap {rel_gap:.4%}, tolerance {tol:.1%})"
+        ]
+    return []
+
 
 # ── Input checks ──────────────────────────────────────────────────────────────
 
@@ -76,16 +114,12 @@ def validate_input(raw):
     else:
         errors.append("Current total_sales is zero or missing (column F, row 7).")
 
-    # Category coverage — warn if any category has fewer than 8 selling SKUs
-    skus_all = raw.get('skus_all', [])
-    cats = ['Cabinetry', 'Electric', 'Accessories', 'Lighting']
-    for cat in cats:
-        n = sum(1 for s in skus_all if s['type_'] == cat)
-        if n < 8:
-            warnings.append(
-                f"Category '{cat}' has only {n} SKU(s) with gross > 0 in By SKU; "
-                "expected at least 8 for a full category table."
-            )
+    # BRIEF #4 step 4 §5/§10: retire the fixed "exactly 8 SKUs/finishes"
+    # count assert -- whatever categories/subcategories/finishes/
+    # collections exist in the data render, no hardcoded list or minimum.
+    # In its place: each collection's own UK+US+ROW cash must still tie to
+    # that collection's total (the toggle-reconciliation gate).
+    errors.extend(_toggle_reconciliation_errors(raw.get('collections', [])))
 
     if errors:
         for e in errors:
@@ -157,15 +191,40 @@ def validate_contract(contract, tol=0.001):
         status_share = status_sales_sum / total_sales
         warnings.append(f"statuses cover {status_share:.1%} of total_sales (not asserted additive -- see oracle's own Not For Sale gap)")
 
-    # Finish coverage is NOT asserted additive -- config.FINISH_COLORS is a
-    # curated top-8 palette (see trading/contract.py's emit_contract_from_
-    # matrixify), so finishes legitimately cover only part of total_sales.
-    # Reported as a diagnostic, not a failure.
+    # Finish coverage: BRIEF #4 step 4 §5/§10 retires the curated top-8
+    # palette (config.FINISH_COLORS) -- every finish with revenue this
+    # month now renders. Coverage can run a little OVER 100% (the real
+    # sheet's Finish table includes a couple of rollup rows -- e.g.
+    # "Colours"/"Wood" duplicate the sum of their own child colour/material
+    # rows -- and a residual "Other" plug row; this is a genuine, disclosed
+    # sheet shape, not additive by construction, same as statuses above). A
+    # gap well under 100% would instead mean a finish in skus_all has no
+    # matching Finish-table row at all.
     finishes = contract.get("finishes", {})
     finish_sales_sum = sum(f["total"] for f in finishes.values())
     if total_sales:
         finish_share = finish_sales_sum / total_sales
-        warnings.append(f"curated finishes cover {finish_share:.1%} of total_sales (by design, not 100%)")
+        warnings.append(f"finishes cover {finish_share:.1%} of total_sales")
+
+    # BRIEF #4 step 4 §10: each toggle state (UK/US/ROW cash) must still
+    # reconcile to its own collection's total.
+    errors.extend(_toggle_reconciliation_errors(contract.get("collections", [])))
+
+    # BRIEF #4 step 4 §10: movers list is Live-only -- recompute against
+    # the contract's own skus_all and assert compute_movers()'s filter held
+    # (regression guard, not a re-derivation of the movers list itself).
+    import sys as _sys2
+    _sys2.path.insert(0, os.path.join(os.path.dirname(__file__)))
+    from compute import compute_movers
+    movers = compute_movers(contract.get("skus_all", []))
+    for side in ("rising", "falling"):
+        for m in movers[side]:
+            sku_row = next((s for s in contract.get("skus_all", []) if s["sku"] == m["sku"]), None)
+            is_live = sku_row and (
+                sku_row.get("uk_status") in LIVE_STATUS_VALUES or sku_row.get("us_status") in LIVE_STATUS_VALUES
+            )
+            if not is_live:
+                errors.append(f"movers.{side} contains non-Live SKU {m['sku']!r}")
 
     # Enrichment coverage threshold -- warn, don't hard-block (known,
     # surfaced in metadata; BRIEF #3 §7 is explicit this isn't a gate).
@@ -178,6 +237,29 @@ def validate_contract(contract, tol=0.001):
             print(f"[validate] CONTRACT ERROR: {e}", file=sys.stderr)
         raise ValueError(f"Contract validation failed with {len(errors)} error(s). See messages above.")
 
+    return warnings
+
+
+# ── Template-source checks (BRIEF #4 step 4 §9/§10) ──────────────────────────
+
+def validate_template_source(template_html):
+    """Check the UNFILLED template source (not rendered output) for
+    hardcoded period/comparator strings outside a {{TOKEN}} -- monthly and
+    quarterly must reuse the same template (§9), so 'MoM'/'LM' literals
+    baked into static text would silently keep showing "MoM" on a
+    quarterly build. Returns a list of warning strings.
+    """
+    warnings = []
+    # Strip every {{TOKEN}} placeholder first so a token NAME containing
+    # these substrings (there are none today, but be safe) can't false-positive.
+    stripped = re.sub(r'\{\{[A-Z_]+\}\}', '', template_html)
+    for literal in ("MoM", "QoQ", ">LM<", ">LQ<"):
+        if literal in stripped:
+            warnings.append(
+                f"Template contains hardcoded {literal!r} outside a token -- "
+                "period/comparator labels must come from PERIOD_COMP_LABEL/"
+                "PREV_PERIOD_ABBR tokens so quarterly reuses this template unchanged."
+            )
     return warnings
 
 

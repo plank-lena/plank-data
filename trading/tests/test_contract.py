@@ -20,6 +20,7 @@ from extract import extract_all
 from contract import (
     emit_contract_from_oracle, emit_contract_from_matrixify, load_contract,
     render_contract, can_publish, PAYLOAD_KEYS, PROVISIONAL_BANNER_HTML,
+    _add_headline_kpis, _strip_vestigial, _is_el_component,
 )
 from validate import validate_contract
 
@@ -27,15 +28,39 @@ ORACLE_XLSX = os.path.join(HERE, "fixtures", "2026-05_Monthly_Trading_Report.xls
 UK_CSV = os.path.join(TRADING_DIR, "source", "orders_2026-05_UK.csv")
 US_CSV = os.path.join(TRADING_DIR, "source", "orders_2026-05_US.csv")
 TEMPLATE_HTML = os.path.join(DASHBOARD_DIR, "template", "dashboard.template.html")
+# BRIEF #4 step 4 §6/§12: the redesign extends the contract shape (new
+# headline KPIs, is_el_component, st/wc/inv dropped) -- the OLD fixture
+# below is the pre-redesign shape, kept as historical reference; the new
+# one is the regression baseline going forward.
 FIXTURE_CONTRACT = os.path.join(HERE, "fixtures", "2026-05_contract.json")
+FIXTURE_CONTRACT_REDESIGN = os.path.join(HERE, "fixtures", "2026-05_contract_redesign.json")
+
+
+def _apply_contract_layer_mutations(raw):
+    """Mirror emit_contract_from_oracle's own payload mutations (BRIEF #4
+    step 4: headline KPIs added, is_el_component added, st/wc/inv stripped)
+    on a plain extract_all() payload -- used by the two checks below to
+    compare a "direct" path against the emitted path on equal footing,
+    since step 4 deliberately makes the CONTRACT layer richer than
+    extract_all()'s own raw shape, not just a repackaging of it.
+    """
+    payload = {k: raw[k] for k in PAYLOAD_KEYS}
+    _add_headline_kpis(payload["current"])
+    for sku in payload["skus_all"]:
+        sku["is_el_component"] = _is_el_component(sku.get("coll"))
+    _strip_vestigial(payload)
+    return payload
 
 
 def check_round_trip_identity():
     """§8.1: load_contract(emit_contract_from_oracle(oracle)) equals
-    extract_all(oracle) field-for-field (minus _ws_*), through a real JSON
-    file round-trip (not just in-memory dicts).
+    extract_all(oracle)'s payload plus BRIEF #4 step 4's known, deliberate
+    contract-layer additions (yoy_growth_pct/b2b_share/is_el_component) and
+    subtractions (st/wc/inv), through a real JSON file round-trip (not just
+    in-memory dicts) -- proving the JSON write/read itself loses nothing,
+    which is what this check is actually for.
     """
-    raw_direct = extract_all(ORACLE_XLSX)
+    raw_direct = _apply_contract_layer_mutations(extract_all(ORACLE_XLSX))
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
         tmp = f.name
     emit_contract_from_oracle(ORACLE_XLSX, out_path=tmp)
@@ -50,17 +75,18 @@ def check_round_trip_identity():
 
 def check_render_parity():
     """§8.2: rendering from a contract reproduces what rendering directly
-    from extract_all() produces, byte-for-byte. (Proven against the
-    current template's own output, not a possibly-stale committed HTML
-    fixture -- the committed 2026-05_known_good.html predates unrelated
-    template CSS changes, so comparing to it would fail on style drift
-    that has nothing to do with the contract layer. This is the stronger,
-    more relevant proof: the contract loses nothing compute.py/render.py need.)
+    from extract_all() (plus the same known contract-layer mutations --
+    see _apply_contract_layer_mutations) produces, byte-for-byte. (Proven
+    against the current template's own output, not a possibly-stale
+    committed HTML fixture -- the committed 2026-05_known_good.html
+    predates the redesign, so comparing to it would fail on the redesign
+    itself, not a contract-layer bug. This is the stronger, more relevant
+    proof: the contract loses nothing compute.py/render.py need.)
     """
-    raw_direct = extract_all(ORACLE_XLSX)
+    raw_direct = _apply_contract_layer_mutations(extract_all(ORACLE_XLSX))
     template_html = open(TEMPLATE_HTML).read()
 
-    contract_direct = {"provenance": {"reconciled": True}, **{k: raw_direct[k] for k in PAYLOAD_KEYS}}
+    contract_direct = {"provenance": {"reconciled": True}, **raw_direct}
     html_direct = render_contract(contract_direct, template_html)
 
     contract_emitted = emit_contract_from_oracle(ORACLE_XLSX)
@@ -149,49 +175,53 @@ def check_lq_ly_provenance():
 
 
 def check_no_fabricated_provisionals():
-    """§8.6: with no inventory feed wired, st/wc/inv are null throughout
-    (never a fabricated number), and render as '—' via config.fmt_inv /
-    the existing None-safe formatting compute.py already has.
+    """§8.6, updated by BRIEF #4 step 4 §1/§6: with no inventory feed
+    wired AND the redesign dropping st/wc/inv entirely, these keys must be
+    ABSENT from the contract (not merely None) -- a stronger guarantee than
+    before that nothing vestigial leaks back in.
     """
     mx_contract = emit_contract_from_matrixify(
         period="2026-05", uk_csv=UK_CSV, us_csv=US_CSV, oracle_bootstrap_path=ORACLE_XLSX,
     )
-    current_null = (mx_contract["current"]["sell_through"] is None
-                     and mx_contract["current"]["weeks_cover"] is None
-                     and mx_contract["current"]["inventory"] is None)
-    statuses_null = all(s["st"] is None and s["wc"] is None and s["inv"] is None for s in mx_contract["statuses"])
-    collections_null = all(c["st"] is None and c["wc"] is None for c in mx_contract["collections"])
-    skus_null = all(s["st"] is None and s["wc"] is None for s in mx_contract["skus_all"])
+    current_absent = not ({"sell_through", "weeks_cover", "inventory"} & mx_contract["current"].keys())
+    statuses_absent = all(not ({"st", "wc", "inv"} & s.keys()) for s in mx_contract["statuses"])
+    collections_absent = all(not ({"st", "wc", "inv"} & c.keys()) for c in mx_contract["collections"])
+    skus_absent = all(not ({"st", "wc", "inv"} & s.keys()) for s in mx_contract["skus_all"])
 
     template_html = open(TEMPLATE_HTML).read()
     html = render_contract(mx_contract, template_html)  # must not raise (None-safe rendering)
-    dash_present = "KPI_ST_VAL" not in html and "—" in html  # token filled, dash rendered somewhere
+    no_leftover_tokens = "KPI_ST_VAL" not in html and "{{" not in html
 
     print(f"\n=== No fabricated provisionals (§8.6) ===")
-    print(f"  current st/wc/inv all None: {current_null}")
-    print(f"  statuses/collections/skus_all st/wc all None: "
-          f"{statuses_null and collections_null and skus_null}")
-    print(f"  renders without crashing, dash present: {dash_present}")
-    return current_null and statuses_null and collections_null and skus_null and dash_present
+    print(f"  current st/wc/inv keys absent: {current_absent}")
+    print(f"  statuses/collections/skus_all st/wc/inv keys absent: "
+          f"{statuses_absent and collections_absent and skus_absent}")
+    print(f"  renders without crashing, no leftover tokens: {no_leftover_tokens}")
+    return current_absent and statuses_absent and collections_absent and skus_absent and no_leftover_tokens
 
 
 def check_frozen_fixture():
-    """§8.7: freeze the oracle-sourced May contract.json as a regression
-    fixture; confirm re-emitting reproduces it exactly.
+    """§8.7 / BRIEF #4 step 4 §6/§12: freeze the oracle-sourced May contract
+    in the REDESIGN shape as the new regression fixture; confirm
+    re-emitting reproduces it exactly. The old 2026-05_contract.json is the
+    pre-redesign shape -- kept as historical reference, no longer checked
+    here (it will never match post-redesign by design: new headline KPIs,
+    is_el_component, st/wc/inv dropped).
     """
     print(f"\n=== Frozen fixture (§8.7) ===")
-    if not os.path.exists(FIXTURE_CONTRACT):
-        emit_contract_from_oracle(ORACLE_XLSX, out_path=FIXTURE_CONTRACT)
-        print(f"  wrote {FIXTURE_CONTRACT} (first run -- committed as the regression baseline)")
+    if not os.path.exists(FIXTURE_CONTRACT_REDESIGN):
+        emit_contract_from_oracle(ORACLE_XLSX, out_path=FIXTURE_CONTRACT_REDESIGN)
+        print(f"  wrote {FIXTURE_CONTRACT_REDESIGN} (first run -- committed as the redesign regression baseline)")
+        print(f"  ({FIXTURE_CONTRACT} kept as the pre-redesign historical fixture, not compared against)")
 
-    with open(FIXTURE_CONTRACT) as f:
+    with open(FIXTURE_CONTRACT_REDESIGN) as f:
         frozen = json.load(f)
     fresh = emit_contract_from_oracle(ORACLE_XLSX)
 
     # Compare payload only -- provenance.built_at/commit legitimately
     # differ run to run; that's not what this fixture guards.
     mismatches = [k for k in PAYLOAD_KEYS if frozen[k] != fresh[k]]
-    print(f"  payload mismatches vs frozen fixture: {mismatches or 'none -- reproduces exactly'}")
+    print(f"  payload mismatches vs frozen redesign fixture: {mismatches or 'none -- reproduces exactly'}")
     return not mismatches
 
 

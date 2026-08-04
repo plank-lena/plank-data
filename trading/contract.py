@@ -43,7 +43,6 @@ from line_detail import build_line_detail_index, enrich_lines
 from build_matrixify import _fx_rate_for, channel_from_company, MAY_THREE_WAY
 from common.reconciliation_gate import assert_country_reconciles
 from common.fx import DEFAULT_PATH as FX_RATES_PATH
-from config import FINISH_COLORS
 
 CONTRACT_VERSION = "1.0"
 
@@ -57,6 +56,57 @@ PAYLOAD_KEYS = (
 
 STATUS_BUCKETS = ("Continuity", "Newness", "Discontinued", "Dead")
 DEPARTMENTS = ("Cabinetry", "Electric", "Accessories", "Lighting", "Components", "Taps", "Unknown")
+
+# BRIEF #4 step 4 §1/§6: st/wc/inv are vestigial as of the redesign -- the
+# Sell-Through/WC KPI is removed and trading drops the inventory feed
+# dependency entirely. Stripped from every nested block at emission time
+# (not just left unread) so a stale reference elsewhere fails loudly rather
+# than silently rendering an old number.
+_VESTIGIAL_HEADLINE_KEYS = ("sell_through", "weeks_cover", "inventory")
+_VESTIGIAL_ROW_KEYS = ("st", "wc", "inv")
+
+# Line Detail statuses (raw enum) vs. the oracle's own coarse SKU-level
+# bucket use different vocabularies for the same underlying concept -- see
+# line_detail.py's STATUS_ENUM vs the oracle's By SKU status columns
+# (Continuity/Newness/Discontinued/Dead/Not For Sale/Pre-Launch, no "Live"
+# value at all). BRIEF #4 step 4 item 4's "Live-status only" movers filter
+# is defined here across both vocabularies so it means the same thing
+# regardless of source: a SKU counts as live if EITHER market's status is
+# in this set, matching Line Detail's own is_live_uk/is_live_us definition
+# (status == "Live") translated into the coarse bucket's equivalent
+# (Continuity/Newness both presuppose the SKU is live in that market).
+LIVE_STATUS_VALUES = {"Live", "Continuity", "Newness"}
+
+
+def _strip_vestigial(payload):
+    """Mutate payload in place, deleting st/wc/inv-family keys from every
+    nested block. Both front-ends call this right before wrapping so the
+    contract never carries these fields (BRIEF #4 step 4 §1/§6).
+    """
+    for k in _VESTIGIAL_HEADLINE_KEYS:
+        payload["current"].pop(k, None)
+    for block_name in ("statuses", "collections", "skus_all"):
+        for row in payload.get(block_name, []):
+            for k in _VESTIGIAL_ROW_KEYS:
+                row.pop(k, None)
+    return payload
+
+
+def _is_el_component(coll_name):
+    return str(coll_name or "").strip().upper() == "EL COMPONENT"
+
+
+def _add_headline_kpis(current):
+    """Mutate current in place, adding BRIEF #4 step 4 §1/§6's two new
+    headline KPIs. Both are already derivable from fields current carries
+    (vs_ly is the same YoY figure the old GM-slot KPI is replaced by;
+    b2b_gbp/total_sales is B2B's SHARE of revenue, not a channel split of
+    the total -- D2C% + B2B% will not sum to 100 once ROW enters the
+    denominator on one side only, per the brief's explicit warning).
+    """
+    current["yoy_growth_pct"] = current.get("vs_ly")
+    total = current.get("total_sales") or 0
+    current["b2b_share"] = (current.get("b2b_gbp", 0) / total) if total else None
 
 
 def _git_commit():
@@ -94,6 +144,10 @@ def emit_contract_from_oracle(oracle_xlsx, out_path=None):
     """
     raw = extract_all(oracle_xlsx)
     payload = {k: raw[k] for k in PAYLOAD_KEYS}
+    _add_headline_kpis(payload["current"])
+    for sku in payload["skus_all"]:
+        sku["is_el_component"] = _is_el_component(sku.get("coll"))
+    _strip_vestigial(payload)
     provenance = {
         "source": "oracle",
         "reconciled": True,
@@ -138,8 +192,7 @@ def can_publish(contract):
 
 
 PROVISIONAL_BANNER_HTML = (
-    '<div style="position:sticky;top:0;z-index:9999;background:#b02a2a;'
-    'color:#fff;font:700 14px/1.4 sans-serif;text-align:center;padding:10px;">'
+    '<div class="provisional-banner">'
     "&#9888; PROVISIONAL / UNRECONCILED &mdash; Matrixify-sourced figures have not "
     "passed the reconciliation gate. Do not publish. See country_gaps_vs_oracle "
     "in the contract for the open gap.</div>"
@@ -150,17 +203,21 @@ def render_contract(contract, template_html):
     """Thin wrapper around the UNCHANGED compute.py/render.py pipeline: runs
     the identical extract -> compute -> js_block -> token -> fill_template
     sequence pipeline.run() uses, sourcing `raw` from this contract instead
-    of extract_all(). Prepends the provisional banner as a plain string
-    concatenation (not a template token) when reconciled is False, so
-    dashboard_template.html itself is never touched.
+    of extract_all(). Fills the {{PROVISIONAL_BANNER}} token (BRIEF #4 step
+    4's redesigned template places it just inside <body>, styled via the
+    template's own .provisional-banner CSS) with PROVISIONAL_BANNER_HTML
+    when reconciled is False, empty string otherwise -- still a single
+    token fill, not a hand-patch of the rendered output.
     """
     from compute import (
         compute_periods, compute_total_sales, compute_statuses, compute_prod_types,
-        compute_skus, compute_newness_skus, compute_cat_skus, compute_collections,
+        compute_skus, compute_newness_skus, compute_collections,
         compute_finish_data, compute_coll_analysis, compute_kpi_tokens, compute_ribbon_tokens,
+        compute_category_top_collections, compute_movers, compute_matrix,
         js_block_periods, js_block_collections, js_block_statuses, js_block_prod_types,
         js_block_skus, js_block_finish_data, js_block_coll_analysis,
-        js_block_newness_skus, js_block_cat_skus,
+        js_block_newness_skus,
+        js_block_cat_top_collections, js_block_movers, js_block_matrix,
     )
     from render import fill_template, build_token_dict
 
@@ -173,23 +230,25 @@ def render_contract(contract, template_html):
     types_data = compute_prod_types(raw["prod_types"])
     skus_data = compute_skus(raw["skus_all"])
     newness_data = compute_newness_skus(raw["skus_all"])
-    cat_data = compute_cat_skus(raw["skus_all"])
     coll_data = compute_collections(raw["collections"])
     finish_data = compute_finish_data(raw["finishes"], raw["skus_all"])
     coll_analysis = compute_coll_analysis(raw["collections"], raw["skus_all"])
     kpi_tokens = compute_kpi_tokens(raw["current"], raw["lm"], pm)
     ribbon_tokens = compute_ribbon_tokens(raw["current"], raw["lm"], raw["ly"], pm)
+    cat_top_collections = compute_category_top_collections(coll_data)
+    movers = compute_movers(raw["skus_all"])
+    matrix = compute_matrix(raw["collections"])
 
     tokens = build_token_dict(
         js_block_periods(periods_data), js_block_collections(coll_data),
         js_block_statuses(statuses_data), js_block_prod_types(types_data),
         js_block_skus(skus_data), js_block_finish_data(finish_data), total_sales,
         js_block_coll_analysis(coll_analysis), js_block_newness_skus(newness_data),
-        js_block_cat_skus(cat_data), kpi_tokens, ribbon_tokens,
+        kpi_tokens, ribbon_tokens,
+        js_block_cat_top_collections(cat_top_collections), js_block_movers(movers), js_block_matrix(matrix),
     )
+    tokens["PROVISIONAL_BANNER"] = "" if can_publish(contract) else PROVISIONAL_BANNER_HTML
     html = fill_template(template_html, tokens)
-    if not can_publish(contract):
-        html = PROVISIONAL_BANNER_HTML + html
     return html
 
 
@@ -327,9 +386,18 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             status_totals[sb]["sales"] += ab
             status_totals[sb]["units"] += line["units"]
 
-        dept = dept_totals.setdefault(line["department"], {"sales": 0.0, "units": 0, "gm_num": 0.0, "gm_den": 0.0})
+        dept = dept_totals.setdefault(line["department"], {
+            "sales": 0.0, "units": 0, "gm_num": 0.0, "gm_den": 0.0, "subcats": {},
+        })
         dept["sales"] += ab
         dept["units"] += line["units"]
+        # item_type is Line Detail's "Product Category" grain -- the same
+        # subcategory breakdown the oracle's Product Type table carries
+        # (BRIEF #4 step 4 §2/§6). Unenriched lines fall into "Unknown",
+        # same convention as department itself.
+        subcat = dept["subcats"].setdefault(line.get("item_type") or "Unknown", {"sales": 0.0, "units": 0})
+        subcat["sales"] += ab
+        subcat["units"] += line["units"]
 
         if line["gm_pct"] is not None:
             gm_num += ab * line["gm_pct"]
@@ -376,7 +444,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             "gross": 0.0, "units": 0, "d2c": 0.0, "b2b": 0.0, "uk": 0.0, "uk_u": 0, "us": 0.0, "us_u": 0,
             "desc": line["description"], "coll": line["collection"], "type_": line["department"],
             "finish": line["finish"], "uk_status": line["status_uk"], "us_status": line["status_us"],
-            "gm": line["gm_pct"],
+            "gm": line["gm_pct"], "is_el_component": line["is_el_component"],
         })
         s["gross"] += ab
         s["units"] += line["units"]
@@ -417,6 +485,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             }
 
     # ── lm/ly: contract-chain when given, else bootstrap once from the oracle ──
+    ly_dept_sales = {}  # department name -> LY sales, for prod_types' vs_ly (§6)
     if lm_contract is not None and ly_contract is not None:
         lm_c = lm_contract if isinstance(lm_contract, dict) else load_contract(lm_contract)
         ly_c = ly_contract if isinstance(ly_contract, dict) else load_contract(ly_contract)
@@ -424,6 +493,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         ly = _current_to_lm_shape(ly_c["current"])
         period_model = {"cm": _period_label(period), "lm": lm_c["period_model"]["cm"], "ly": ly_c["period_model"]["cm"]}
         lq_ly_source = "contract_chain"
+        ly_dept_sales = {t["t"]: t["sales"] for t in ly_c.get("prod_types", [])}
     elif oracle_bootstrap_path is not None:
         oracle_headline = extract_all(oracle_bootstrap_path)
         lm, ly = oracle_headline["lm"], oracle_headline["ly"]
@@ -441,7 +511,6 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "total_sales": grand_total,
         "units": sum(units_totals.values()),
         "gm_pct": (gm_num / gm_den) if gm_den else None,
-        "sell_through": None, "weeks_cover": None, "inventory": None,
         "d2c_gbp": channel_totals["D2C"], "b2b_gbp": channel_totals["B2B"],
         "uk_gbp": country_totals["UK"], "us_gbp": country_totals["US"], "row_gbp": country_totals["ROW"],
         "d2c_units": channel_units["D2C"], "b2b_units": channel_units["B2B"],
@@ -457,42 +526,38 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     current["uk_vs_ly"] = _vs(current["uk_gbp"], ly["uk"])
     current["us_vs_lm"] = _vs(current["us_gbp"], lm["us"])
     current["us_vs_ly"] = _vs(current["us_gbp"], ly["us"])
+    _add_headline_kpis(current)
 
     statuses = [{
         "s": b, "sales": v["sales"], "units": v["units"], "vs_lq": None, "vs_ly": None,
         "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
-        "st": None, "wc": None, "inv": None,
     } for b, v in status_totals.items()]
 
     prod_types = [{
         "t": dept, "sales": v["sales"], "units": v["units"], "vs_lq": None,
+        "vs_ly": _vs(v["sales"], ly_dept_sales.get(dept)) if ly_dept_sales.get(dept) else None,
         "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
+        "subcats": [
+            {"name": name, "sales": sc["sales"], "units": sc["units"], "vs_ly": None}
+            for name, sc in v["subcats"].items()
+        ],
     } for dept, v in dept_totals.items()]
 
-    # render.py's finish palette (config.FINISH_COLORS) is a fixed, curated
-    # set of 8 named finishes -- the ORACLE path's own extract_finishes()
-    # only ever reads exactly these 8 rows too (config.FINISH_ROWS), never
-    # every finish in the catalog. Matching that restriction here (rather
-    # than emitting all ~25-30 real finishes) is what "reuse compute.py
-    # unchanged" requires -- compute_finish_data() does a bare
-    # FINISH_COLORS[name] lookup with no fallback. Finishes outside this
-    # set aren't dropped from any total (they're still in `current`/
-    # `collections`/`skus_all`), only from this one curated display cut --
-    # BRIEF #2's "3 finish names absent from the snapshot" note is about a
-    # different, unrelated gap (Line Detail not having Polished Silver/
-    # Shiny Brass/Silver at all), not this curation.
+    # Every finish that had any revenue this month renders -- BRIEF #4 step 4
+    # §5/§10 retires the previous curated-8 (config.FINISH_COLORS) filter;
+    # colour assignment is now by rank (config.finish_color), not by a fixed
+    # name lookup, so an arbitrary-length finish list always gets a colour.
     finishes = {
         name: {
             "total": v["total"], "units": v["units"], "vsLQ": None, "vsLY": None,
             "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "us": v["us"],
-        } for name, v in finish_totals.items() if name in FINISH_COLORS
+        } for name, v in finish_totals.items()
     }
 
     collections_sorted = sorted(coll_totals.items(), key=lambda kv: -kv[1]["ts"])
     collections = [{
         "r": i + 1, "t": dept, "c": coll, "ts": v["ts"], "tu": v["tu"], "vs_lq": None,
         "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
-        "st": None, "wc": None,
         "d2c": v["d2c"], "b2b": v["b2b"], "uk_s": v["uk_s"], "us_s": v["us_s"], "row_s": v["row_s"],
         "lq_total": 0.0, "lq_uk": 0.0, "lq_us": 0.0, "uk_vs": None, "us_vs": None,
         "skus": len(v["skus"]),
@@ -501,9 +566,10 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     skus_all = [{
         "rank": None, "sku": sku, "desc": v["desc"] or sku, "coll": v["coll"], "type_": v["type_"],
         "finish": v["finish"] or "", "uk_status": v["uk_status"] or "", "us_status": v["us_status"] or "",
-        "gross": v["gross"], "units": v["units"], "vslq": None, "gm": v["gm"], "st": None, "wc": None,
-        "inv": 0, "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "uk_u": v["uk_u"],
+        "gross": v["gross"], "units": v["units"], "vslq": None, "gm": v["gm"],
+        "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "uk_u": v["uk_u"],
         "us": v["us"], "us_u": v["us_u"], "lq": None, "ly": None,
+        "is_el_component": v["is_el_component"],
     } for sku, v in sku_totals.items()]
 
     payload = {
@@ -513,6 +579,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "statuses": statuses, "prod_types": prod_types, "finishes": finishes,
         "collections": collections, "skus_all": skus_all,
     }
+    _strip_vestigial(payload)
 
     fx_date = f"{period}-01"
     fx_rows = {}
