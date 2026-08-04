@@ -11,6 +11,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pandas as pd
+
 from returns.build import run
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "2026Q1")
@@ -20,6 +22,18 @@ if __name__ == "__main__":
     os.makedirs(FIXTURE_DIR, exist_ok=True)
     blocks = run(SRC)
     for name, block in blocks.items():
+        if name == "tracker":
+            # SKU-level, MultiIndex, legitimately volatile row-by-row (ranking can
+            # reorder on any real data update) -- gated by its own build-time
+            # asserts (20-order floor, no impossible rate), not a fixture target.
+            continue
         path = os.path.join(FIXTURE_DIR, f"{name}.csv")
-        block.to_csv(path)
+        if isinstance(block, pd.DataFrame):
+            block.to_csv(path)
+        else:
+            # scalar-valued blocks (value_split*, reason_detail) -> one-row CSV;
+            # nested dict fields (by_subreason) get JSON-encoded into their cell
+            flat = {k: (v if not isinstance(v, dict) else __import__("json").dumps(v))
+                    for k, v in block.items()}
+            pd.DataFrame([flat]).to_csv(path, index=False)
         print(f"wrote {path}")

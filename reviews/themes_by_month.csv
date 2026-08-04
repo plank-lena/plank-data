@@ -1,7 +1,74 @@
 month,market,theme,owner,explicit,latent,total
-2025-09,UK,Delivery,OPS,1,0,1
+2021-04,UK,Value for money,PRODUCT,0,1,1
+2021-05,UK,Value for money,PRODUCT,0,1,1
+2021-09,UK,Fixings & screws,PRODUCT,1,0,1
+2021-09,UK,Size & dimensions,PRODUCT,0,1,1
+2021-09,UK,Value for money,PRODUCT,0,1,1
+2021-11,UK,Value for money,PRODUCT,0,1,1
+2021-12,UK,Value for money,PRODUCT,0,1,1
+2021-12,US,Fixings & screws,PRODUCT,1,0,1
+2022-01,UK,Size & dimensions,PRODUCT,0,1,1
+2022-12,UK,Fixings & screws,PRODUCT,1,0,1
+2022-12,UK,Value for money,PRODUCT,1,0,1
+2023-01,UK,Size & dimensions,PRODUCT,0,1,1
+2023-01,US,Fixings & screws,PRODUCT,1,0,1
+2023-08,UK,Delivery,OPS,0,1,1
+2023-08,UK,Finish & colour mismatch,PRODUCT,0,1,1
+2023-08,UK,Missing parts & availability,OPS,0,1,1
+2023-09,UK,Fixings & screws,PRODUCT,0,1,1
+2023-09,UK,Returns & exchange friction,OPS,1,0,1
+2023-09,UK,Value for money,PRODUCT,1,0,1
+2023-09,US,Fixings & screws,PRODUCT,1,0,1
+2023-10,UK,Returns & exchange friction,OPS,0,1,1
+2023-10,UK,Size & dimensions,PRODUCT,0,1,1
+2023-11,UK,Value for money,PRODUCT,0,1,1
+2023-12,UK,Unclassified,PRODUCT,2,0,2
+2024-01,UK,Fixings & screws,PRODUCT,0,1,1
+2024-01,UK,Unclassified,PRODUCT,1,0,1
+2024-01,UK,Value for money,PRODUCT,0,1,1
+2024-03,UK,Unclassified,PRODUCT,1,0,1
+2024-04,US,Fixings & screws,PRODUCT,1,0,1
+2024-07,UK,Finish & colour mismatch,PRODUCT,1,0,1
+2024-07,US,Fixings & screws,PRODUCT,1,0,1
+2024-08,UK,Size & dimensions,PRODUCT,0,1,1
+2025-01,UK,Unclassified,PRODUCT,2,0,2
+2025-02,UK,Customer service,OPS,0,1,1
+2025-02,UK,Delivery,OPS,1,0,1
+2025-02,UK,Fixings & screws,PRODUCT,1,1,2
+2025-02,UK,Returns & exchange friction,OPS,0,1,1
+2025-02,UK,Unclassified,PRODUCT,1,0,1
+2025-03,UK,Delivery,OPS,1,0,1
+2025-03,UK,Fixings & screws,PRODUCT,2,0,2
+2025-03,UK,Installation difficulty,PRODUCT,1,0,1
+2025-03,UK,Unclassified,PRODUCT,5,0,5
+2025-03,UK,Value for money,PRODUCT,1,0,1
+2025-04,UK,Unclassified,PRODUCT,4,0,4
+2025-04,UK,Value for money,PRODUCT,0,1,1
+2025-04,US,Breakage & defect,PRODUCT,1,0,1
+2025-04,US,Fixings & screws,PRODUCT,1,0,1
+2025-05,UK,Breakage & defect,PRODUCT,2,0,2
+2025-05,UK,Customer service,OPS,1,0,1
+2025-05,UK,Delivery,OPS,1,0,1
+2025-05,UK,Fixings & screws,PRODUCT,3,0,3
+2025-07,UK,Returns & exchange friction,OPS,0,1,1
+2025-07,UK,Size & dimensions,PRODUCT,0,1,1
+2025-08,UK,Breakage & defect,PRODUCT,1,0,1
+2025-08,UK,Customer service,OPS,0,1,1
+2025-08,UK,Missing parts & availability,OPS,0,1,1
+2025-08,UK,Size & dimensions,PRODUCT,0,1,1
+2025-08,UK,Unclassified,PRODUCT,1,0,1
+2025-08,UK,Value for money,PRODUCT,0,1,1
+2025-08,US,Fixings & screws,PRODUCT,1,0,1
+2025-08,US,Size & dimensions,PRODUCT,1,0,1
+2025-09,UK,Delivery,OPS,2,0,2
 2025-09,UK,Finish & colour mismatch,PRODUCT,1,0,1
+2025-09,UK,Fixings & screws,PRODUCT,2,0,2
 2025-09,UK,Installation difficulty,PRODUCT,1,0,1
+2025-09,UK,Returns & exchange friction,OPS,1,0,1
+2025-09,US,Fixings & screws,PRODUCT,1,0,1
+2025-09,US,Returns & exchange friction,OPS,1,0,1
+2025-09,US,Size & dimensions,PRODUCT,1,0,1
+2025-09,US,Value for money,PRODUCT,1,0,1
 2025-10,UK,Breakage & defect,PRODUCT,1,0,1
 2025-10,UK,Fixings & screws,PRODUCT,1,0,1
 2025-10,UK,Unclassified,PRODUCT,1,0,1

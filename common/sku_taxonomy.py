@@ -193,6 +193,32 @@ class SKUTaxonomy:
         first = core[:1].upper()
         return self.department_codes.get(first, fallback)
 
+    def family_of(self, sku) -> str:
+        """Display label grouping SKU variants of the same product, e.g. the
+        KEPLER 160/220/280 sizes -> "Kepler". Strips market/kit/replacement
+        affixes (via _strip()), drops the leading type-code token (the same
+        code classify() reads via code3_to_item_type), then drops a trailing
+        size token and a trailing finish-code token off what's left.
+
+        A display convenience for the SKU row (glossary §5.2), not a new
+        taxonomy level -- deliberately approximate; eyeball it against real
+        SKUs rather than trusting it blindly on an unfamiliar naming pattern.
+        """
+        sku = _s(sku)
+        if not sku or sku.lower() in ("(no sku)", "nan", "parent-sku"):
+            return ""
+        _, _, is_repl, core = self._strip(sku)
+        if is_repl and core.endswith("-R"):
+            core = core[: -len("-R")]  # _strip() flags -R but doesn't remove it
+        tokens = [t for t in core.split("-") if t]
+        if len(tokens) > 1:
+            tokens = tokens[1:]  # drop the leading type code (KH, CDB, CBP, ...)
+        if len(tokens) >= 3:
+            tokens = tokens[:-2]  # drop size, then finish
+        elif len(tokens) == 2:
+            tokens = tokens[:-1]  # ambiguous with 2 left -- drop the trailing one
+        return " ".join(tokens).title() if tokens else core.title()
+
     # ---- coverage report (drives the data-owner follow-up) ---------------
     def coverage(self, skus) -> dict:
         """How well does a list of SKUs resolve? Lists what still needs an owner."""

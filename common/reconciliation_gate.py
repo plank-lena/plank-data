@@ -15,6 +15,12 @@ Returns-specific rules implemented here:
     in the data (catches the "Electric Accessory " trailing-space class of
     bug generically, for whatever grouping this is applied to).
   - The headline rate must be orders-based: returned_orders / orders.
+  - No rate may exceed 100% (assert_no_impossible_rate) -- order-month
+    cohort framing (D2 ruling 1) should make this structurally impossible.
+  - Ranked SKU blocks must not include a row below the minimum distinct-
+    orders floor (assert_min_orders_threshold, D2 §2).
+  - Buckets that must always be surfaced (e.g. no-SKU refunds, D2 §3) must
+    be reported even when zero, never silently dropped (assert_bucket_reported).
 
 Trading-specific rule implemented here:
   - uk + us + row must equal an INDEPENDENTLY computed grand total (summed
@@ -125,4 +131,45 @@ def assert_bucketed_by(index_labels, expected_labels):
     expected = set(expected_labels)
     assert got == expected, (
         f"RECONCILE FAIL: bucket labels {sorted(got)} != expected {sorted(expected)}"
+    )
+
+
+def assert_no_impossible_rate(block, rate_cols=("return_rate",), max_rate=1.0):
+    """Assert no rate in `block` exceeds `max_rate` (100%).
+
+    Returns dashboard D2, ruling 1: order-month cohort bucketing should make
+    a >100% rate structurally impossible (every return maps to an in-period
+    order), so this is a fail-loud tripwire, not an expected-to-fire check --
+    if it trips, the cohort join has a bug, not a data quirk to explain away.
+    """
+    for col in rate_cols:
+        bad = block[block[col] > max_rate]
+        assert bad.empty, (
+            f"RECONCILE FAIL: impossible rate(s) in {col!r} "
+            f"(> {max_rate:.0%}): {bad[col].to_dict()}"
+        )
+
+
+def assert_min_orders_threshold(rows, orders_col, min_orders):
+    """Assert every row in a ranked/published block clears the minimum
+    distinct-orders floor (returns D2 §2: 20-order minimum to appear in the
+    SKU tracker). Rows below the floor must be filtered out before ranking,
+    never just greyed -- this catches a filter that got dropped or loosened.
+    """
+    for key, row in rows.items():
+        orders = row[orders_col] if isinstance(row, dict) else row
+        assert orders >= min_orders, (
+            f"RECONCILE FAIL: {key!r} has {orders} orders, below the "
+            f"{min_orders}-order minimum -- should have been filtered out"
+        )
+
+
+def assert_bucket_reported(value, label):
+    """Assert a bucket that must always be surfaced (e.g. the no-SKU bucket,
+    returns D2 §3) is actually present and not None -- guards against it
+    being silently absorbed or dropped rather than reported as zero/footnoted.
+    """
+    assert value is not None, (
+        f"RECONCILE FAIL: {label} bucket missing -- must be reported "
+        f"explicitly (even if zero), never silently dropped"
     )

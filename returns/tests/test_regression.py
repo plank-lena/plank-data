@@ -24,7 +24,7 @@ SRC = os.path.join(HERE, "..", "..", "source", "Q1_Jan_Feb_Mar_2026.xlsx")
 TOL = 0.001  # 0.1% relative, matches the reconciliation gate's tolerance
 
 
-def _compare(name, actual, expected):
+def _compare_frame(name, actual, expected):
     failures = []
     for col in expected.columns:
         if not pd.api.types.is_numeric_dtype(expected[col]):
@@ -42,6 +42,27 @@ def _compare(name, actual, expected):
     return failures
 
 
+def _compare_dict(name, actual, expected_row):
+    """expected_row: the single row of a one-row fixture CSV (a pd.Series)."""
+    failures = []
+    for key, e in expected_row.items():
+        if key not in actual:
+            continue
+        a = actual[key]
+        if isinstance(a, dict) or isinstance(e, str) and e.strip().startswith("{"):
+            continue  # nested dict fields (e.g. by_subreason) -- structural only, not gated
+        try:
+            e = float(e)
+            rel = abs(float(a) - e) / abs(e) if e else (0.0 if abs(float(a)) < 1e-9 else float("inf"))
+        except (TypeError, ValueError):
+            if str(a) != str(e):
+                failures.append(f"{name}.{key}: non-numeric mismatch (got {a}, fixture has {e})")
+            continue
+        if rel > TOL:
+            failures.append(f"{name}.{key}: got {a}, fixture has {e} (gap {rel:.4%})")
+    return failures
+
+
 def main():
     if not os.path.exists(SRC):
         print(f"SKIP: source file not found at {SRC} (maintainer-local test)")
@@ -50,9 +71,15 @@ def main():
     blocks = run(SRC)
     all_failures = []
     for name, block in blocks.items():
+        if name == "tracker":
+            continue  # SKU-level/MultiIndex, gated by its own build-time asserts -- see make_fixture.py
         fixture_path = os.path.join(FIXTURE_DIR, f"{name}.csv")
-        expected = pd.read_csv(fixture_path, index_col=0)
-        all_failures += _compare(name, block, expected)
+        if isinstance(block, pd.DataFrame):
+            expected = pd.read_csv(fixture_path, index_col=0)
+            all_failures += _compare_frame(name, block, expected)
+        else:
+            expected_row = pd.read_csv(fixture_path).iloc[0]
+            all_failures += _compare_dict(name, block, expected_row)
 
     if all_failures:
         print("REGRESSION FAILURES:")

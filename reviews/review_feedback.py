@@ -43,6 +43,9 @@ from __future__ import annotations
 import argparse, csv, json, os, re, sys
 from collections import defaultdict, Counter
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from common.sku_taxonomy import SKUTaxonomy
+
 # ---------------------------------------------------------------------------
 # 1. THEME LEXICON
 # ---------------------------------------------------------------------------
@@ -277,20 +280,6 @@ def iter_rows(path: str, chunk: int = 5000):
                 yield row
 
 
-def load_categories(path: str | None) -> dict:
-    """SKU -> category, from the Line Detail export. Optional."""
-    if not path or not os.path.exists(path):
-        return {}
-    out = {}
-    with open(path, newline="", encoding="utf-8-sig", errors="replace") as fh:
-        for row in csv.DictReader(fh):
-            sku = _s(row.get("SKU"))
-            cat = _s(row.get("Product Category"))
-            if sku and cat:
-                out[sku] = cat
-    return out
-
-
 # ---------------------------------------------------------------------------
 # 4. SCAN
 # ---------------------------------------------------------------------------
@@ -303,7 +292,7 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
     Returns a summary dict so this can be called from a notebook or another
     script rather than the command line.
     """
-    cats = load_categories(line_detail)
+    tax = SKUTaxonomy.load(line_detail=line_detail)  # metafields=... later (§8)
     os.makedirs(outdir, exist_ok=True)
 
     seen = {}                                       # dedupe key -> first review id
@@ -339,10 +328,14 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
             totals["dq_score_sentiment"] += 1
         if not _s(row.get("Product SKU")) and not is_brand:
             totals["dq_no_sku"] += 1
+        if _s(row.get("Deleted")).lower() in ("true", "1", "yes"):
+            totals["deleted_seen"] += 1
 
         res = classify(row)
         if not res:
             continue
+        if res.get("deleted"):
+            totals["deleted_logged"] += 1
         if res.get("_suspect"):
             dq_rows.append(dict(review_id=res["review_id"], issue="Low score, wholly positive text",
                                 score=res["score"], sentiment="", product=res["product"],
@@ -363,11 +356,12 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
         totals[res["stream"].lower()] += 1 if first_time else 0
 
         month = month_of(str(res["created"]))
-        cat = cats.get(res["sku"], "")
+        t = tax.classify(res["sku"])
+        cat, subcat = t.item_type, t.style  # style may be "" until Line Detail lands
         for th in res["themes"]:
             if first_time:
                 by_month[(month, res["market"], th)][res["stream"]] += 1
-            key = (res["sku"], res["product"], cat, th)
+            key = (res["sku"], res["product"], cat, subcat, th)
             by_product[key][res["stream"]] += 1
             if not first_time:
                 by_product[key]["SYNDICATED"] += 1
@@ -379,10 +373,28 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
             market=res["market"], score=res["score"], stream=res["stream"],
             escalated=res["escalated"], deleted=res["deleted"],
             duplicate_of=("" if first_time else seen[dedupe_key]),
-            sku=res["sku"], product=res["product"], category=cat,
+            sku=res["sku"], product=res["product"], category=cat, subcategory=subcat,
             themes="; ".join(res["themes"]), owner="; ".join(res["owners"]),
             evidence=res["evidence"],
         ))
+
+    # ---- guards: the two behaviours a future "fix" must not silently undo ----
+    # Deleted reviews are kept deliberately -- filtering them out removes ~100% of
+    # explicit product criticism (see module docstring). This doesn't require every
+    # deleted row survive (blank content / mis-click suspects legitimately don't),
+    # just that a wholesale "if deleted: skip" hasn't crept back in.
+    assert not (totals["deleted_seen"] and not totals["deleted_logged"]), (
+        f"GUARD FAIL: {totals['deleted_seen']} deleted reviews in the input but none "
+        f"made it into review_flags.csv -- deleted reviews must be kept, not filtered"
+    )
+    # Distinct-review counting: syndication dedup must count each review once, not
+    # once per SKU it's attached to (one review syndicated across a product group
+    # would otherwise inflate every theme trend).
+    assert len(seen) == totals["explicit"] + totals["latent"], (
+        f"GUARD FAIL: {len(seen)} distinct reviews seen but explicit+latent totals "
+        f"sum to {totals['explicit'] + totals['latent']} -- syndicated rows are "
+        f"leaking into the distinct-review counts"
+    )
 
     # ---- write outputs ----
     def write(name, header, rows):
@@ -397,23 +409,23 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
                    explicit=c["EXPLICIT"], latent=c["LATENT"], total=c["EXPLICIT"] + c["LATENT"])
               for (m, mk, th), c in sorted(by_month.items())]
     p_rows = []
-    for (sku, prod, cat, th), c in by_product.items():
-        p_rows.append(dict(sku=sku, product=prod, category=cat, theme=th,
+    for (sku, prod, cat, subcat, th), c in by_product.items():
+        p_rows.append(dict(sku=sku, product=prod, category=cat, subcategory=subcat, theme=th,
                            owner=OWNER.get(th, "PRODUCT"),
                            explicit=c["EXPLICIT"], latent=c["LATENT"],
                            total=c["EXPLICIT"] + c["LATENT"],
                            syndicated_copies=c["SYNDICATED"],
-                           examples=" || ".join(examples[(sku, prod, cat, th)])))
+                           examples=" || ".join(examples[(sku, prod, cat, subcat, th)])))
     p_rows.sort(key=lambda r: (-r["explicit"], -r["total"]))
 
     paths = [
         write("themes_by_month.csv", ["month", "market", "theme", "owner", "explicit", "latent", "total"], m_rows),
-        write("themes_by_product.csv", ["sku", "product", "category", "theme", "owner",
+        write("themes_by_product.csv", ["sku", "product", "category", "subcategory", "theme", "owner",
                                         "explicit", "latent", "total", "syndicated_copies",
                                         "examples"], p_rows),
         write("review_flags.csv", ["review_id", "created", "month", "market", "score", "stream",
                                    "escalated", "deleted", "duplicate_of", "sku", "product",
-                                   "category", "themes", "owner", "evidence"], flagged_rows),
+                                   "category", "subcategory", "themes", "owner", "evidence"], flagged_rows),
         write("data_quality.csv", ["review_id", "issue", "score", "sentiment", "product", "evidence"], dq_rows),
     ]
 
@@ -429,11 +441,28 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
             if r["owner"] != "PRODUCT" or r["theme"] == "Unclassified":
                 continue
             cat_tot[r["category"] or "Unmapped"][r["theme"]] += r["total"]
-            s = sku_tot.setdefault(r["sku"], dict(product=r["product"], category=r["category"],
-                                                  themes={}, quote=""))
+            s = sku_tot.setdefault(r["sku"], dict(
+                product=r["product"], category=r["category"], subcategory=r["subcategory"],
+                family=tax.family_of(r["sku"]), themes={}, quote=""))
             s["themes"][r["theme"]] = s["themes"].get(r["theme"], 0) + r["total"]
             if not s["quote"] and r["examples"]:
                 s["quote"] = r["examples"].split(" || ")[0]
+        # Family-level rollup (returns D2 §6): the join is exact-SKU and sparse (only
+        # ~29 SKUs carry a flagged review in the sample, often size-specific), so the
+        # returns tracker falls back exact-SKU -> family -> "-". Built here, once, from
+        # the same by_sku entries, rather than asking every consumer to re-aggregate.
+        family_themes, family_quote = defaultdict(lambda: Counter()), {}
+        for sku, entry in sku_tot.items():
+            fam = entry["family"]
+            if not fam:
+                continue
+            for th, n in entry["themes"].items():
+                family_themes[fam][th] += n
+            if fam not in family_quote and entry["quote"]:
+                family_quote[fam] = entry["quote"]
+        by_family = {fam: dict(themes=dict(counts), quote=family_quote.get(fam, ""))
+                     for fam, counts in family_themes.items()}
+
         payload = dict(
             source=os.path.basename(path),
             reviews_read=totals["read"],
@@ -445,6 +474,7 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
                            owner=r["owner"], total=r["total"]) for r in m_rows],
             by_category={k: dict(v) for k, v in cat_tot.items()},
             by_sku=sku_tot,
+            by_family=by_family,
         )
         with open(dashboard_json, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, separators=(",", ":"))
@@ -474,7 +504,9 @@ def main():
     ap = argparse.ArgumentParser(description="Mine Yotpo reviews for product feedback themes.")
     ap.add_argument("path", help="reviews .csv or .numbers export")
     ap.add_argument("--outdir", default="review_out")
-    ap.add_argument("--line-detail", default=None, help="Line Detail CSV, to add Product Category")
+    ap.add_argument("--line-detail", default=None,
+                    help="Line Detail CSV, classified via common/sku_taxonomy.py "
+                         "(category=item_type, subcategory=style)")
     ap.add_argument("--include-brand", action="store_true",
                     help="keep company/site reviews (excluded by default)")
     ap.add_argument("--dashboard-json", default=None,
