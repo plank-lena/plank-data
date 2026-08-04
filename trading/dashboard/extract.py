@@ -222,7 +222,11 @@ def extract_skus_all(ws_sku):
             'sku':       str(row[C['sku']]).strip(),
             'desc':      str(row[C['desc']] or '').strip(),
             'coll':      str(row[C['coll']] or '').strip(),
-            'type_':     str(row[C['type_']] or '').strip(),
+            # Same 'Unknown' default as extract_collections' blank-type_
+            # rows (ALERIA / a blank-typed BECKER / BOBBIN / CANTO) -- both
+            # sheets must agree on a SKU's department, or the completeness
+            # tripwire (validate._completeness_errors) flags a false gap.
+            'type_':     str(row[C['type_']] or '').strip() or 'Unknown',
             'finish':    str(row[C['finish']] or '').strip(),
             'uk_status': str(row[C['uk_status']] or '').strip(),
             'us_status': str(row[C['us_status']] or '').strip(),

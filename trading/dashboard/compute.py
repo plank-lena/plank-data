@@ -4,7 +4,7 @@ import json
 import math
 
 from config import (
-    finish_color, COLL_COLORS, STATUS_ABBREV,
+    assign_finish_colors, assign_dept_colors, COLL_COLORS, STATUS_ABBREV,
     fmt_gbp, fmt_pct, badge_class, arrow_color,
 )
 
@@ -117,20 +117,24 @@ def compute_prod_types(types_raw):
     whatever the data has -- no fixed list or count (§5/§10).
     """
     out = []
+    colors = assign_dept_colors(t['t'] for t in types_raw)
     for t in types_raw:
         vs_ly = _r4(t.get('vs_ly'))
         sales = round(t['sales']) if t.get('sales') else 0
         denom = 1 + vs_ly if vs_ly is not None else None
         ly_sales = round(sales / denom) if denom and abs(denom) > 1e-9 else None
+        color, text_color = colors[t['t']]
         out.append({
-            't':        t['t'],
-            'sales':    sales,
-            'ly_sales': ly_sales,
-            'units':    int(t['units']) if t.get('units') else 0,
-            'vs_lq':    _r4(t.get('vs_lq')),
-            'vs_ly':    vs_ly,
-            'yoy_dir':  badge_class(vs_ly),
-            'gm':       _r4(t.get('gm')),
+            't':          t['t'],
+            'sales':      sales,
+            'ly_sales':   ly_sales,
+            'units':      int(t['units']) if t.get('units') else 0,
+            'vs_lq':      _r4(t.get('vs_lq')),
+            'vs_ly':      vs_ly,
+            'yoy_dir':    badge_class(vs_ly),
+            'gm':         _r4(t.get('gm')),
+            'color':      color,
+            'textColor':  text_color,
             'subcats': [{
                 'name':  sc['name'],
                 'sales': round(sc['sales']) if sc.get('sales') else 0,
@@ -274,11 +278,14 @@ def compute_collections(collections_raw):
 def compute_finish_data(finishes_raw, skus_all, top_n=8):
     """Finish analysis now shows top COLLECTIONS per finish, not top SKUs
     (BRIEF #4 step 4 §2/§9) -- whatever finishes exist in the data render
-    (§5/§10), coloured by rank (config.finish_color) rather than a fixed
-    per-name palette, so an arbitrary-length, real (~29-finish) list is
-    always covered, not just a curated 8.
+    (§5/§10). Colour comes from config.assign_finish_colors: the curated
+    brand palette for the 8 recurring names, evenly-spaced distinct hues
+    for every other one -- step-4-follow-up §1 retires the fixed-length
+    palette cycle, which silently duplicated colours once finishes ran
+    past its length (the ~29-finish list is well past 8).
     """
     ranked = sorted(finishes_raw.items(), key=lambda kv: -(kv[1].get('total') or 0))
+    colors = assign_finish_colors(name for name, _ in ranked)
     result = {}
     for rank, (name, raw) in enumerate(ranked):
         total = raw.get('total') or 0
@@ -310,7 +317,7 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
                 'b2b_share': round(ct['b2b'] / channel_total, 4) if channel_total else None,
             })
 
-        color, text_color = finish_color(rank)
+        color, text_color = colors[name]
         channel_total = (raw.get('d2c') or 0) + (raw.get('b2b') or 0)
         result[name] = {
             'color':           color,
@@ -401,6 +408,18 @@ def compute_coll_analysis(collections_raw, skus_all, top_n_skus=10):
 # uk_status/us_status might carry (see LIVE_STATUS_VALUES above) --
 # Discontinued/Dead/Not For Sale/Pre-Launch/Disco to Resource are excluded
 # on both sides, same for a SKU with no live status at all.
+#
+# Grain: SKU, not collection -- step-4-follow-up §5 flagged that the
+# earlier D1 contract-schema outline (BRIEF_claude_code_3_dashboard_v2.md)
+# described movers at collection grain, while this (and the pre-redesign
+# dashboard's own "Month-on-Month Collection Movers" section it replaces)
+# ships at SKU grain. This is deliberate, not a drift: item 4's own
+# "Live-status only" requirement is defined in terms of uk_status/us_status,
+# which only exists per SKU -- a collection has no live/discontinued status
+# of its own to filter on (it's a mix of SKUs in every status). SKU grain
+# is the only grain the Live-status filter can actually apply to; the D1
+# outline's "collection" framing is superseded by item 4's own requirement,
+# not overlooked.
 
 def compute_movers(skus_all, top_n=10):
     live = [
@@ -721,7 +740,8 @@ def js_block_prod_types(prod_types):
         rows.append(
             f'  {{t:"{t["t"]}",sales:{t["sales"]},ly_sales:{_js_val(t.get("ly_sales"))},units:{t["units"]},'
             f'vs_lq:{_js_val(t["vs_lq"])},vs_ly:{_js_val(t.get("vs_ly"))},yoy_dir:{_js_val(t.get("yoy_dir"))},'
-            f'gm:{_js_val(t["gm"])},subcats:{subcats}}}'
+            f"gm:{_js_val(t['gm'])},color:{_js_val(t['color'])},textColor:{_js_val(t['textColor'])},"
+            f'subcats:{subcats}}}'
         )
     return 'const PROD_TYPES = [\n' + ',\n'.join(rows) + '\n];'
 

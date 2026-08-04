@@ -12,6 +12,72 @@ STATUS_BUCKETS = ("Continuity", "Newness", "Discontinued", "Dead")
 LIVE_STATUS_VALUES = {"Live", "Continuity", "Newness"}
 
 
+def _completeness_errors(skus_all, prod_types, finishes, collections):
+    """Step-4-follow-up §3: the permanent tripwire for the class of bug
+    Step 4 itself found (a fixed row-dict silently hid a Taps department, a
+    Door department, and 21 of 29 real finishes -- see ROADMAP.md). Every
+    department/collection that actually carries revenue on an enriched SKU
+    must appear in its corresponding analysis block; if one is missing,
+    that block was built from a stale/fixed list again, not from the data.
+    Returns (errors, warnings) -- fails loudly (hard error, aborts the run)
+    for departments/collections, naming every missing group, but only
+    warns for finishes; see the finish check below for why that one case
+    is a diagnostic rather than a gate failure.
+
+    Departments and collections are closed-world here: every SKU's
+    department/collection pairing is read from the SAME extraction
+    (extract_skus_all) that also feeds prod_types/collections, so the two
+    sides should always agree -- a mismatch means a block was built from a
+    stale enumeration, exactly the Taps/Door bug class. 'Unknown' is
+    exempt from the department check: it's a legitimate synthetic
+    catch-all for SKUs with no Product Type classification at all (same
+    convention used everywhere else in this codebase), not a row that was
+    ever going to exist in the sheet's own Product Type table.
+    """
+    errors = []
+    warnings = []
+    revenue_skus = [s for s in skus_all if (s.get('gross') or 0) > 0]
+
+    depts_in_skus = {s['type_'] for s in revenue_skus if s.get('type_')}
+    depts_present = {t['t'] for t in prod_types}
+    missing_depts = (depts_in_skus - depts_present) - {'Unknown'}
+    if missing_depts:
+        errors.append(
+            f"Department(s) with revenue-bearing SKUs but missing from prod_types: "
+            f"{sorted(missing_depts)}"
+        )
+
+    colls_in_skus = {(s['type_'], s['coll']) for s in revenue_skus if s.get('coll')}
+    colls_present = {(c['t'], c['c']) for c in collections}
+    missing_colls = colls_in_skus - colls_present
+    if missing_colls:
+        errors.append(
+            f"Collection(s) with revenue-bearing SKUs but missing from collections: "
+            f"{sorted(missing_colls)}"
+        )
+
+    # Finishes are NOT closed-world the way departments/collections are:
+    # By SKU's finish text is open-ended and sometimes compound ("X & Y")
+    # or a sentinel ("No Finish", "Multiple"), and the sheet's own Finish
+    # summary table has always been a curated top-line view, not a
+    # guaranteed enumeration of every finish string that ever appears on a
+    # SKU (BRIEF #2 already disclosed a related gap -- Line Detail missing
+    # Polished Silver/Shiny Brass/Silver entirely). A real finish missing
+    # a Finish-table row can be a genuine, pre-existing sheet-content gap,
+    # not necessarily an extraction regression -- reported loudly as a
+    # diagnostic (still names every gap) rather than aborting the build.
+    finishes_in_skus = {s['finish'] for s in revenue_skus if s.get('finish')}
+    finishes_present = set(finishes.keys())
+    missing_finishes = finishes_in_skus - finishes_present
+    if missing_finishes:
+        warnings.append(
+            f"Finish(es) with revenue-bearing SKUs but no row in the Finish table: "
+            f"{sorted(missing_finishes)} (not gated -- see _completeness_errors docstring)"
+        )
+
+    return errors, warnings
+
+
 def _toggle_reconciliation_errors(collections, tol=0.001):
     """BRIEF #4 step 4 §10: 'each toggle state reconciles to the same
     total' -- UK + US + ROW cash summed across ALL collections must tie to
@@ -121,6 +187,14 @@ def validate_input(raw):
     # that collection's total (the toggle-reconciliation gate).
     errors.extend(_toggle_reconciliation_errors(raw.get('collections', [])))
 
+    # Step-4-follow-up §3: the permanent completeness tripwire.
+    completeness_errors, completeness_warnings = _completeness_errors(
+        raw.get('skus_all', []), raw.get('prod_types', []),
+        raw.get('finishes', {}), raw.get('collections', []),
+    )
+    errors.extend(completeness_errors)
+    warnings.extend(completeness_warnings)
+
     if errors:
         for e in errors:
             print(f'[validate] ERROR: {e}', file=sys.stderr)
@@ -209,6 +283,14 @@ def validate_contract(contract, tol=0.001):
     # BRIEF #4 step 4 §10: each toggle state (UK/US/ROW cash) must still
     # reconcile to its own collection's total.
     errors.extend(_toggle_reconciliation_errors(contract.get("collections", [])))
+
+    # Step-4-follow-up §3: the permanent completeness tripwire.
+    completeness_errors, completeness_warnings = _completeness_errors(
+        contract.get("skus_all", []), contract.get("prod_types", []),
+        contract.get("finishes", {}), contract.get("collections", []),
+    )
+    errors.extend(completeness_errors)
+    warnings.extend(completeness_warnings)
 
     # BRIEF #4 step 4 §10: movers list is Live-only -- recompute against
     # the contract's own skus_all and assert compute_movers()'s filter held

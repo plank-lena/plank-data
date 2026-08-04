@@ -84,19 +84,35 @@ dashboard · Yotpo/reviews scanner
   - **Latent bug found and fixed along the way:** the old fixed row-dicts
     (`TYPE_ROWS`/`FINISH_ROWS`) silently hid whatever wasn't hand-listed — a Taps
     department, a "Door" department, and 21 of the 29 real finishes never rendered.
-    Now surfaced by construction; a completeness tripwire (assert every group the
-    sheet has actually renders) is queued as a Step 4 follow-up (§3).
+    Now surfaced by construction; a completeness tripwire was added as a follow-up
+    (below) so it can't silently return.
+- [x] **Step 4 follow-up fixes.** Colour assignment was a fixed-length palette cycled by
+      index — the same class of bug as the row-dicts above, just moved into colours: 29
+      finishes duplicated onto an 18-entry palette, and 3 of the (then) 7 departments had
+      no colour at all. Replaced with `config.assign_finish_colors`/`assign_dept_colors`:
+      a small curated map for the recurring names (brand legibility) plus evenly-spaced,
+      genuinely distinct HSL colours generated for anything else, keyed by name so a
+      given group tends to keep its colour run to run. Category tabs now enumerate every
+      department (Taps/Door included, with an explicit "no collections this period"
+      state rather than just not having a tab). Completeness tripwire added
+      (`validate._completeness_errors`): every department/collection with a
+      revenue-bearing SKU must appear in its analysis block — hard error if not (a
+      genuine gap surfaced and fixed along the way: `extract_skus_all` and
+      `extract_collections` disagreed on the "Unknown" default for a blank Product
+      Type). Finishes get the same check as a diagnostic warning, not a hard gate — the
+      sheet's Finish table is a curated top-line view, not a guaranteed enumeration of
+      every finish string in By SKU (open-world, unlike the closed department/collection
+      sets), so a handful of compound/one-off finish names missing a Finish-table row is
+      disclosed, not treated as a regression. Output is now genuinely self-contained
+      (fonts embedded as base64 `@font-face`, no Google Fonts `<link>`) per Option A.
+      Movers grain confirmed as SKU (not collection, per the earlier D1 outline) —
+      deliberate: the "Live-status only" filter is defined on `uk_status`/`us_status`,
+      which only exists per SKU, so collection grain can't carry it.
 
 ---
 
 ## 3. Status — queued / next (in order)
 
-- [ ] **Step 4 follow-up fixes.** Colour + legend coverage for the newly-surfaced
-      departments/finishes; dynamic (not hardcoded) category tabs; the completeness
-      tripwire itself; make the output file actually self-contained per Option A (fonts
-      currently load from a Google Fonts `<link>`, not embedded); verify the movers
-      grain matches the intent of the "B2B share" label. Spec:
-      `CLAUDE_CODE_step4_followup_fixes.md`.
 - [ ] **Step 5 — Quarterly Trading builder.** Cheap and unblocked. Roll three monthly
       builds into the same contract shape (the returns model already shows the
       month→quarter rollup pattern — reuse it); the Step-4-redesigned template is reused
