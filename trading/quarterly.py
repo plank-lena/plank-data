@@ -512,17 +512,19 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     same meaning as emit_contract_from_oracle_quarter's -- a previously-
     committed quarterly contract to chain real vs_lq from.
 
-    NOT runnable today: only trading/source/orders_2026-05_{UK,US}.csv are
-    committed -- April and June Matrixify exports don't exist in this repo
-    (BRIEF step 5 out of scope: exporting them). Will raise FileNotFoundError
-    naming the missing export rather than a cryptic failure deep in
-    matrixify_source.py.
+    Runnable as of 2026-08-04: all three months' UK/US Matrixify exports
+    (April/May/June 2026) are committed to trading/source/. Raises
+    FileNotFoundError naming the missing export if a future quarter is
+    attempted before its exports exist, rather than a cryptic failure deep
+    in matrixify_source.py.
 
-    Even once all 3 months' exports exist, this stays PROVISIONAL until the
-    deferred order-scope reconciliation closes (ROADMAP.md §3) -- every
-    input month is already individually unreconciled for that same reason,
-    so the aggregate can never be more reconciled than its inputs. Expected,
-    per BRIEF step 5 §5 -- not something to chase from here.
+    `reconciled` is inherited from each month's own contract, which as of
+    2026-08-05 (ROADMAP.md §5) is gated on the STRUCTURAL leak check
+    (uk+us+row ties to an independent grand total) only -- matching the
+    hand-built oracle to 0.1% is no longer required for publishing. See
+    RECONCILE_HANDOFF.md for why: the oracle's returns figure reflects an
+    early, still-maturing snapshot (~9-15 days post-close) that a
+    deterministic rebuild cannot reproduce exactly by design.
     """
     if len(month_specs) != 3:
         raise ValueError(f"emit_contract_from_matrixify_quarter needs exactly 3 months, got {len(month_specs)}")

@@ -18,9 +18,18 @@ own "Total" is a store's grand total across all three of ITS buckets, not
 that store's UK/US/ROW component alone. Use compute_combined() (or the
 `reconcile` CLI action) for anything compared against the oracle.
 
-The US £ residual (~-6.5%, standalone Discount rows / cancelled-order
-handling) is explicitly OUT of scope here -- see trading/RECONCILE_HANDOFF.md.
-Do not tune country bucketing to chase it.
+RELEASED 2026-08-05 (ROADMAP.md §5): matching the hand-built oracle to 0.1%
+is no longer a publishing requirement -- the oracle's returns figure is an
+early, ~9-15-day-post-close snapshot that keeps maturing for weeks
+afterward, so a deterministic rebuild cannot reproduce it exactly by design,
+not by defect. The actual publish gate (trading/contract.py's
+emit_contract_from_matrixify) now checks ONLY the structural leak
+(uk+us+row ties to an independent grand total). `reconcile` / `floor_isolation`
+/ `recomposition` / `maturity_cutoff` below (and gate_check_combined,
+assert_matches_oracle) are kept as DIAGNOSTIC tooling only -- useful
+historical/investigative comparison against the old oracle, not something a
+real build needs to pass. See trading/RECONCILE_HANDOFF.md for the full
+investigation and why the oracle isn't a reproducible target.
 
 Run:  python trading/build_matrixify.py trading/source/orders_2026-05_US.csv us 2026-05
       python trading/build_matrixify.py reconcile 2026-05
@@ -572,10 +581,14 @@ def maturity_cutoff_diagnostic(month_str, uk_csv, us_csv, oracle, cutoff_days_li
 
 
 def gate_check_combined(result, oracle):
-    """ROW present + uk+us+row == independent grand total, then each bucket
-    (and the total) vs the committed May oracle within 0.1%. Raises on
-    failure -- never called with output already written; the caller must
-    gate before writing anything downstream.
+    """DIAGNOSTIC ONLY as of 2026-08-05 (ROADMAP.md §5) -- NOT the real
+    publish gate (that's trading/contract.py's emit_contract_from_matrixify,
+    which checks only the structural uk+us+row leak). This CLI-only helper
+    still raises on ANY gap vs. the historical oracle, useful for
+    investigating/comparing against it, but a real build no longer needs to
+    pass this to ship. ROW present + uk+us+row == independent grand total,
+    then each bucket (and the total) vs the committed May oracle within
+    0.1%.
     """
     assert_country_reconciles(result["country_totals"], result["grand_total"])
     assert_matches_oracle(

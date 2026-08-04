@@ -10,11 +10,16 @@ front-ends populate the identical payload shape:
     metadata wrapper. Numbers are correct by definition (source: "oracle").
   emit_contract_from_matrixify(period, ...) -- the real builder: BRIEF #5's
     ship-to three-way reconcile + BRIEF #2's Line Detail enrichment, rolled
-    up into the same shape. Stamps reconciled: True only if the gate
-    (common/reconciliation_gate, reused from #5) actually passes; on
+    up into the same shape. Stamps reconciled: True only if the STRUCTURAL
+    leak check (common/reconciliation_gate.assert_country_reconciles --
+    uk+us+row ties to an independently-computed grand total) passes; on
     failure the contract is still WRITTEN (never silently dropped) but
-    stamped reconciled: False with country_gaps_vs_oracle populated, and
-    can_publish() below returns False.
+    stamped reconciled: False, and can_publish() below returns False.
+    RELEASED 2026-08-05 (ROADMAP.md §5): matching the hand-built oracle to
+    0.1% is no longer part of this gate -- the oracle reflects an early,
+    still-maturing returns snapshot, not a reproducible target. When an
+    oracle is available, country_gaps_vs_oracle is still populated as
+    historical context, but never affects reconciled/can_publish().
 
 load_contract(path) reverses either into the exact dict shape
 compute.py/render.py already consume -- neither file changes, and neither
@@ -204,9 +209,11 @@ def can_publish(contract):
 
 PROVISIONAL_BANNER_HTML = (
     '<div class="provisional-banner">'
-    "&#9888; PROVISIONAL / UNRECONCILED &mdash; Matrixify-sourced figures have not "
-    "passed the reconciliation gate. Do not publish. See country_gaps_vs_oracle "
-    "in the contract for the open gap.</div>"
+    "&#9888; PROVISIONAL / UNRECONCILED &mdash; uk+us+row does not tie to an "
+    "independently-computed grand total (a genuine bucketing leak). Do not "
+    "publish. This is NOT about matching the hand-built oracle (released as a "
+    "publishing requirement 2026-08-05, see ROADMAP.md §5) -- it means a "
+    "line silently fell outside all three country buckets.</div>"
 )
 
 
@@ -339,14 +346,30 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     lm_contract / ly_contract: a loaded prior contract dict (or path) for
     the previous month / same month last year, per §5 -- when given, lm/ly
     come from these (provenance.lq_ly_source: "contract_chain").
+    CALLING CONVENTION (2026-08-05, load-bearing for cross-dashboard
+    consistency -- see ROADMAP.md §5's "contract chaining is the only
+    source of truth for LM/LY" note): always pass the previous month's
+    ALREADY-COMMITTED contract here once one exists. Never re-derive a
+    past month's own figures by re-running this function against that
+    month's Matrixify export again -- returns keep maturing for weeks
+    after a month closes (see RECONCILE_HANDOFF.md's maturity findings),
+    so a fresh recompute of an old month will NOT match that month's own
+    previously-published headline, breaking the invariant that a month's
+    number is identical whether viewed as CM today or as LM in next
+    month's dashboard. lm_contract=None is only correct for a period with
+    no prior committed contract at all (the very first month built).
     oracle_bootstrap_path: when no prior contract exists yet (true today --
     this is the FIRST committed contract), fall back ONCE to this oracle
     xlsx's own lm/ly blocks (provenance.lq_ly_source: "oracle_bootstrap").
-    oracle_gaps: {"uk":..,"us":..,"row":..,"total":..} ground truth to
-    diff against for provenance.country_gaps_vs_oracle + the gate: defaults
-    to BRIEF #5's MAY_THREE_WAY when period == "2026-05" (the only period
-    with a committed oracle right now), else None (gate/gaps skipped,
-    reconciled left False -- no ground truth to reconcile against yet).
+    oracle_gaps: {"uk":..,"us":..,"row":..,"total":..} historical hand-built
+    figures to diff against for provenance.country_gaps_vs_oracle --
+    INFORMATIONAL ONLY as of 2026-08-05 (see ROADMAP.md §5): the hand-built
+    oracle reflects an early, ~9-15-day-post-close snapshot of returns that
+    keeps maturing for weeks afterward, so it is not a reproducible target
+    for a deterministic rebuild and no longer gates `reconciled` or
+    `can_publish()`. Defaults to BRIEF #5's MAY_THREE_WAY when
+    period == "2026-05", else None (gaps simply not computed -- this no
+    longer affects reconciled/publishability either way).
 
     Never fabricates: st/wc/inv are None throughout (no inventory feed
     wired -- BRIEF #3 §6/§9); unmatched SKUs roll into department/
@@ -479,28 +502,34 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
 
     # ── Gate (reused from BRIEF #5) -- non-raising here: a failure must
     # still WRITE the contract (stamped reconciled: False), never abort the
-    # whole emission (BRIEF #3 §4). The CLI-facing build_matrixify.py path
-    # keeps its own raising gate_check_combined() for its own use.
+    # whole emission (BRIEF #3 §4).
+    #
+    # RELEASED 2026-08-05 (ROADMAP.md §5, RECONCILE_HANDOFF.md): reconciled/
+    # can_publish() are gated ONLY on the structural leak check
+    # (assert_country_reconciles -- uk+us+row must tie to an independently-
+    # computed grand total; this is a property of the bucketing logic being
+    # correct, not of matching a historical number). Matching the hand-built
+    # oracle to 0.1% is NO LONGER a publishing requirement: the oracle
+    # reflects an early, ~9-15-day-post-close snapshot of returns that keeps
+    # maturing for weeks afterward, so a deterministic rebuild cannot
+    # reproduce it exactly by design, not by defect. country_gaps_vs_oracle
+    # is still computed/reported when an oracle target is available, purely
+    # as historical context -- it must never be read as a pass/fail signal.
     oracle = oracle_gaps or (MAY_THREE_WAY if period == "2026-05" else None)
-    reconciled = False
     country_gaps_vs_oracle = None
+    try:
+        assert_country_reconciles(country_totals, grand_total)
+        reconciled = True
+    except AssertionError as e:
+        print(f"contract: leak check FAILED -- {e}", file=sys.stderr)
+        reconciled = False
     if oracle is not None:
-        try:
-            assert_country_reconciles(country_totals, grand_total)
-            computed = {"uk": country_totals["UK"], "us": country_totals["US"],
-                        "row": country_totals["ROW"], "total": grand_total}
-            country_gaps_vs_oracle = {
-                k: round((computed[k] - oracle[k]) / oracle[k], 4) for k in computed
-            }
-            reconciled = all(abs(g) <= 0.001 for g in country_gaps_vs_oracle.values())
-        except AssertionError as e:
-            print(f"contract: gate FAILED -- {e}", file=sys.stderr)
-            computed = {"uk": country_totals["UK"], "us": country_totals["US"],
-                        "row": country_totals["ROW"], "total": grand_total}
-            country_gaps_vs_oracle = {
-                k: round((computed[k] - oracle[k]) / oracle[k], 4) if oracle.get(k) else None
-                for k in computed
-            }
+        computed = {"uk": country_totals["UK"], "us": country_totals["US"],
+                    "row": country_totals["ROW"], "total": grand_total}
+        country_gaps_vs_oracle = {
+            k: round((computed[k] - oracle[k]) / oracle[k], 4) if oracle.get(k) else None
+            for k in computed
+        }
 
     # ── lm/ly: contract-chain when given, else bootstrap once from the oracle ──
     ly_dept_sales = {}  # department name -> LY sales, for prod_types' vs_ly (§6)

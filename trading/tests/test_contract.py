@@ -98,10 +98,16 @@ def check_render_parity():
     return identical
 
 
-def check_provisional_path():
-    """§8.3: a Matrixify-sourced contract with reconciled:false renders the
-    PROVISIONAL banner and can_publish() refuses; build/eyeball (i.e.
-    emission + rendering itself) still succeed without raising.
+def check_reconciled_independent_of_oracle():
+    """§8.3, REVISED 2026-08-05 (ROADMAP.md §5): reconciled/can_publish() are
+    gated on the STRUCTURAL leak check only (uk+us+row ties to an
+    independent grand total) -- matching the hand-built oracle to 0.1% is
+    no longer a publishing requirement (the oracle's returns figure is an
+    early, still-maturing snapshot that a deterministic rebuild can't
+    reproduce by design). This month's real Matrixify contract structurally
+    reconciles, so it publishes cleanly, no banner -- even though
+    country_gaps_vs_oracle (still computed, informational only) shows real
+    gaps against the May 2026 oracle.
     """
     mx_contract = emit_contract_from_matrixify(
         period="2026-05", uk_csv=UK_CSV, us_csv=US_CSV, oracle_bootstrap_path=ORACLE_XLSX,
@@ -112,12 +118,14 @@ def check_provisional_path():
     reconciled = mx_contract["provenance"]["reconciled"]
     has_banner = PROVISIONAL_BANNER_HTML in html
     publish_ok = can_publish(mx_contract)
+    gaps = mx_contract["provenance"]["country_gaps_vs_oracle"]
 
-    print(f"\n=== Provisional path (§8.3) ===")
-    print(f"  reconciled: {reconciled} (expected False -- BRIEF #5's known order-scope gap is still open)")
-    print(f"  banner rendered: {has_banner}")
-    print(f"  can_publish(): {publish_ok} (expected False)")
-    return (reconciled is False) and has_banner and (publish_ok is False)
+    print(f"\n=== Reconciled independent of the oracle (§8.3, revised) ===")
+    print(f"  reconciled: {reconciled} (expected True -- structural leak check only)")
+    print(f"  country_gaps_vs_oracle (informational, NOT gating): {gaps}")
+    print(f"  banner rendered: {has_banner} (expected False)")
+    print(f"  can_publish(): {publish_ok} (expected True)")
+    return (reconciled is True) and (not has_banner) and (publish_ok is True) and (gaps is not None)
 
 
 def check_totals_tie_with_unknown():
@@ -229,7 +237,7 @@ def main():
     checks = {
         "round_trip_identity": check_round_trip_identity(),
         "render_parity": check_render_parity(),
-        "provisional_path": check_provisional_path(),
+        "reconciled_independent_of_oracle": check_reconciled_independent_of_oracle(),
         "totals_tie_with_unknown": check_totals_tie_with_unknown(),
         "lq_ly_provenance": check_lq_ly_provenance(),
         "no_fabricated_provisionals": check_no_fabricated_provisionals(),

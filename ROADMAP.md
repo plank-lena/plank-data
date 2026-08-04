@@ -28,15 +28,19 @@ dashboard · Yotpo/reviews scanner
   Cloudflare Access, no DNS/subdomain** — that hosting workstream does not exist for this
   project. "Publish" means handing off a file, not a deploy; nothing in this repo runs a
   server.
-- **Revenue definition (trading, locked):** **net of returns**, ex-VAT — on Supermetrics'
-  **order-cohort-week basis** (a month's Returns column holds only returns of orders
-  *placed* that month, growing in size as that cohort matures — NOT small/negligible,
-  confirmed via real June 2026 data: ≈£16.6K UK), not the full processing-window refund
-  lines the builder currently subtracts. Reverted 2026-08-05, refined same day after a
-  decisive June test ruled out the simplest fix — see §5, still **pending confirmation**
-  (report-generation timing) from whoever's closest to the live sheet. Country (UK + US +
-  ROW) is the reconciliation key — `uk + us + row == total` within 0.1%, a ROW bucket is
-  always present even if zero. Full detail in §5.
+- **Revenue definition (trading, locked):** **net of returns**, ex-VAT, per-line discounts
+  netted, per `trading_logic_spec.md`'s documented `AB` logic — `revenue.py`'s `line_ab`
+  is unchanged throughout this whole investigation and was never proven wrong. **Matching
+  the hand-built oracle to 0.1% is RELEASED as a publishing requirement (Lena, 2026-08-05)**
+  — the oracle's own returns figure is an early, ~9–15-day-post-close snapshot that keeps
+  maturing for weeks, a structurally moving target a deterministic rebuild can't hit by
+  design. Full decision + evidence trail in §5. Country (UK + US + ROW) is now the ONLY
+  hard reconciliation key — `uk + us + row == total` within 0.1% (a structural leak check,
+  not oracle-matching), a ROW bucket always present even if zero. **Cross-dashboard
+  consistency** (a month's figure must not change once committed, e.g. when it becomes LM
+  in a later month's dashboard) is a SEPARATE guarantee, delivered by always chaining
+  LM/LY from the previously-committed contract — never recomputing an old month fresh.
+  See §5's DECISION callout.
 
 ---
 
@@ -152,28 +156,28 @@ dashboard · Yotpo/reviews scanner
       quarter, and was silently reading UK/US units into the UK/US £ slots for every
       April collection. `extract_collections` now **detects** the layout from the
       sheet's own header row instead of trusting `mode`.
-- [ ] **Deferred — order-scope reconciliation (both stores), narrowed 2026-08-05, twice.**
-      Neither "oracle is net" nor "oracle is gross" is the clean answer —
-      `trading_logic_spec.md` (primary source, read from the live sheet's own formulas)
-      confirms the oracle IS net of returns, on a real, empirically-confirmed
-      Supermetrics order-cohort-week basis — but a June 2026 decisive test (real
-      committed export + real committed oracle) shows June's actual cohort-returns are
-      **not** small (≈£16.6K UK), and subtracting them on top of the order-discount term
-      overshoots badly. Leading hypothesis is now report-generation timing (the frozen
-      oracle's own return figure was smaller, at whatever maturity it had when
-      generated) — pending confirmation of when `Monthly_Trading_Report.xlsx` is
-      typically generated, from whoever's closest to the live sheet (§5, §7). **Ruled out
-      entirely:** symmetric UK+US cancelled-order scope forensics — a blanket
-      `Cancelled At` exclusion was tested across April/May/June 2026 and made both legs
-      *worse*; the 28-order July scope question is not a cancelled-order-exclusion
-      problem. **No longer treated as a confirmed independent component:** order-level
-      `Discount` rows (standalone discount-code rows, currently dropped entirely by
-      `build_lines()`) empirically fit UK within ±0.2% across three months, but may be a
-      structural coincidence with the returns question rather than a real separate
-      mechanism — see §5. Under Option A this blocks *distributing* a reconciled
-      Matrixify-sourced number, not building — a provisional file still builds and hands
-      off behind the banner. `test_line_detail_enrichment.py`'s coverage/vocabulary/
-      grouping checks stay failing until this closes — disclosed, not a regression.
+- [x] **Order-scope reconciliation (both stores) — CLOSED BY DECISION, 2026-08-05, not by
+      a formula fix.** Investigation trail: neither "oracle is net" nor "oracle is gross"
+      was the clean answer — `trading_logic_spec.md` (primary source, read from the live
+      sheet's own formulas) confirms the oracle IS net of returns, on a real,
+      empirically-confirmed Supermetrics order-cohort-week basis — but a June 2026
+      decisive test (real committed export + real committed oracle) showed June's actual
+      cohort-returns are **not** small (≈£16.6K UK), and subtracting them on top of the
+      order-discount term overshoots badly; a report-generation-timing (maturity)
+      hypothesis fit May/June well but not April as cleanly. **Ruled out entirely:**
+      symmetric UK+US cancelled-order scope forensics — a blanket `Cancelled At`
+      exclusion was tested across April/May/June 2026 and made both legs *worse*; the
+      28-order July scope question was never a cancelled-order-exclusion problem.
+      **Decision (see §5):** rather than keep chasing which exact formula reproduces a
+      structurally-moving-target oracle, matching it is released as a publishing
+      requirement — the builder computes per the documented `AB` logic and gates only on
+      the structural uk+us+row leak check. Dashboards now build AND publish normally (no
+      permanent provisional banner) once that structural check passes.
+      `test_line_detail_enrichment.py`'s coverage/vocabulary/grouping checks (a related
+      but separate axis — Line Detail's own enrichment quality vs. the oracle's By
+      Collection/Status breakdowns) remain in their existing disclosed-failing state,
+      unchanged by this decision and not touched today — same underlying reasoning
+      applies if revisited.
 - [ ] **D2 — Returns dashboard.** Separate template. Tweak list now received from the Q1
       review: five ruled definitions locked; the watchlist dissolves into the
       category→subcategory→SKU tracker; three decisions remain open (exchange
@@ -190,13 +194,12 @@ dashboard · Yotpo/reviews scanner
 
 - **Lena / Daisy** — the three open returns decisions (exchange definition, family axis,
   trade-in-headline; D2 above).
-- **Whoever's closest to the live sheet** — cohort-attribution mechanism confirmed (July
-  then June checks, 2026-08-05); June's decisive test ruled out "discounts + sheet's
-  current returns" as the fix. Top ask now: **when is `Monthly_Trading_Report.xlsx`
-  typically generated/frozen relative to each month's close?** — tests the leading
-  report-generation-timing hypothesis directly. April/May's own per-country "Returns
-  (inc VAT)" breakdowns are still useful (confirms June's ~2×-July growth pattern
-  generalises) but secondary to the timing question. See §5, §7.
+- ~~Whoever's closest to the live sheet~~ — **nothing owed as of 2026-08-05.** The
+  report-generation-timing question this section used to ask about is moot: matching the
+  hand-built oracle is released as a publishing requirement (§5's DECISION callout), so
+  there's no longer a fact whose answer would change what ships. Thank you for the July
+  and June primary-source checks — they're what confirmed the cohort mechanism and made
+  this decision an informed one, not a guess.
 - **Maintainer** — the custom/project instructions that still cite "GitHub Pages behind
   Cloudflare Access" need updating to Option A (self-contained file → Slack/Drive).
 
@@ -208,6 +211,65 @@ These are the choices baked into the reports that must live in code with a test,
 they are exactly where a naive rebuild goes silently wrong.
 
 ### Trading (revenue) — the reconciliation contract
+
+> **✔ DECISION (Lena, 2026-08-05) — the hand-built oracle is RELEASED as a publishing
+> requirement.** After the investigation below (kept in full for the evidence trail —
+> read it if you want the "why"), the short version: the oracle's returns figure is a
+> snapshot taken ~9–15 days after each month's close, and returns keep maturing for weeks
+> afterward (proven: the same July cohort's UK return-line count rises 116 → 298 → 448 at
+> 3 days / 34 days / 13 months old). A deterministic, reproducible builder — the whole
+> point of this project's Path-2 architecture — cannot hit a target whose "correct" value
+> depends on the arbitrary date someone happened to press export. Chasing 0.1% parity
+> against it is chasing a moving target, not fixing a bug. **We build and release
+> according to the documented logic (below), and no longer gate on matching the oracle.**
+>
+> **What this changes, concretely (2026-08-05):**
+> - `trading/contract.py`'s `emit_contract_from_matrixify` — `reconciled` / `can_publish()`
+>   now depend ONLY on the structural leak check (`common/reconciliation_gate.
+>   assert_country_reconciles`: `uk+us+row` ties to an independently-computed grand
+>   total — a property of the bucketing logic being correct, not of matching a historical
+>   number). `country_gaps_vs_oracle` is still computed/reported when an oracle target is
+>   available, purely as historical context — it must never be read as pass/fail.
+> - `trading/quarterly.py`'s `emit_contract_from_matrixify_quarter` inherits this
+>   automatically (its `reconciled` flag is derived from the underlying months' own flags
+>   plus its own structural leak check — no oracle dependency of its own).
+> - `trading/build_matrixify.py`'s oracle-comparison CLI actions (`reconcile`,
+>   `floor_isolation`, `recomposition`, `maturity_cutoff`) are kept as **diagnostic
+>   tooling only** — useful for historical comparison/investigation, not something a real
+>   build needs to pass.
+> - `revenue.py`'s `line_ab` formula is **unchanged** — it was never proven wrong per
+>   `trading_logic_spec.md`'s documented AB logic (gross ex-VAT, per-line discounts
+>   netted via `Line: Total`, minus tax, minus cohort-attributed returns); the entire
+>   investigation was about matching a specific historical snapshot, not about the
+>   formula's own correctness.
+>
+> **What "correct" now means:** the builder computes revenue per the documented AB logic
+> from whatever Matrixify data is available at build time — not a specific historical
+> number. A month built today will show more mature returns than the same month shown
+> historically; that's expected and consistent, not an error.
+>
+> **The actual cross-dashboard consistency guarantee — read this before touching any
+> builder call site.** "The numbers must match across all dashboards, and a month must
+> keep its own figure as it becomes LM in later dashboards" is satisfied by the EXISTING
+> contract-chaining mechanism, not by the oracle-match question above (these are
+> orthogonal). `emit_contract_from_matrixify`'s `lm_contract`/`ly_contract` params, when
+> supplied, pull LM/LY from a **previously-committed contract's own frozen `current`
+> block** — never a fresh Matrixify recompute of that past month. This MUST be used for
+> every month after the first: **always pass the prior month's already-committed contract
+> as `lm_contract`** (same-month-last-year's as `ly_contract`), **never re-run the builder
+> against an old month's export to regenerate its own figures.** Because returns mature
+> for weeks after a month closes, a fresh recompute of May in August would show more
+> returns than May's own originally-published contract — if June's dashboard re-derived
+> "LM" that way instead of chaining from May's committed contract, May's number would
+> silently differ depending on which dashboard you're looking at it from, exactly the
+> failure this decision must prevent. `lm_contract=None`/`ly_contract=None` is only
+> correct for a period with no prior committed contract at all (the very first month
+> built) or a deliberate, explicit historical restatement (same standard as the returns
+> report's own "Daisy signed off on restating history" precedent — a conscious act, never
+> a silent side-effect of building a later month).
+>
+> Full evidence trail below and in `RECONCILE_HANDOFF.md` — kept for context, not because
+> any of it is still an open question blocking release.
 
 > **⚠ Revenue definition — REVERTED to net-of-returns, 2026-08-05 (Lena), after a
 > same-day flip-then-revert.** The 2026-08-04 "gross, returns never netted" callout this
@@ -385,18 +447,26 @@ dashboard:**
 
 ## 6. The reconciliation gate (runs on every build; aborts on failure)
 
-- **Trading:** assert `uk + us + row == total` within 0.1% (relative); assert a ROW
-  bucket is present; assert revenue reproduces the sheet's `AB` basis; assert VAT was
-  removed by subtracting Shopify tax (no `/1.2`); assert FX came from the frozen dated
-  table, not a live source; assert every toggle state (cash/units × UK/US/Total)
-  reconciles to the same total (Step 4, §2).
+- **Trading:** assert `uk + us + row == total` within 0.1% (relative, an independently-
+  computed grand total — the structural leak check, `common/reconciliation_gate.
+  assert_country_reconciles`); assert a ROW bucket is present; assert VAT was removed by
+  subtracting Shopify tax (no `/1.2`); assert FX came from the frozen dated table, not a
+  live source; assert every toggle state (cash/units × UK/US/Total) reconciles to the
+  same total (Step 4, §2). **Matching the hand-built oracle to 0.1% is NOT part of this
+  gate as of 2026-08-05** — released as a publishing requirement, see §5's DECISION
+  callout; `country_gaps_vs_oracle` is still reported when available, informationally
+  only.
 - **Returns:** assert Total == sum of the status/category block for **additive measures
   only** (units, cash) — order counts are distinct per grouping and never asserted
   additive. Assert every label matches a whitespace-normalised label in the data; assert
   the return source is Returns-zap; assert the headline rate is orders-based; assert
   every row is bucketed by order month.
-- **All reports:** regression-check against the committed oracle workbook for any period
-  already captured.
+- **All reports:** regression-check against the committed fixture (a *frozen contract
+  JSON*, e.g. `2026-05_contract_redesign.json` — reproducibility of the builder's own
+  output) for any period already captured. For **trading specifically**, this is NOT the
+  same thing as matching the hand-built oracle workbook (released, see above) — it's a
+  determinism check (same input in, same output out), which still applies and always
+  should.
 
 A failed gate prints the offending figures and the gap, and writes **no output**. Under
 Option A this only ever blocks a handoff — there is no deploy step downstream of the gate
@@ -417,16 +487,31 @@ Resolved:
   included in the oracle, not excluded — a blanket `Cancelled At` exclusion made both
   legs worse across all three of April/May/June 2026. This was the original "28-order
   scope" suspicion; it isn't a scope-exclusion problem.
-- **Sales value basis** → **still net of discounts and returns, per `trading_logic_spec.md`
-  (reverted 2026-08-05 after a same-day flip based on weaker evidence — see §5).** Cohort
-  attribution confirmed empirically (July, then June checks); **NOT small at snapshot
-  time as first theorised** — June's real figure is ≈£16.6K UK, ≈2× July's, growing with
-  cohort maturity. The decisive June test rules out "subtract order-discounts AND the
-  sheet's current returns" (overshoots badly) — leading hypothesis is now
-  report-generation-timing (the frozen oracle's own return figure was smaller, at
-  whatever maturity it had when generated), not a wrong formula shape. Order-level
-  discount codes' fit is no longer treated as an independently-confirmed component — see
-  §5.
+- **Sales value basis** → `line_ab` reproduces `trading_logic_spec.md`'s documented `AB`
+  logic (net of discounts and returns, ex-VAT, cohort-attributed) and is unchanged
+  throughout this investigation — never proven wrong. **Matching the hand-built oracle's
+  specific historical number is RELEASED as a requirement (Lena, 2026-08-05) — see §5's
+  DECISION callout.** The oracle's own returns figure is an early, ~9–15-day-post-close
+  snapshot that keeps maturing for weeks (proven via cohort-age comparisons: UK
+  return-line counts rise 116 → 298 → 448 at 3 days / 34 days / 13 months old) — a
+  structurally moving target, not a formula bug. Order-level discount codes' apparent fit
+  is very likely coincidental (see §5's investigation trail), not a real term to add.
+- ~~Returns-basis magnitude / code fix~~ → **closed by decision, 2026-08-05, not by
+  further forensics.** The decisive June test ruled out "discounts + the sheet's current
+  returns" as a formula (overshoots badly); April didn't fit the leading
+  report-generation-timing hypothesis as cleanly as May/June did either. Rather than keep
+  chasing which exact formula reproduces a moving-target oracle, the oracle-match
+  requirement itself is released — see §5. `line_ab` is not being changed.
+- ~~Order-scope reconciliation~~ → **closed by decision, 2026-08-05** (was §3). Cancelled
+  orders were ruled out as the mechanism (blanket exclusion made both legs worse); the
+  remaining UK/US residual is understood to be the returns-maturity mismatch above, which
+  is no longer being chased against the oracle. See §5.
+- ~~Oracle's own Gross Unit Sold reliability~~ → **not being chased further, 2026-08-05.**
+  It doesn't foot internally (UK+US+ROW vs. Total disagrees, sign flips month to month)
+  and a returned-units-double-counted hypothesis only partially explains it (fails for
+  ROW) — the builder's own unit count is independently verified correct (matches a
+  from-scratch recount of its own source data exactly). Not worth further investigation
+  now that oracle-parity isn't the bar; the builder's units stand as computed.
 
 Still open:
 - **Line Detail source:** activate the Dropbox fetch path
@@ -435,29 +520,16 @@ Still open:
   month (only July is confirmed today) — close enough to the sheet's historical
   `GOOGLEFINANCE` values that the regression stays in tolerance.
 - **Glossary/label fix:** rename the trading headline from "gross sales" to an honest
-  label and document the returns-netting — needs the glossary owner's sign-off. (Reopened
-  2026-08-05: briefly marked moot during the same-day flip; revenue is net-of-returns
-  again, so the "gross sales" label is a genuine mislabel once more.)
-- **Returns-basis magnitude — decisive test run 2026-08-05 against June (real data both
-  sides); "discounts + sheet's current returns" RULED OUT** (overshoots by −6.87% UK,
-  −4.73% US vs. `B` alone's +0.12%/−1.35%) — see §5. **Owed by whoever's closest to the
-  live sheet: when is `Monthly_Trading_Report.xlsx` typically generated/frozen relative
-  to each month's close?** This is now the single most valuable open fact — it tests the
-  leading report-generation-timing (maturity) hypothesis directly. April/May's own
-  per-country `O` breakdowns remain useful (confirms/refutes whether June's ~2×-July
-  growth pattern generalises) but are secondary to the timing question now.
-- **Returns-basis code fix:** blocked on the timing question above — if confirmed,
-  `revenue.py`'s `line_ab` needs to reproduce the oracle's own maturity window (not
-  simply subtract a live column), which is a harder change than a formula tweak, plus
-  settle whether the order-level-discount term is real or coincidental (see §5), then
-  re-gate against all committed months. Do not ship the discount term alone — see §5.
-- **Oracle's own Gross Unit Sold reliability:** doesn't foot internally (UK+US+ROW vs.
-  Total disagrees, sign flips month to month) and a returned-units-double-counted
-  hypothesis only partially explains it (fails for ROW) — treat the oracle's unit
-  figure, not the builder's, as suspect until this is resolved the same way (read the
-  live sheet's unit formula) rather than guessed from Matrixify arithmetic alone.
-- **Order-scope reconciliation** — see §3 (narrower now that cancelled orders are ruled
-  out as the mechanism).
+  label and document the returns-netting — needs the glossary owner's sign-off (revenue
+  is net-of-returns, so "gross sales" remains a genuine mislabel, independent of the
+  oracle-match decision above).
+- **Contract-chaining discipline going forward:** every build after the first committed
+  month for a given period MUST pass the prior month's/prior year's already-committed
+  contract as `lm_contract`/`ly_contract` — never recompute a historical month fresh.
+  This is the actual mechanism that keeps dashboards consistent with each other now that
+  oracle-matching is released — see §5's DECISION callout. Worth a lint/test that catches
+  a call site that forgets this, if this becomes a real production pipeline rather than
+  ad hoc builds.
 - **The three returns decisions** — see §3/§4 (D2, owed by Lena/Daisy).
 
 ---

@@ -1,16 +1,73 @@
 # Trading reconciliation handoff (resume here)
 
-**Updated:** 2026-08-05 (fourth time, same day) — after the June primary-source check ruled out
-"discounts + sheet's current returns," Lena independently confirmed the report-generation cadence
-(~9–15 days post-close) plus a fully-mature LY July 2025 comparison that cleanly proves the maturity
-mechanism (return-line counts rise monotonically with cohort age: 116 → 298 → 448 at 3 days / 34
-days / 13 months). A new **maturity-cutoff diagnostic**, run against data already committed (no
-further live-sheet access needed), tests returns-with-a-maturity-cutoff as a **standalone**
-replacement for the order-discount term — see the newest section below. Result: promising for
-May/June, weaker for April, and **the two terms are not independently additive** (combining full
-order-discounts with any real returns overshoots). This is now more open, not less — see the newest
-section for exactly what's confirmed vs. still genuinely unresolved. Governing docs: `ROADMAP.md`
-(§5, updated to match), `trading_logic_spec.md` (primary source for the live sheet's `AB` formula).
+**Updated:** 2026-08-05 (fifth and final time this day) — **CLOSED BY DECISION, not by finding the
+formula.** After the maturity-cutoff diagnostic (below) showed May/June fit a principled
+returns-timing model well but April didn't, and the underlying mechanism (returns mature for weeks
+after a month closes, confirmed via a monotonic cohort-age curve) can never be pinned to a single
+historical oracle snapshot with certainty, Lena made the call: **stop reconciling trading revenue to
+the hand-built oracle's exact historical numbers. Build and publish according to the documented
+logic; gate on internal consistency only.** See the DECISION section immediately below for what
+this means concretely — everything after it is the investigation trail that led here, kept for
+context, not because any of it is still blocking anything. Governing doc: `ROADMAP.md` §5 (the
+canonical record of the decision — if this file and that one ever seem to disagree, ROADMAP.md
+wins, per `CLAUDE.md`'s own rule).
+
+---
+
+## ✔ DECISION (Lena, 2026-08-05): release the oracle-match requirement; gate on structure only
+
+**What changed, concretely:**
+- `trading/contract.py`'s `emit_contract_from_matrixify` — `reconciled`/`can_publish()` now depend
+  ONLY on `common/reconciliation_gate.assert_country_reconciles` (`uk+us+row` ties to an
+  independently-computed grand total). `country_gaps_vs_oracle` is still computed/reported when an
+  oracle target exists, purely as historical context — never gates anything.
+- `trading/quarterly.py`'s `emit_contract_from_matrixify_quarter` inherits this automatically (its
+  `reconciled` is derived from the months' own flags + its own structural check).
+- `trading/build_matrixify.py`'s `reconcile`/`floor_isolation`/`recomposition`/`maturity_cutoff` CLI
+  actions and `gate_check_combined()` are retained as **diagnostic tooling only** — useful for
+  historical comparison, not something a real build needs to pass.
+- `revenue.py`'s `line_ab` is **unchanged** — it was never proven wrong per `trading_logic_spec.md`'s
+  documented `AB` logic; the whole investigation was about matching one specific historical
+  snapshot, not the formula's own correctness.
+- `trading/tests/test_contract.py`'s `check_provisional_path` (now `check_reconciled_independent_of_
+  oracle`) updated to expect `reconciled: True`/publishable for the real May Matrixify contract, with
+  `country_gaps_vs_oracle` still populated and non-zero — informational, not a failure.
+
+**Why:** the oracle's own returns figure is a snapshot taken ~9–15 days after each month's close (Lena
+confirmed this cadence directly from the historical report files' own save timestamps), and returns
+keep maturing for weeks afterward — proven via a monotonic cohort-age curve (UK return-line counts:
+116 → 298 → 448 at 3 days / 34 days / 13 months old for the same July cohort). A deterministic,
+reproducible builder cannot hit a target whose correct value depends on the arbitrary date someone
+happened to press export. The June decisive test (below) showed this isn't a fixable formula
+question either: "discounts + the sheet's current returns" overshoots badly, and even a principled
+maturity-cutoff model fit May/June well but not April as cleanly — there may be no single formula
+that reproduces all three historical numbers, because the oracle itself wasn't generated on a
+perfectly consistent cadence.
+
+**What "correct" means now:** the builder computes revenue per the documented `AB` logic (gross
+ex-VAT, per-line discounts netted, minus tax, minus cohort-attributed returns) from whatever
+Matrixify data exists at build time. A month built today will show more mature returns than the same
+month's original oracle did; that's expected, not an error.
+
+**The consistency guarantee that actually matters (Lena, 2026-08-05): "numbers match across all
+dashboards, and a month keeps its own figure as it becomes LM in later dashboards."** This is
+DIFFERENT from the oracle question and is satisfied by contract-chaining, which already exists in
+the code: `emit_contract_from_matrixify`'s `lm_contract`/`ly_contract` params pull LM/LY from a
+**previously-committed contract's own frozen `current` block**, never a fresh Matrixify recompute of
+that past month. **This must be used for every month after the first** — always pass the prior
+month's/prior year's already-committed contract, never re-run the builder against an old month's
+export to regenerate its own figures. Because returns mature for weeks, a fresh recompute of (say)
+May in August would show more returns than May's own originally-published contract; if a later
+month's dashboard re-derived "LM" that way instead of chaining, May's number would silently differ
+depending on which dashboard you looked at it from — exactly the failure this guarantee must
+prevent. `lm_contract=None` is only correct for the very first month built, or a deliberate,
+explicit historical restatement (same standard as the returns report's own "Daisy signed off on
+restating history" precedent).
+
+**Full regression suite re-run 2026-08-05 after this change:** `test_contract.py` 7/7,
+`test_quarterly.py` 9/9, `test_three_way_regression.py` PASS — all green, no fixture regeneration
+needed (`reconciled`/`country_gaps_vs_oracle` live under `provenance`, outside the frozen
+`PAYLOAD_KEYS` comparison).
 
 ---
 
