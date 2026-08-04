@@ -3,7 +3,7 @@
 **Status:** Path 2 (deterministic, connector-sourced builders) running end-to-end for
 Monthly **and Quarterly** Trading, both through the same redesigned dashboard template.
 Returns join is next; the returns *dashboard* has a fresh spec.
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 **Deliverables:** Monthly Trading dashboard · Quarterly Trading dashboard · Returns
 dashboard · Yotpo/reviews scanner
 
@@ -28,11 +28,13 @@ dashboard · Yotpo/reviews scanner
   Cloudflare Access, no DNS/subdomain** — that hosting workstream does not exist for this
   project. "Publish" means handing off a file, not a deploy; nothing in this repo runs a
   server.
-- **Revenue definition (trading, locked):** **gross of returns**, ex-VAT — returns are
-  never netted into the trading headline (flipped 2026-08-04, see §5; the builder's code
-  still nets returns pending the actual `revenue.py` fix). Country (UK + US + ROW) is the
-  reconciliation key — `uk + us + row == total` within 0.1%, a ROW bucket is always
-  present even if zero. Full detail in §5.
+- **Revenue definition (trading, locked):** **net of returns**, ex-VAT — but on
+  Supermetrics' **order-cohort-week basis** (a month's Returns column holds only returns
+  of orders *placed* that month, small at snapshot time), not the full processing-window
+  refund lines the builder currently subtracts. Reverted 2026-08-05 after a same-day
+  flip-then-revert — see §5, still **pending confirmation** from whoever's closest to the
+  live sheet. Country (UK + US + ROW) is the reconciliation key — `uk + us + row ==
+  total` within 0.1%, a ROW bucket is always present even if zero. Full detail in §5.
 
 ---
 
@@ -148,17 +150,23 @@ dashboard · Yotpo/reviews scanner
       quarter, and was silently reading UK/US units into the UK/US £ slots for every
       April collection. `extract_collections` now **detects** the layout from the
       sheet's own header row instead of trusting `mode`.
-- [ ] **Deferred — order-scope reconciliation (both stores).** UK and US are each short
-      ~5–6% against the oracle, same sign and order of magnitude (FX and
-      discount-netting have both been ruled out as the cause). Cheap test first: confirm
-      whether the oracle's country columns are net or gross of returns — the shortfall
-      is suspiciously close to the by-value return rate, and if the columns are gross
-      this closes the whole gap with no per-order forensics needed. If not: symmetric
-      UK+US cancelled/scope forensics (the same question as the 28-order July scope
-      mismatch). Under Option A this blocks *distributing* a reconciled Matrixify-sourced
-      number, not building — a provisional file still builds and hands off behind the
-      banner. `test_line_detail_enrichment.py`'s coverage/vocabulary/grouping checks stay
-      failing until this closes — disclosed, not a regression.
+- [ ] **Deferred — order-scope reconciliation (both stores), narrowed 2026-08-05.** The
+      cheap test ran: neither "oracle is net" nor "oracle is gross" is the clean answer —
+      `trading_logic_spec.md` (primary source, read from the live sheet's own formulas)
+      confirms the oracle IS net of returns, but on Supermetrics' order-cohort-week basis
+      (small at snapshot time), not the full processing-window refund-line total the
+      builder subtracts — that basis mismatch is the believed actual bug, pending
+      confirmation from whoever's closest to the live sheet (§5, §7). **Ruled out
+      entirely:** symmetric UK+US cancelled-order scope forensics — a blanket
+      `Cancelled At` exclusion was tested across April/May/June 2026 and made both legs
+      *worse*; the 28-order July scope question is not a cancelled-order-exclusion
+      problem. **Confirmed as a real, separate component:** order-level `Discount` rows
+      (standalone discount-code rows), currently dropped entirely by `build_lines()` —
+      this is UK-side-confirmed independent of the returns-basis question. Under Option A
+      this blocks *distributing* a reconciled Matrixify-sourced number, not building — a
+      provisional file still builds and hands off behind the banner.
+      `test_line_detail_enrichment.py`'s coverage/vocabulary/grouping checks stay failing
+      until this closes — disclosed, not a regression.
 - [ ] **D2 — Returns dashboard.** Separate template. Tweak list now received from the Q1
       review: five ruled definitions locked; the watchlist dissolves into the
       category→subcategory→SKU tracker; three decisions remain open (exchange
@@ -175,10 +183,13 @@ dashboard · Yotpo/reviews scanner
 
 - **Lena / Daisy** — the three open returns decisions (exchange definition, family axis,
   trade-in-headline; D2 above).
-- **Lena** — the return-basis net/gross answer for the order-scope deferral (§3), if
-  already knowable from the sheet owner, before more per-order forensics; the custom/
-  project instructions that still cite "GitHub Pages behind Cloudflare Access" need
-  updating to Option A (self-contained file → Slack/Drive).
+- **Whoever's closest to the live sheet** — confirm what the live sheet's "Returns (inc
+  VAT)" column actually totals per month/country, and whether it's genuinely
+  order-cohort-adjusted as `trading_logic_spec.md` describes (§5, §7) — this is the one
+  remaining question blocking the `line_ab` code fix; per-order forensics are not needed
+  either way, per the 2026-08-05 reconciliation.
+- **Maintainer** — the custom/project instructions that still cite "GitHub Pages behind
+  Cloudflare Access" need updating to Option A (self-contained file → Slack/Drive).
 
 ---
 
@@ -189,50 +200,71 @@ they are exactly where a naive rebuild goes silently wrong.
 
 ### Trading (revenue) — the reconciliation contract
 
-> **⚠ Revenue definition — FLIPPED (Lena, 2026-08-04), supersedes the "CONFIRMED (Lena,
-> Aug 2026)" callout this replaces.** Plank trading revenue = **gross sales, ex-VAT,
-> line-discounts applied — returns are NEVER netted into the headline.** The oracle
-> (`*_Monthly_Trading_Report.xlsx`) labels every measure "Gross Sales £" / "Gross Unit
-> Sold" and has no returns/net concept at all; returns are reported entirely separately in
-> the *returns* report. The previous pinning ("sales net of returns... matches the sheet's
-> `AB` formula") was the misread — `AB`'s `− returns` term does not describe the sheet,
-> it described a reverse-engineered guess that was never checked against gross-labelled
-> evidence. **Confirmed by the 2026-08-04 recomposition diagnostic**
-> (`trading/build_matrixify.py recomposition`, see `RECONCILE_HANDOFF.md`): computing
-> gross-ex-VAT with no returns term removed, then netting only order-level discount
-> codes (a component the shipped builder currently ignores), reproduces the UK oracle
-> figure within ±0.2% across **all three** of April/May/June 2026 — a fit that would not
-> hold across three independent months by coincidence. Had returns genuinely needed
-> netting, this same computation would still be short by the return rate (~10%); it
-> isn't. **The code (`revenue.py`'s `line_ab`) has NOT been changed yet** — it still
-> subtracts returns — this is a docs-only correction of the target definition; see the
-> open item below for what's still unresolved before `line_ab` itself is fixed.
+> **⚠ Revenue definition — REVERTED to net-of-returns, 2026-08-05 (Lena), after a
+> same-day flip-then-revert.** The 2026-08-04 "gross, returns never netted" callout this
+> replaces was based on weaker-provenance evidence (column labels + an arithmetic fit
+> against the oracle) and directly contradicted `trading_logic_spec.md`, which documents
+> the live sheet's actual `AB` formula from reading real formula cells, not a guess —
+> `AB` genuinely subtracts a real "Returns (inc VAT)" column. **Primary source wins:
+> revenue IS net of returns.** Plank trading revenue = **sales net of returns, ex-VAT
+> (net of discounts too)** — but on Supermetrics' **order-cohort-week basis**: a month's
+> Returns column holds only returns *of orders placed that month*, which at snapshot time
+> is small (few of that month's own orders have been returned yet by the time the report
+> is pulled) — this is why the 2026-08-04 diagnostic's "no returns term" computation
+> fit UK so well: UK's *true* cohort-returns figure is tiny (≈£0–500) against a ≈£250K
+> headline, not because returns are actually excluded.
+>
+> **The actual bug, per this reconciliation, is a returns-basis mismatch, not a
+> netting-vs-not-netting one:** `line_ab()` subtracts the full **processing-window**
+> refund-line total from the Matrixify export (≈£26K UK / ≈£23K US in May) — refunds
+> *processed* that month regardless of when the original sale happened — instead of the
+> sheet's much smaller **order-cohort** figure (returns of *that month's own* orders
+> only). This also reframes the US residual: the 2026-08-04 diagnostic's `B` (gross minus
+> order-level discounts, no returns subtracted) left US short by +1.45%/−1.35%-ish
+> depending on the month — plausibly *because* it wasn't subtracting the small genuine
+> cohort-returns figure (theorised ≈£3.1K for May) that US, unlike UK, actually needs.
+> Cancelled orders were a red herring for this residual (see below).
+>
+> **PENDING CONFIRMATION** — not yet verified against a primary source. The decisive
+> test is reading the live sheet's actual "Returns (inc VAT)" column, per month per
+> country, and checking it's (a) small and (b) close to the residuals above (~£0–500 UK,
+> ~£3.1K US) rather than the ≈£23–26K processing-window figures. **Ask whoever's closest
+> to the live sheet:** *what does "Returns (inc VAT)" total for a given month, and is it
+> genuinely order-cohort-adjusted as `trading_logic_spec.md` describes?* If small and
+> cohort-based → fix is "subtract the sheet's Returns figure, not raw refund lines," not
+> "stop netting returns." If it turns out to be large (≈£23–26K) after all, this
+> reconciliation is wrong in a different way and the gap is elsewhere — re-open from
+> scratch, do not re-guess.
 
-- **Revenue basis (target, not yet shipped in code):** `(Total Product Sales inc-VAT −
-  Shopify Net Sales Tax − Order-level Discount codes) ÷ FX`, per line/order, excluding
-  shipping lines and **excluding the returns term entirely**. Per-line discounts are
-  already netted into `Line: Total` and stay. `line_ab()` in `revenue.py` still computes
-  the old (returns-subtracted, order-discount-blind) formula — **do not treat this bullet
-  as shipped** until `line_ab` is actually changed and re-gated.
-  - **Open / NOT yet confirmed:** the order-level-discount-netting term above is
-    confirmed for UK (±0.2%, all 3 months) but does **not** resolve US — a blanket
-    "exclude cancelled orders" term was tested against the same 3 months and made the US
-    gap *worse* in all three (and pushed UK negative when applied there too, meaning
-    cancelled orders are not simply excludable order-wide). The US residual (and the
-    correct cancelled-order rule, if any — likely `Cancelled At` combined with
-    `Payment: Status`, not `Cancelled At` alone) is still open; see
-    `RECONCILE_HANDOFF.md`. Do not apply the discount-only fix to `line_ab` until the US
-    side has its own confirmed component — a partial fix would silently change UK's
-    committed history while leaving US wrong.
-  - **Units are a separate, unresolved thread** — the builder's own unit count is
-    verified (2026-08-04) to exactly match a from-scratch recount of `Line: Quantity`
-    over `Line Item` rows in the same source CSVs, so the builder is not undercounting
-    its own data. The oracle's "Gross Unit Sold" does not foot internally either
-    (UK+US+ROW vs. its own Total column disagrees by a few hundred units, sign flips
-    month to month) and a "the oracle double-counts returned units" hypothesis is only a
-    partial explanation (order-of-magnitude match for UK/US, fails outright for ROW) —
-    do not pad the builder's units to chase the oracle's Gross Unit Sold; it is the
-    figure under suspicion, not the builder.
+- **Confirmed and banked regardless of how the returns question resolves** (2026-08-04/05
+  diagnostics — `trading/build_matrixify.py recomposition`, see `RECONCILE_HANDOFF.md`):
+  - **UK value = gross ex-VAT minus order-level discount codes**, a component
+    `build_lines()` currently drops entirely (standalone `Discount` line-type rows, not
+    the per-line discounts already netted into `Line: Total`). Holds within ±0.2% across
+    April/May/June 2026 — independent of the returns-basis question, since UK's true
+    cohort-returns term is negligible either way.
+  - **Cancelled orders are included in the oracle, not excluded as a scope question.** A
+    blanket `Cancelled At` exclusion was tested against all three months and made the US
+    gap *worse* every month, and pushed UK *negative* every month despite UK having its
+    own 18–30 cancelled orders/month that the oracle is evidently still counting. This
+    closes the "28-order scope" question from a different angle than expected: it isn't
+    a scope-exclusion problem at all.
+  - **Units are a separate, still-open thread; treat the builder as correct.** The
+    builder's own unit count exactly matches a from-scratch recount of `Line: Quantity`
+    over `Line Item` rows in the same source CSVs — it is not undercounting its own data.
+    The oracle's "Gross Unit Sold" does not foot internally (UK+US+ROW vs. its own Total
+    column disagrees by a few hundred units, sign flips month to month) and a "the oracle
+    double-counts returned units" hypothesis only partially fits (order-of-magnitude
+    match for UK/US, fails outright for ROW). Resolve the same way as the value
+    question — read the live sheet's unit formula — rather than padding the builder to
+    match a figure that may itself be wrong.
+- **Revenue basis — NOT yet shipped in code either way.** `line_ab()` in `revenue.py`
+  still computes the pre-2026-08 formula: full processing-window refund lines subtracted,
+  order-level discount codes ignored. Do not change it until (a) the sheet-owner question
+  above confirms the order-cohort returns basis, and (b) the resulting per-bucket figures
+  are re-checked against all three committed months — a partial fix (e.g. UK's confirmed
+  discount term alone) would silently restate UK's committed history while the returns
+  basis and US side are still unresolved.
 - **VAT = subtract Shopify's per-line tax, NOT `/1.2`.** There is no `/1.2` in the real
   revenue path; the `UK_SALES_ARE_INC_VAT` toggle is retired for trading. (Caveat: this
   trusts Shopify's per-line tax config; a `/1.2` assumption would diverge on
@@ -323,10 +355,16 @@ Resolved:
 - ~~Primary key~~ → resolved negatively: no line-item id; join on order+SKU, de-dupe.
 - ~~Category/finish/collection coverage~~ → resolved by Step 4's dynamic discovery
   (§2) — no more fixed lists to go stale.
-- ~~Sales value basis~~ → **superseded 2026-08-04, see §5's FLIPPED callout.** Was
-  "net of discounts and in-window returns"; is now gross ex-VAT, net of order-level
-  discount codes only, returns never netted — confirmed for UK, still open for US (see
-  below). `line_ab` itself is not yet updated to match.
+- ~~Cancelled-order scope~~ → **resolved negatively, 2026-08-05.** Cancelled orders are
+  included in the oracle, not excluded — a blanket `Cancelled At` exclusion made both
+  legs worse across all three of April/May/June 2026. This was the original "28-order
+  scope" suspicion; it isn't a scope-exclusion problem.
+- **Sales value basis** → **still net of discounts and returns, per `trading_logic_spec.md`
+  (reverted 2026-08-05 after a same-day flip based on weaker evidence — see §5).**
+  Refined, pending confirmation: returns are netted on Supermetrics' **order-cohort-week**
+  basis (small at snapshot time), not the full processing-window refund lines the builder
+  currently subtracts — this is the believed actual bug. Order-level discount codes
+  (currently dropped entirely) are a separate, independently-confirmed UK-side gap.
 
 Still open:
 - **Line Detail source:** activate the Dropbox fetch path
@@ -334,20 +372,26 @@ Still open:
 - **Frozen FX source:** pick the authoritative dated GBP/USD series to commit for every
   month (only July is confirmed today) — close enough to the sheet's historical
   `GOOGLEFINANCE` values that the regression stays in tolerance.
-- ~~Glossary/label fix~~ **moot as of the 2026-08-04 flip** — the trading headline
-  already says "gross sales" and, per §5, that's now the confirmed correct basis; there
-  is no mislabel to fix.
-- **Returns-basis code fix:** `revenue.py`'s `line_ab` still subtracts returns and
-  ignores order-level discount codes — needs updating once the US-side component is
-  found (see §5), then re-gated against all committed months.
-- **US residual + cancelled-order rule:** blanket `Cancelled At` exclusion tested and
-  rejected (worsens US, breaks UK) across April/May/June 2026 — the real rule, if any,
-  likely needs `Payment: Status` too. See `RECONCILE_HANDOFF.md`.
+- **Glossary/label fix:** rename the trading headline from "gross sales" to an honest
+  label and document the returns-netting — needs the glossary owner's sign-off. (Reopened
+  2026-08-05: briefly marked moot during the same-day flip; revenue is net-of-returns
+  again, so the "gross sales" label is a genuine mislabel once more.)
+- **Returns-basis confirmation (blocking the code fix) — owed by whoever's closest to
+  the live sheet:** does the live sheet's "Returns (inc VAT)" column really total a small,
+  order-cohort-adjusted figure per month (theorised ≈£0–500 UK / ≈£3.1K US for May), or
+  is it large? See §5's PENDING CONFIRMATION callout for the exact question and the
+  decision this settles.
+- **Returns-basis code fix:** once confirmed, `revenue.py`'s `line_ab` needs to subtract
+  the sheet's order-cohort returns figure (not raw processing-window refund lines) and
+  add the confirmed order-level-discount term, then re-gate against all committed months.
+  Do not ship the discount term alone first — see §5.
 - **Oracle's own Gross Unit Sold reliability:** doesn't foot internally (UK+US+ROW vs.
   Total disagrees, sign flips month to month) and a returned-units-double-counted
   hypothesis only partially explains it (fails for ROW) — treat the oracle's unit
-  figure, not the builder's, as suspect until this is resolved.
-- **Order-scope reconciliation** — see §3.
+  figure, not the builder's, as suspect until this is resolved the same way (read the
+  live sheet's unit formula) rather than guessed from Matrixify arithmetic alone.
+- **Order-scope reconciliation** — see §3 (narrower now that cancelled orders are ruled
+  out as the mechanism).
 - **The three returns decisions** — see §3/§4 (D2, owed by Lena/Daisy).
 
 ---
