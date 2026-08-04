@@ -28,9 +28,11 @@ dashboard · Yotpo/reviews scanner
   Cloudflare Access, no DNS/subdomain** — that hosting workstream does not exist for this
   project. "Publish" means handing off a file, not a deploy; nothing in this repo runs a
   server.
-- **Revenue definition (trading, locked):** net of returns, ex-VAT. Country (UK + US +
-  ROW) is the reconciliation key — `uk + us + row == total` within 0.1%, a ROW bucket is
-  always present even if zero. Full detail in §5.
+- **Revenue definition (trading, locked):** **gross of returns**, ex-VAT — returns are
+  never netted into the trading headline (flipped 2026-08-04, see §5; the builder's code
+  still nets returns pending the actual `revenue.py` fix). Country (UK + US + ROW) is the
+  reconciliation key — `uk + us + row == total` within 0.1%, a ROW bucket is always
+  present even if zero. Full detail in §5.
 
 ---
 
@@ -187,15 +189,50 @@ they are exactly where a naive rebuild goes silently wrong.
 
 ### Trading (revenue) — the reconciliation contract
 
-> **✔ Revenue definition — CONFIRMED (Lena, Aug 2026).** Plank revenue = **sales net of
-> returns, ex-VAT** (net of discounts too, per Shopify "net sales"). This matches the
-> live sheet's `AB` formula `(net_sales_incVAT − tax − returns) / FX`, so month-over-month
-> history stays comparable. Returns are still handled separately in the *returns* report.
-> Never label the trading headline "gross" (see §7, still open).
+> **⚠ Revenue definition — FLIPPED (Lena, 2026-08-04), supersedes the "CONFIRMED (Lena,
+> Aug 2026)" callout this replaces.** Plank trading revenue = **gross sales, ex-VAT,
+> line-discounts applied — returns are NEVER netted into the headline.** The oracle
+> (`*_Monthly_Trading_Report.xlsx`) labels every measure "Gross Sales £" / "Gross Unit
+> Sold" and has no returns/net concept at all; returns are reported entirely separately in
+> the *returns* report. The previous pinning ("sales net of returns... matches the sheet's
+> `AB` formula") was the misread — `AB`'s `− returns` term does not describe the sheet,
+> it described a reverse-engineered guess that was never checked against gross-labelled
+> evidence. **Confirmed by the 2026-08-04 recomposition diagnostic**
+> (`trading/build_matrixify.py recomposition`, see `RECONCILE_HANDOFF.md`): computing
+> gross-ex-VAT with no returns term removed, then netting only order-level discount
+> codes (a component the shipped builder currently ignores), reproduces the UK oracle
+> figure within ±0.2% across **all three** of April/May/June 2026 — a fit that would not
+> hold across three independent months by coincidence. Had returns genuinely needed
+> netting, this same computation would still be short by the return rate (~10%); it
+> isn't. **The code (`revenue.py`'s `line_ab`) has NOT been changed yet** — it still
+> subtracts returns — this is a docs-only correction of the target definition; see the
+> open item below for what's still unresolved before `line_ab` itself is fixed.
 
-- **Revenue basis = reproduce `AB` exactly:** `(Total Product Sales inc-VAT − Shopify Net
-  Sales Tax − Returns) ÷ FX`, per line, excluding shipping lines; includes the zero-net
-  edge branch. Net of discounts, net of in-window returns, ex-VAT.
+- **Revenue basis (target, not yet shipped in code):** `(Total Product Sales inc-VAT −
+  Shopify Net Sales Tax − Order-level Discount codes) ÷ FX`, per line/order, excluding
+  shipping lines and **excluding the returns term entirely**. Per-line discounts are
+  already netted into `Line: Total` and stay. `line_ab()` in `revenue.py` still computes
+  the old (returns-subtracted, order-discount-blind) formula — **do not treat this bullet
+  as shipped** until `line_ab` is actually changed and re-gated.
+  - **Open / NOT yet confirmed:** the order-level-discount-netting term above is
+    confirmed for UK (±0.2%, all 3 months) but does **not** resolve US — a blanket
+    "exclude cancelled orders" term was tested against the same 3 months and made the US
+    gap *worse* in all three (and pushed UK negative when applied there too, meaning
+    cancelled orders are not simply excludable order-wide). The US residual (and the
+    correct cancelled-order rule, if any — likely `Cancelled At` combined with
+    `Payment: Status`, not `Cancelled At` alone) is still open; see
+    `RECONCILE_HANDOFF.md`. Do not apply the discount-only fix to `line_ab` until the US
+    side has its own confirmed component — a partial fix would silently change UK's
+    committed history while leaving US wrong.
+  - **Units are a separate, unresolved thread** — the builder's own unit count is
+    verified (2026-08-04) to exactly match a from-scratch recount of `Line: Quantity`
+    over `Line Item` rows in the same source CSVs, so the builder is not undercounting
+    its own data. The oracle's "Gross Unit Sold" does not foot internally either
+    (UK+US+ROW vs. its own Total column disagrees by a few hundred units, sign flips
+    month to month) and a "the oracle double-counts returned units" hypothesis is only a
+    partial explanation (order-of-magnitude match for UK/US, fails outright for ROW) —
+    do not pad the builder's units to chase the oracle's Gross Unit Sold; it is the
+    figure under suspicion, not the builder.
 - **VAT = subtract Shopify's per-line tax, NOT `/1.2`.** There is no `/1.2` in the real
   revenue path; the `UK_SALES_ARE_INC_VAT` toggle is retired for trading. (Caveat: this
   trusts Shopify's per-line tax config; a `/1.2` assumption would diverge on
@@ -284,9 +321,12 @@ Resolved:
 - ~~ROW derivation~~ → ship-to country (GB→UK/US→US/else→ROW), store fallback.
 - ~~Channel~~ → B2B if company present else D2C; does not partition the total.
 - ~~Primary key~~ → resolved negatively: no line-item id; join on order+SKU, de-dupe.
-- ~~Sales value basis~~ → net of discounts and in-window returns.
 - ~~Category/finish/collection coverage~~ → resolved by Step 4's dynamic discovery
   (§2) — no more fixed lists to go stale.
+- ~~Sales value basis~~ → **superseded 2026-08-04, see §5's FLIPPED callout.** Was
+  "net of discounts and in-window returns"; is now gross ex-VAT, net of order-level
+  discount codes only, returns never netted — confirmed for UK, still open for US (see
+  below). `line_ab` itself is not yet updated to match.
 
 Still open:
 - **Line Detail source:** activate the Dropbox fetch path
@@ -294,8 +334,19 @@ Still open:
 - **Frozen FX source:** pick the authoritative dated GBP/USD series to commit for every
   month (only July is confirmed today) — close enough to the sheet's historical
   `GOOGLEFINANCE` values that the regression stays in tolerance.
-- **Glossary/label fix:** rename the trading headline from "gross sales" to an honest
-  label and document the returns-netting — needs the glossary owner's sign-off.
+- ~~Glossary/label fix~~ **moot as of the 2026-08-04 flip** — the trading headline
+  already says "gross sales" and, per §5, that's now the confirmed correct basis; there
+  is no mislabel to fix.
+- **Returns-basis code fix:** `revenue.py`'s `line_ab` still subtracts returns and
+  ignores order-level discount codes — needs updating once the US-side component is
+  found (see §5), then re-gated against all committed months.
+- **US residual + cancelled-order rule:** blanket `Cancelled At` exclusion tested and
+  rejected (worsens US, breaks UK) across April/May/June 2026 — the real rule, if any,
+  likely needs `Payment: Status` too. See `RECONCILE_HANDOFF.md`.
+- **Oracle's own Gross Unit Sold reliability:** doesn't foot internally (UK+US+ROW vs.
+  Total disagrees, sign flips month to month) and a returned-units-double-counted
+  hypothesis only partially explains it (fails for ROW) — treat the oracle's unit
+  figure, not the builder's, as suspect until this is resolved.
 - **Order-scope reconciliation** — see §3.
 - **The three returns decisions** — see §3/§4 (D2, owed by Lena/Daisy).
 

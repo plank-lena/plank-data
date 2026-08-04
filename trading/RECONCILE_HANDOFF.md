@@ -1,9 +1,85 @@
 # Trading reconciliation handoff (resume here)
 
-**Updated:** 2026-08-03 (late evening) — supersedes the "Code session handoff — trading
-reconciliation" note from earlier the same day (that note was pasted into conversation, not
-committed as a file; this is now the durable copy). Governing docs unchanged: `ROADMAP.md`,
-`trading_logic_spec.md`.
+**Updated:** 2026-08-04 — adds the returns-netting basis diagnostic below (supersedes nothing
+below it; the 2026-08-03 sections are historical record and still accurate for what they tested).
+Governing docs: `ROADMAP.md` (§5's revenue definition has been FLIPPED as a direct result of this
+session — see there), `trading_logic_spec.md`.
+
+---
+
+## ✔ Returns-netting basis diagnostic (2026-08-04) — revenue definition flipped; US/units still open
+
+**Trigger:** the UK −5.16% / US −6.47% shortfall below had been sidelined as "order-scope
+under-capture." New evidence (the oracle's monthly workbooks label every measure "Gross Sales £" /
+"Gross Unit Sold", with no returns/net concept anywhere) suggested a cheaper hypothesis: the
+builder's AB formula nets returns out of a target that was never net of returns in the first place.
+
+**Step 1 — floor isolation (May only):** computed GROSS (`(net_of_discount − tax) / fx`, returns
+term dropped entirely) alongside NET (today's shipped AB) against the May oracle. Neither matched
+cleanly — GROSS *overshot* the oracle by about the same margin NET undershot it (UK: NET −5.16%,
+GROSS +5.31%; US: NET −6.58%, GROSS +4.26%), i.e. the oracle sits roughly *between* the two, not at
+either end. This falsified the naive "oracle = GROSS" hypothesis, but the shape (a large, roughly
+±5% GROSS/NET straddle) pointed at a second component sitting alongside the returns question, not
+against it.
+
+**Step 2 — recomposition diagnostic (April+May+June, all three months, `trading/build_matrixify.py
+recomposition`):** three revenue variants per bucket per month, vs. each month's own oracle:
+- **A = GROSS** (line-discounts applied via `Line: Total`, no order-level discounts, no returns).
+- **B = A − order-level `Discount` line-type rows** (standalone discount-code rows, currently
+  dropped entirely by `build_lines()` — never allocated into any line).
+- **C = B − orders carrying a non-blank `Cancelled At`** (blanket exclusion, the same "29-order
+  scope" question flagged for July below).
+
+Result (gap vs. oracle; UK cancelled-order counts were 18–30/month, not negligible):
+
+| month | B (UK) | C (US) | C (UK) |
+|---|---|---|---|
+| 2026-04 | +0.087% | −2.149% | −0.965% |
+| 2026-05 | −0.201% | −1.154% | −1.379% |
+| 2026-06 | +0.116% | −3.153% | −1.135% |
+
+**Confirmed, non-coincidentally (3 independent months, not fit-by-luck):** for **UK**, `B` (gross,
+ex-VAT, order-level discounts netted, returns never touched) reproduces the oracle within ±0.2%
+every month. Since this holds *without* subtracting returns at all, and holds this tightly across
+three separate months, the returns-never-netted hypothesis is confirmed for UK — if returns still
+needed netting, this same computation would be short by the return rate (~10%), and it isn't.
+**Revenue definition flipped in `ROADMAP.md` §5 as a direct result.**
+
+**NOT confirmed — stop here, this part is genuinely murkier:** the blanket cancelled-order
+exclusion (`C`) does not resolve US (worsens the US gap in all three months vs. `B`) and, applied
+to UK, pushes UK *negative* in all three months despite UK having its own 18–30 cancelled
+orders/month — meaning cancelled orders are not simply excludable order-wide, and the US residual's
+real driver is still unknown (likely needs `Payment: Status` combined with `Cancelled At`, per the
+"mixed/inconclusive" cancelled-order finding from 2026-08-03 below — this new evidence sharpens
+that finding, it doesn't resolve it). **Do not apply the discount-only fix to `revenue.py`'s
+`line_ab` yet** — a partial fix would silently restate UK's committed history while leaving US
+wrong; both sides need a confirmed component before `line_ab` changes.
+
+**Units — separate thread, also not fully resolved.** Same diagnostic independently recomputed
+`Σ Line: Quantity` over `Line Item` rows only, from scratch, per bucket per month: it exactly
+matches the shipped builder's own unit count every time — the builder is not undercounting its own
+source data. A "the oracle double-counts a returned unit (once at sale, once at return)" hypothesis
+was tested by comparing `oracle − builder` against `Σ|Refund Line quantity|`: order-of-magnitude
+plausible for UK/US (ratios ~0.6–1.5×, not a tight match) but fails outright for ROW (gap is
+30–50× the actual returned-unit count some months). **Do not pad the builder's units to chase the
+oracle's Gross Unit Sold** — treat the oracle's unit figure as the suspect one (it already doesn't
+foot internally: UK+US+ROW vs. its own Total column disagrees by several hundred units, with the
+sign flipping month to month — April oversums by 850, May undersums by 822, June undersums by 955).
+
+**Tooling added (inert, report-only, does not change any shipped behaviour):**
+`compute_combined()` in `build_matrixify.py` gained an `include_returns` flag (default `True` —
+unchanged behaviour); `floor_isolation_test_matrixify()` / `floor_isolation` CLI action reproduces
+step 1; `recomposition_diagnostic()` + `run_recomposition_diagnostic()` / `recomposition` CLI
+action reproduces step 2 and the cross-month table above; `_read_oracle_row7()` reads any
+committed monthly oracle's row-7 ground truth directly (generalises the old hardcoded
+`MAY_THREE_WAY`). None of these are called from the gate path.
+
+**Next steps, in order:** (1) find the real US-side component (start from the 2026-08-03
+cancelled-order findings below, refined by `Payment: Status`); (2) once both UK and US have a
+confirmed component, update `line_ab` to drop the returns term and add whatever the confirmed
+discount/cancelled terms turn out to be, then re-gate against all three committed months; (3)
+separately, decide whether the oracle's Gross Unit Sold is worth chasing at all given it doesn't
+even foot against itself.
 
 ---
 
