@@ -268,11 +268,27 @@ they are exactly where a naive rebuild goes silently wrong.
 > structural coincidence (both terms happen to be similarly sized) rather than the real
 > mechanism — not disproven, but no longer certain.
 >
-> **Single most valuable next fact:** when is `Monthly_Trading_Report.xlsx` typically
-> generated/frozen relative to each month's close? A few-days-after-month-end cadence
-> supports the maturity theory directly; a much-later/repeatedly-revised cadence means
-> this doesn't hold either and the residual is something else. April/May's own `O`
-> breakdowns are still useful for confirming June's ~2×-July pattern generalises.
+> **Generation timing: CONFIRMED (Lena, 2026-08-05) — ~9–15 days post-close** (Mar 9d,
+> Apr 11d, May 15d, Jun 13d, from the report files' own save timestamps), consistent
+> with the sheet's rolling `EOMONTH(TODAY(),-1)` design. A fully-mature LY July 2025
+> comparison independently proves the maturity mechanism itself: UK return-line counts
+> rise monotonically with cohort age (116 → 298 → 448 at 3 days / 34 days / 13 months) —
+> settled beyond reasonable doubt, regardless of exact-day debates.
+>
+> **But testing returns-with-a-maturity-cutoff as a standalone replacement for the
+> discount term (2026-08-05, `maturity_cutoff` diagnostic, data already committed, no
+> further live-sheet access needed) does NOT cleanly resolve the formula.** At each
+> month's own confirmed/estimated generation cutoff: May lands within +0.083% Total (as
+> good as `B`'s discount-only fit), June within −0.034%–+0.553% depending on 13d vs 15d
+> (comparable to `B`), but **April is noticeably worse** (+1.094% vs. `B`'s +0.087%) and
+> wants a ~20-day cutoff to match `B`'s precision, not its own confirmed ~11-day mark.
+> **The two mechanisms are not independently additive** (confirmed again on June: adding
+> both terms overshoots) and checking whether discounted/returned orders overlap enough
+> to explain that — they don't (~9–10% of discount value sits on also-returned orders,
+> too small). **Net state: two plausible single-term explanations, each fits reasonably
+> for most months, don't combine, and April fits neither as tightly as May/June — this
+> is more open than it looked an hour ago, not resolved.** Do not implement either as
+> `line_ab`'s fix yet. See `RECONCILE_HANDOFF.md` for the full table and next options.
 
 - **Empirically holds, but downgraded from "confirmed independent mechanism" to
   "observed fit of uncertain cause"** (2026-08-04/05 diagnostics — `trading/

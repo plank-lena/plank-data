@@ -28,6 +28,7 @@ Run:  python trading/build_matrixify.py trading/source/orders_2026-05_US.csv us 
 import os
 import sys
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -465,6 +466,111 @@ def run_recomposition_diagnostic():
     return results
 
 
+def _month_end_london(month_str):
+    """'2026-06' -> the last calendar date of that month (date object)."""
+    year, month = (int(x) for x in month_str.split("-"))
+    next_month = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
+    return (next_month - timedelta(days=1)).date()
+
+
+def _parse_refund_dt(s):
+    if not s:
+        return None
+    return datetime.strptime(s, "%Y-%m-%d %H:%M:%S %z")
+
+
+def maturity_cutoff_diagnostic(month_str, uk_csv, us_csv, oracle, cutoff_days_list):
+    """Report-only (2026-08-05): tests the report-generation-timing/maturity
+    hypothesis directly against our own committed Matrixify exports -- no
+    live-sheet access needed. Matrixify's `Refund: Created At` column gives
+    each refund event's own processing date, which the shipped pipeline
+    never reads (matrixify_source.py's build_lines() sums all refund rows
+    present in the export with no cutoff). Lena confirmed (2026-08-05) the
+    live sheet's own April/May Returns breakdown is no longer obtainable
+    (read-only, months no longer loaded) and that reports are generated
+    ~9-15 days after month-end -- this reproduces that same maturity-window
+    idea from data we already have, for all three committed months.
+
+    For each candidate cutoff (days after the order-month's own calendar
+    month-end), recomputes GROSS-minus-cutoff-returns (deliberately no
+    order-discount term, to test returns-maturity in isolation) per bucket
+    and reports the gap to oracle.
+    """
+    month_end = _month_end_london(month_str)
+    buckets = ("UK", "US", "ROW")
+    oracle_key = {"UK": "uk", "US": "us", "ROW": "row", "Total": "total"}
+
+    gross = dict.fromkeys(buckets, 0.0)
+    refund_events = {b: [] for b in buckets}  # [(days_after_month_end, gbp_amount), ...]
+
+    for csv_path, store_label in ((uk_csv, "uk"), (us_csv, "us")):
+        rows = load_rows(csv_path)
+        fx_rate = _fx_rate_for(store_label, month_str)
+
+        orders_meta = {}
+        for row in rows:
+            if row.get("Top Row", "").lower() == "true":
+                orders_meta[row["Name"]] = {
+                    "created_at": row["Created At"],
+                    "ship_country_code": row.get("Shipping: Country Code") or None,
+                }
+
+        def kept(name, _meta=orders_meta):
+            meta = _meta.get(name)
+            return meta is not None and meta["created_at"] and order_month_london(meta["created_at"]) == month_str
+
+        by_line = defaultdict(list)
+        for row in rows:
+            name = row["Name"]
+            if not kept(name):
+                continue
+            if row.get("Line: Type") in ("Line Item", "Refund Line"):
+                line_id = row.get("Line: ID")
+                if line_id:
+                    by_line[(name, line_id)].append(row)
+
+        for (name, _line_id), line_rows in by_line.items():
+            original = next((r for r in line_rows if r["Line: Type"] == "Line Item"), None)
+            if original is None:
+                continue
+            bucket = country_bucket(orders_meta[name]["ship_country_code"], store_label)
+            net = float(original.get("Line: Total") or 0)
+            tax = float(original.get("Line: Tax Total") or 0)
+            gross[bucket] += (net - tax) / fx_rate
+
+            for r in line_rows:
+                if r["Line: Type"] != "Refund Line":
+                    continue
+                refund_dt = _parse_refund_dt(r.get("Refund: Created At"))
+                if refund_dt is None:
+                    continue
+                days_after = (refund_dt.date() - month_end).days
+                amount_gbp = float(r.get("Line: Total") or 0) / fx_rate  # already negative
+                refund_events[bucket].append((days_after, amount_gbp))
+
+    gross["Total"] = sum(gross[b] for b in buckets)
+
+    print(f"\n=== Maturity-cutoff diagnostic ({month_str}): GROSS minus cutoff-returns, "
+          f"NO discount term ===")
+    header = f"{'cutoff':>7s} " + " ".join(f"{b + ' gap':>10s}" for b in buckets) + f" {'Total gap':>10s}"
+    print(header)
+    for cutoff in cutoff_days_list:
+        gaps = []
+        for b in buckets + ("Total",):
+            if b == "Total":
+                returns_in_window = sum(amt for bb in buckets for days, amt in refund_events[bb] if days <= cutoff)
+            else:
+                returns_in_window = sum(amt for days, amt in refund_events[b] if days <= cutoff)
+            computed = gross[b] + returns_in_window
+            o = oracle[oracle_key[b]]
+            gaps.append((computed - o) / o * 100 if o else float("nan"))
+        print(f"{cutoff:>6d}d " + " ".join(f"{g:+9.3f}%" for g in gaps[:-1]) + f" {gaps[-1]:+9.3f}%")
+
+    n_events = {b: len(refund_events[b]) for b in buckets}
+    print(f"  refund events seen (any cutoff): {n_events}, total {sum(n_events.values())}")
+    return {"gross": gross, "refund_events": refund_events}
+
+
 def gate_check_combined(result, oracle):
     """ROW present + uk+us+row == independent grand total, then each bucket
     (and the total) vs the committed May oracle within 0.1%. Raises on
@@ -486,7 +592,21 @@ def gate_check_combined(result, oracle):
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == "recomposition":
+    if sys.argv[1] == "maturity_cutoff":
+        # python trading/build_matrixify.py maturity_cutoff
+        months = [
+            ("2026-04", "trading/source/orders_2026-04_UK.csv", "trading/source/orders_2026-04_US.csv",
+             "trading/tests/fixtures/2026-04_Monthly_Trading_Report.xlsx"),
+            ("2026-05", "trading/source/orders_2026-05_UK.csv", "trading/source/orders_2026-05_US.csv",
+             "trading/tests/fixtures/2026-05_Monthly_Trading_Report.xlsx"),
+            ("2026-06", "trading/source/orders_2026-06_UK.csv", "trading/source/orders_2026-06_US.csv",
+             "trading/tests/fixtures/2026-06_Monthly_Trading_Report.xlsx"),
+        ]
+        cutoffs = [0, 1, 3, 5, 7, 9, 10, 11, 12, 13, 15, 20, 30, 45, 60, 90]
+        for month_str, uk_csv, us_csv, oracle_xlsx in months:
+            oracle = _read_oracle_row7(oracle_xlsx)
+            maturity_cutoff_diagnostic(month_str, uk_csv, us_csv, oracle, cutoffs)
+    elif sys.argv[1] == "recomposition":
         # python trading/build_matrixify.py recomposition
         run_recomposition_diagnostic()
     elif sys.argv[1] == "floor_isolation":

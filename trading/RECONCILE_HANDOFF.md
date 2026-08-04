@@ -1,15 +1,16 @@
 # Trading reconciliation handoff (resume here)
 
-**Updated:** 2026-08-05 (three times, same day) — reconciles the 2026-08-04 flip against
-`trading_logic_spec.md` (revert to net-of-returns), then a July primary-source check (confirms the
-cohort-attribution *mechanism*, opens a *magnitude* question), then a June primary-source check that
-runs the actual decisive test against a real committed oracle: **subtracting both the order-discount
-term and the sheet's real current returns overshoots badly — ruled out — and the residual pattern
-points at report-generation timing (maturity), not a wrong formula shape.** See the three
-2026-08-05 sections below in order; none supersedes 2026-08-04's underlying numbers, which are still
-accurate and now reinterpreted a third time. Governing docs: `ROADMAP.md` (§5 flipped 2026-08-04,
-reverted 2026-08-05, refined again same day — see there), `trading_logic_spec.md` (primary source
-for the live sheet's actual `AB` formula).
+**Updated:** 2026-08-05 (fourth time, same day) — after the June primary-source check ruled out
+"discounts + sheet's current returns," Lena independently confirmed the report-generation cadence
+(~9–15 days post-close) plus a fully-mature LY July 2025 comparison that cleanly proves the maturity
+mechanism (return-line counts rise monotonically with cohort age: 116 → 298 → 448 at 3 days / 34
+days / 13 months). A new **maturity-cutoff diagnostic**, run against data already committed (no
+further live-sheet access needed), tests returns-with-a-maturity-cutoff as a **standalone**
+replacement for the order-discount term — see the newest section below. Result: promising for
+May/June, weaker for April, and **the two terms are not independently additive** (combining full
+order-discounts with any real returns overshoots). This is now more open, not less — see the newest
+section for exactly what's confirmed vs. still genuinely unresolved. Governing docs: `ROADMAP.md`
+(§5, updated to match), `trading_logic_spec.md` (primary source for the live sheet's `AB` formula).
 
 ---
 
@@ -172,6 +173,81 @@ later / repeatedly revised" cadence would mean this hypothesis doesn't hold eith
 is something else again. April/May's own `O` breakdowns are still useful (confirms/refutes whether
 June's ~2x-July pattern holds generally), but the generation-timing fact would settle more of the
 puzzle than another data point of the same shape.
+
+---
+
+## ✔ Generation-timing confirmed (Lena, 2026-08-05) + a new maturity-cutoff diagnostic — genuinely open
+
+**Report-generation cadence, confirmed directly (Lena, from the historical report files' own
+last-saved timestamps):**
+
+| report month | generated | days after close |
+|---|---|---|
+| March 2026 | 9 Apr | ~9 |
+| April 2026 | 11 May | ~11 |
+| May 2026 | 15 Jun | ~15 |
+| June 2026 | 13 Jul | ~13 |
+
+(All four shared a `createdTime` of 13 Jul from a bulk upload — Lena used `modifiedTime`, which
+preserves each file's real save date for Mar–May. Consistent with the sheet's rolling
+`EOMONTH(TODAY(),-1)` design.) **This session's own read of the three committed fixture files'
+embedded xlsx properties gives different numbers** (April: created/modified 2026-05-05, i.e. ~5
+days; May: 2026-06-15, ~15 days — matches Lena's figure; June: 2026-07-01, ~1 day) — likely because
+this reads the specific bytes committed to `trading/tests/fixtures/`, which may be an earlier/
+different save than the Drive-folder copy Lena checked. Flagging the discrepancy rather than
+picking one; both agree the window is short (single-digit to ~15 days), which is what matters for
+the mechanism.
+
+**April/May's own live-sheet `O` breakdowns are NOT obtainable** — the published report `.xlsx`
+files only contain Monthly Summary / By Collection / By SKU (no raw returns tab), and the live
+sheet's raw `O` only exists for currently-loaded months (Jul/Jun/Jul-2025); re-pointing Supermetrics
+on the live production sheet to get April/May was correctly declined.
+
+**LY July 2025 comparison — clean, independent, decisive confirmation of the maturity mechanism**
+(Lena): same calendar month (July) at three different cohort ages, UK return-line counts:
+
+| cohort age | UK returns | UK return lines |
+|---|---|---|
+| ~3 days (Jul 2026 pull) | −£6,624 | 116 |
+| ~34 days (Jun 2026, i.e. July's next-cycle equivalent) | −£16,579 | 298 |
+| ~13 months (Jul 2025, fully mature) | −£26,216 | 448 |
+
+Line counts rise monotonically with age (116 → 298 → 448) — a mature July would show roughly 4× the
+returns a 3-day-old pull sees. **This settles the maturity mechanism itself beyond reasonable
+doubt**, independent of the exact generation-date debate above. (US is confounded by YoY growth and
+currency; lean on the UK line-count progression as the clean signal, per Lena.)
+
+**New tool, run against data already committed (`trading/build_matrixify.py maturity_cutoff`):**
+tests returns-with-a-maturity-cutoff as a **standalone replacement** for the order-discount term —
+i.e. GROSS minus only the returns that had processed by `cutoff` days after month-end, with **no**
+order-discount subtraction at all. Result, at each month's own confirmed/estimated generation-date
+cutoff:
+
+| month | cutoff used | UK gap | US gap | ROW gap | Total gap | vs. `B` (discounts-only) Total gap |
+|---|---|---|---|---|---|---|
+| April | 11d (confirmed) | −0.361% | +2.916% | +1.326% | +1.094% | +0.087%\* |
+| May | 15d (confirmed) | +0.354% | −0.364% | +2.062% | **+0.083%** | −0.201% |
+| June | 13d (est.) / 15d | +1.277% / +0.104% | −0.110% / −0.176% | +0.250% / +0.145% | +0.553% / **−0.034%** | +0.116% |
+
+\**`B`'s own Total gap, restated for comparison — not the same computation.*
+
+**Genuinely open, not resolved:** May and June both land within a few tenths of a percent using
+returns-timing **alone** (no discount term), at cutoffs matching Lena's independently-confirmed
+generation dates — that's a real, non-trivial fit. But April is noticeably worse at its own
+confirmed 11-day mark (+1.094% vs. `B`'s +0.087%), and needs a cutoff closer to ~20 days to match
+as well as `B` does (full cutoff sweep in the tool's output). **The two mechanisms are not
+independently additive** — combining full order-discounts with *any* real returns overshoots badly
+(this was the June `B − O` test's finding); checked whether shared orders (discounted AND returned)
+explain this via double-counting — they don't: only ~9–10% of order-discount value sits on orders
+that were also refunded, in each of the three months, far too small to explain the overshoot.
+
+**Net read: two plausible single-term explanations (order-discounts; returns-with-maturity-cutoff)
+each fit reasonably well in isolation for most months, don't combine cleanly, and April doesn't fit
+either one as tightly as May/June do.** This does not yet point to a single confirmed formula. Do
+not implement either as `line_ab`'s fix without a clearer signal — this needs either (a) more
+digging into why April differs, (b) a decision from Lena on which thread to prioritize, or (c)
+accepting a per-month-tuned cutoff/term as the actual historical basis (unusual, but the oracle
+files themselves were apparently generated on an inconsistent cadence, so it's not implausible).
 
 ---
 
