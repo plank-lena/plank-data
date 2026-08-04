@@ -7,7 +7,7 @@ import openpyxl
 
 from config import (
     MS_ROW7, LM_BLOCK, LY_BLOCK, PERIOD_CELLS,
-    STATUS_ROWS, STATUS_COLS, TYPE_COLS,
+    STATUS_COLS, TYPE_COLS,
     FINISH_COLS, COLL_COL, COLL_COL_Q, SKU_COL,
 )
 
@@ -48,12 +48,39 @@ def extract_headline(ws):
 # ── Product Status rows ───────────────────────────────────────────────────────
 
 def extract_statuses(ws):
+    """Dynamically discover every Product Status row (BRIEF step 5: the
+    same fixed-row-dict bug class as Product Type/Finish -- the previous
+    hardcoded STATUS_ROWS only read Continuity/Newness/Discontinued/Dead
+    (rows 8-11) and silently dropped 'Not For Sale' and 'Pre-Launch' (rows
+    12-13), which carry real revenue in both the monthly and quarterly
+    sheets (e.g. £2,453.99 'Not For Sale' in the May fixture -- previously
+    documented as "no row in the statuses table at all", which was wrong;
+    it has a row, the row was just never read). Found while building the
+    quarterly aggregator, whose correctness depends on summing complete
+    monthly status data.
+    """
+    header_row = None
+    for row in range(1, ws.max_row + 1):
+        if ws[f'B{row}'].value == 'Product Status':
+            header_row = row
+            break
+    if header_row is None:
+        raise ValueError("extract_statuses: 'Product Status' header row not found")
+
     rows = []
-    for name, row in STATUS_ROWS.items():
-        r = {'s': name}
+    r = header_row + 1
+    name = ws[f'B{r}'].value
+    if str(name).strip().upper() == 'TOTAL':
+        r += 1  # skip the TOTAL/headline row itself -- statuses are the breakdown below it
+    while True:
+        name = ws[f'B{r}'].value
+        if name is None:
+            break
+        row = {'s': str(name).strip()}
         for field, col in STATUS_COLS.items():
-            r[field] = ws[f'{col}{row}'].value
-        rows.append(r)
+            row[field] = ws[f'{col}{r}'].value
+        rows.append(row)
+        r += 1
     return rows
 
 
@@ -143,12 +170,37 @@ def extract_finishes(ws):
 
 # ── By Collection ─────────────────────────────────────────────────────────────
 
+def _detect_coll_layout(ws_coll):
+    """Detect which By-Collection column layout this SHEET actually has,
+    rather than trusting mode='month'/'quarter'. Found while building the
+    Step 5 quarterly aggregator: the April 2026 monthly export is missing
+    the 'vs LY LM' column entirely -- the exact same one-column shift from
+    that point on already documented for the quarterly layout (COLL_COL_Q)
+    -- even though April is a genuine MONTHLY report. Column layout is a
+    property of which sheet-template vintage produced this specific export,
+    not of month-vs-quarter; trusting mode alone silently corrupted every
+    UK/US/ROW figure for April (reading UK Units into the UK £ slot, etc.).
+    """
+    header_row = None
+    for row in range(1, min(ws_coll.max_row, 10) + 1):
+        vals = [c.value for c in ws_coll[row]]
+        if any(v == 'UK £' for v in vals if isinstance(v, str)):
+            header_row = row
+            break
+    if header_row is None:
+        raise ValueError("extract_collections: could not find the 'UK £' header row to detect column layout")
+    header_vals = [c.value for c in ws_coll[header_row]]
+    return COLL_COL if 'vs LY LM' in header_vals else COLL_COL_Q
+
+
 def extract_collections(ws_coll, ws_sku, mode='month'):
     """Return list of collection dicts (all rows with gross > 0).
 
-    mode='quarter' selects the quarterly By-Collection column mapping
-    (COLL_COL_Q), which is shifted by one column vs the monthly layout
-    from the 'vs LQ-1' column onward — see config.py for the verified offsets.
+    The column mapping is DETECTED from the sheet's own header row (see
+    _detect_coll_layout), not chosen from `mode` -- some monthly exports
+    use the same shifted layout the quarterly sheet uses. `mode` is kept
+    as a parameter for backward compatibility but no longer drives this
+    choice.
     """
     # Build SKU count per (type, coll) from By SKU
     sku_counts = {}
@@ -160,7 +212,7 @@ def extract_collections(ws_coll, ws_sku, mode='month'):
         sku_counts[key] = sku_counts.get(key, 0) + 1
 
     collections = []
-    C = COLL_COL_Q if mode == 'quarter' else COLL_COL
+    C = _detect_coll_layout(ws_coll)
     for row in ws_coll.iter_rows(min_row=5, values_only=True):
         if row[C['rank']] is None:
             continue

@@ -3,7 +3,11 @@
 import re
 import sys
 
-STATUS_BUCKETS = ("Continuity", "Newness", "Discontinued", "Dead")
+# The oracle's own Product Status table has 6 real rows (extract_statuses
+# now discovers all of them, not just the 4 previously hand-listed); the
+# Matrixify path's own _status_bucket() rollup (contract.py) only ever
+# produces its own fixed 4 -- both are valid subsets of this superset.
+STATUS_BUCKETS = ("Continuity", "Newness", "Discontinued", "Dead", "Not For Sale", "Pre-Launch")
 
 # Both status vocabularies a SKU might carry mean "live" -- see
 # contract.py's LIVE_STATUS_VALUES docstring for why "Live" (Line Detail's
@@ -247,14 +251,15 @@ def validate_contract(contract, tol=0.001):
     except AssertionError as e:
         errors.append(str(e))
 
-    # Status-bucket enum + coverage. NOT asserted additive: confirmed
-    # against the real oracle (config.STATUS_ROWS) that its own statuses
-    # table tracks exactly these 4 buckets and deliberately excludes
-    # "Not For Sale" revenue (£2,453.99 in the May fixture) entirely --
-    # i.e. the oracle itself isn't additive to total_sales here, so
-    # asserting our own contract must be would be a stricter, mismatched
-    # standard. Reported as a coverage diagnostic instead, same treatment
-    # as finishes below.
+    # Status-bucket enum + coverage. extract_statuses (BRIEF step 5) now
+    # dynamically discovers every Product Status row instead of a fixed
+    # 4-name dict, which previously silently dropped "Not For Sale" and
+    # "Pre-Launch" -- with those two included, the oracle's statuses table
+    # IS additive to total_sales (verified exactly, 100.00%, on the May
+    # fixture). Kept as a reported diagnostic rather than a hard assert:
+    # the exact 100% match is empirical on the data seen so far, not a
+    # structural guarantee the sheet makes, so a small future gap should
+    # surface as a visible number here rather than abort a build over it.
     statuses = contract.get("statuses", [])
     status_names = {s["s"] for s in statuses}
     unknown_buckets = status_names - set(STATUS_BUCKETS)
@@ -263,7 +268,7 @@ def validate_contract(contract, tol=0.001):
     status_sales_sum = sum(s["sales"] for s in statuses)
     if total_sales:
         status_share = status_sales_sum / total_sales
-        warnings.append(f"statuses cover {status_share:.1%} of total_sales (not asserted additive -- see oracle's own Not For Sale gap)")
+        warnings.append(f"statuses cover {status_share:.1%} of total_sales")
 
     # Finish coverage: BRIEF #4 step 4 §5/§10 retires the curated top-8
     # palette (config.FINISH_COLORS) -- every finish with revenue this
@@ -335,6 +340,11 @@ def validate_template_source(template_html):
     # Strip every {{TOKEN}} placeholder first so a token NAME containing
     # these substrings (there are none today, but be safe) can't false-positive.
     stripped = re.sub(r'\{\{[A-Z_]+\}\}', '', template_html)
+    # Strip embedded base64 font data (step-4-follow-up's self-contained
+    # @font-face blocks) -- gibberish binary-as-text can coincidentally
+    # contain any short substring, e.g. "QoQ", with zero relation to a
+    # real hardcoded label.
+    stripped = re.sub(r'base64,[A-Za-z0-9+/=]+', '', stripped)
     for literal in ("MoM", "QoQ", ">LM<", ">LQ<"):
         if literal in stripped:
             warnings.append(

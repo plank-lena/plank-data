@@ -11,8 +11,8 @@
     "unmatched_sku_revenue_share": null,
     "country_gaps_vs_oracle": null,
     "lq_ly_source": "oracle_native",
-    "built_at": "2026-08-04T09:20:38.565470+00:00",
-    "commit": "5e9280d4947155916216523f6321db17a1c3a622"
+    "built_at": "2026-08-04T10:40:34.857104+00:00",
+    "commit": "293a781bb4b1a614d361a7cb3188e72afc1da3c4"
   },
   "mode": "month",
   "period_model": {
@@ -116,6 +116,22 @@
       "vs_lq": -0.20050383076233705,
       "vs_ly": -0.9646469975948465,
       "gm": 0.7259356337115387
+    },
+    {
+      "s": "Not For Sale",
+      "sales": 2453.9862719686607,
+      "units": 33,
+      "vs_lq": 2.399492368752746,
+      "vs_ly": 25.967057459421913,
+      "gm": -1.114389174149122
+    },
+    {
+      "s": "Pre-Launch",
+      "sales": 427.44322560136584,
+      "units": 1693,
+      "vs_lq": -0.27231427418194104,
+      "vs_ly": 0.6185021742607482,
+      "gm": 1
     }
   ],
   "prod_types": [

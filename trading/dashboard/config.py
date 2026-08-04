@@ -53,10 +53,10 @@ LY_BLOCK = {
 # ── Period header cells (row 1) ───────────────────────────────────────────────
 PERIOD_CELLS = {'cm': 'C1', 'lm': 'EX1', 'ly': 'GP1'}
 
-# ── Product-Status rows and their col-letter mappings ────────────────────────
-STATUS_ROWS = {
-    'Continuity': 8, 'Newness': 9, 'Discontinued': 10, 'Dead': 11,
-}
+# ── Product-Status column mapping (rows discovered dynamically -- see
+#    extract.extract_statuses; the sheet has 6 real rows -- Continuity/
+#    Newness/Discontinued/Dead/Not For Sale/Pre-Launch -- not the 4
+#    previously hand-listed) ───────────────────────────────────────────────────
 STATUS_COLS = {
     'sales': 'F', 'units': 'J', 'vs_lq': 'G', 'vs_ly': 'I',
     'gm': 'S', 'st': 'Q', 'wc': 'R', 'inv': 'P',

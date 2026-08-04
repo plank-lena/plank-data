@@ -1,8 +1,8 @@
 # Plank Product Data Platform — Roadmap
 
 **Status:** Path 2 (deterministic, connector-sourced builders) running end-to-end for
-Monthly Trading, through a redesigned dashboard. Returns join and Quarterly Trading are
-next; the returns *dashboard* has a fresh spec.
+Monthly **and Quarterly** Trading, both through the same redesigned dashboard template.
+Returns join is next; the returns *dashboard* has a fresh spec.
 **Last updated:** 2026-08-04
 **Deliverables:** Monthly Trading dashboard · Quarterly Trading dashboard · Returns
 dashboard · Yotpo/reviews scanner
@@ -108,16 +108,44 @@ dashboard · Yotpo/reviews scanner
       Movers grain confirmed as SKU (not collection, per the earlier D1 outline) —
       deliberate: the "Live-status only" filter is defined on `uk_status`/`us_status`,
       which only exists per SKU, so collection grain can't carry it.
-
----
-
-## 3. Status — queued / next (in order)
-
-- [ ] **Step 5 — Quarterly Trading builder.** Cheap and unblocked. Roll three monthly
-      builds into the same contract shape (the returns model already shows the
-      month→quarter rollup pattern — reuse it); the Step-4-redesigned template is reused
-      **unchanged**, since its period/comparator tokens already resolve to QoQ/LQ in
-      quarterly mode. Gate + regression fixture as monthly.
+- [x] **Step 5 — Quarterly Trading builder** (`trading/quarterly.py`). Aggregates 3
+      monthly oracle workbooks (Apr+May+Jun 2026) into the exact Step-4 contract shape,
+      `mode: "quarter"`; the redesigned template is reused **completely unchanged** — only
+      `render_contract()` now passes `mode` through to `compute_kpi_tokens`/
+      `compute_ribbon_tokens`, which already resolved MoM/LM vs QoQ/LQ correctly. The one
+      correctness rule: additive components (revenue, units, £ by country/channel/
+      department/finish/collection) are summed directly; every rate/GM/YoY is recomputed
+      once from the summed numerators/denominators (revenue-weighted), never averaged
+      across the three monthly rate outputs — verified against a naive mean on the real
+      data (they differ; the contract matches the correct recomputation, not the mean).
+      Reconciles exactly to the aggregated Q2 target (£1,472,202.82; UK/US/ROW/units all
+      within 0.1%, most exact). LQ (Q1 2026) has no data source this run (no committed
+      prior quarterly contract, no Jan–Mar 2026 files) — stamped zero/honest, never
+      fabricated, so this quarter's QoQ movers are empty (template already renders "No
+      data"); LY (Q2 2025) *is* real, reconstructed by summing each month's own LY_BLOCK
+      columns (no separate 2025 source files needed). Frozen `2026-Q2_contract.json` as
+      the quarterly regression fixture (`trading/tests/test_quarterly.py`, 8 checks, all
+      passing). Matrixify quarterly front-end exists and is wired the same way but can't
+      run yet — only May's UK/US exports are committed, no April/June — and will be
+      provisional once it can, same order-scope reason as every monthly Matrixify
+      contract; a clear `FileNotFoundError` names the missing export rather than failing
+      cryptically.
+      **Three real, previously-undiscovered bugs found and fixed building this:**
+      (1) `contract.py`'s period-string parser only matched full month names (`%B`); the
+      sheets use 3-letter abbreviations, so every month except May (spelled identically
+      either way) raised `ValueError` — never caught because May was the only month ever
+      exercised. (2) `STATUS_ROWS` was hardcoded to 4 statuses and silently dropped two
+      real rows, "Not For Sale" and "Pre-Launch" (in **both** monthly and quarterly
+      sheets) — the exact Taps/Door/finish bug class from Step 4, just not yet found
+      there; `extract_statuses` is now dynamic like Product Type/Finish, and the
+      statuses table is now genuinely additive to `total_sales` (100.00% on both May and
+      Q2, verified). (3) April 2026's By Collection sheet is missing the "vs LY LM"
+      column entirely — the identical column-shift already documented for the quarterly
+      layout (`COLL_COL_Q`) — despite being a genuine monthly report; column layout
+      turned out to be a property of the specific export's vintage, not of month vs.
+      quarter, and was silently reading UK/US units into the UK/US £ slots for every
+      April collection. `extract_collections` now **detects** the layout from the
+      sheet's own header row instead of trusting `mode`.
 - [ ] **Deferred — order-scope reconciliation (both stores).** UK and US are each short
       ~5–6% against the oracle, same sign and order of magnitude (FX and
       discount-netting have both been ruled out as the cause). Cheap test first: confirm

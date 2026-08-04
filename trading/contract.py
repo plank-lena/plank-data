@@ -119,9 +119,20 @@ def _git_commit():
 
 
 def _period_str_from_label(label):
-    """'May 2026' -> '2026-05'."""
-    month_name, year = label.split()
-    month = datetime.strptime(month_name, "%B").month
+    """'May 2026' -> '2026-05'; 'Q2 2026' -> '2026-Q2'.
+
+    Bugfix (found building the Step 5 quarterly aggregator): the period
+    cell's month name is always a 3-letter abbreviation ('Apr - 2026',
+    'Jun - 2026' -- see extract._parse_period), which datetime's '%B'
+    (full month name) never matches. This only ever worked for May, since
+    'May' happens to be spelled identically as an abbreviation and a full
+    name -- every other month raised ValueError. Never exercised before
+    because May was the only month ever run through this path.
+    """
+    part1, year = label.split()
+    if part1.upper().startswith('Q') and part1[1:].isdigit():
+        return f"{year}-{part1.upper()}"
+    month = datetime.strptime(part1, "%b").month
     return f"{year}-{month:02d}"
 
 
@@ -223,6 +234,11 @@ def render_contract(contract, template_html):
 
     raw = load_contract(contract)
     pm = raw["period_model"]
+    # BRIEF step 5: period_type wiring -- 'quarter' switches every MoM/LM ->
+    # QoQ/LQ label the template's tokens resolve to (REPORT_TYPE,
+    # CM_PERIOD_NOUN, PREV_PERIOD_ABBR, PERIOD_COMP_LABEL, ...); the
+    # template itself has no quarterly fork, only these token values do.
+    mode = raw.get("mode", "month")
 
     periods_data = compute_periods(raw["current"], raw["lm"], raw["ly"], pm)
     total_sales = compute_total_sales(raw["current"])
@@ -233,8 +249,8 @@ def render_contract(contract, template_html):
     coll_data = compute_collections(raw["collections"])
     finish_data = compute_finish_data(raw["finishes"], raw["skus_all"])
     coll_analysis = compute_coll_analysis(raw["collections"], raw["skus_all"])
-    kpi_tokens = compute_kpi_tokens(raw["current"], raw["lm"], pm)
-    ribbon_tokens = compute_ribbon_tokens(raw["current"], raw["lm"], raw["ly"], pm)
+    kpi_tokens = compute_kpi_tokens(raw["current"], raw["lm"], pm, mode=mode)
+    ribbon_tokens = compute_ribbon_tokens(raw["current"], raw["lm"], raw["ly"], pm, mode=mode)
     cat_top_collections = compute_category_top_collections(coll_data)
     movers = compute_movers(raw["skus_all"])
     matrix = compute_matrix(raw["collections"])
@@ -267,16 +283,18 @@ def _period_label(period_str):
 
 def _status_bucket(line):
     """Roll BRIEF #2's per-market status_uk/status_us + newness_bucket into
-    the single coarse bucket the oracle's Product Status block uses.
-    Confirmed against the real oracle (config.STATUS_ROWS): it tracks
-    exactly FOUR buckets (Continuity/Newness/Discontinued/Dead) and is
-    deliberately NOT additive to total_sales -- e.g. "Not For Sale" revenue
-    (£2,453.99 in the committed May fixture) exists in the headline but
-    has no row in the statuses table at all. Matching that same convention
-    here (returning None, i.e. "no bucket", rather than inventing a
-    catch-all) rather than making our own statuses list additive when the
-    oracle's isn't -- a mismatched convention would be a worse inconsistency
-    than a shared, disclosed one.
+    a coarse FOUR-bucket rollup (Continuity/Newness/Discontinued/Dead) for
+    the Matrixify path's own `statuses` block -- a deliberate simplification
+    of Line Detail's full status enum, not an attempt to mirror the oracle's
+    Product Status table row-for-row. (The oracle's own table actually has
+    SIX rows -- extract_statuses discovers Not For Sale and Pre-Launch too,
+    once-hidden by a fixed row dict the same way Product Type/Finish were;
+    see BRIEF step 5. This rollup still only produces four buckets on
+    purpose: Matrixify carries In Development/Launching/Not Sold in this
+    Market/Not For Sale/Disco to Resource as real per-SKU statuses, but
+    BRIEF #2/#3 never asked for a matching Matrixify-side bucket for each
+    of those, so lines in them return None here -- "no bucket" -- rather
+    than inventing a catch-all un-spec'd by either brief.)
 
     Neither #2 nor #3 pins the per-line mapping explicitly -- a SKU can be
     e.g. Discontinued in the UK and Live in the US -- so this priority rule
@@ -285,7 +303,7 @@ def _status_bucket(line):
       2. else Discontinued in either market -> Discontinued
       3. else Dead in either market -> Dead
       4. else -> None (In Development, Not Sold in this Market, Disco to
-         Resource, Not For Sale, blank -- matches the oracle's own gap)
+         Resource, Not For Sale, Pre-Launch, blank)
     """
     if line["newness_bucket"] is not None:
         return line["newness_bucket"]
