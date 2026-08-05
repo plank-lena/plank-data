@@ -20,7 +20,8 @@ from extract import extract_all
 from contract import (
     emit_contract_from_oracle, emit_contract_from_matrixify, load_contract,
     render_contract, can_publish, PAYLOAD_KEYS, PROVISIONAL_BANNER_HTML,
-    _add_headline_kpis, _strip_vestigial, _exclude_dead_categories, _is_el_component,
+    _add_headline_kpis, _strip_vestigial, _exclude_dead_categories,
+    _normalize_oracle_prod_types, _is_el_component,
 )
 from validate import validate_contract
 
@@ -39,7 +40,8 @@ FIXTURE_CONTRACT_REDESIGN = os.path.join(HERE, "fixtures", "2026-05_contract_red
 def _apply_contract_layer_mutations(raw):
     """Mirror emit_contract_from_oracle's own payload mutations (BRIEF #4
     step 4: headline KPIs added, is_el_component added, st/wc/inv stripped;
-    review-round-1 T2a: dead departments like Door dropped) on a plain
+    review-round-1 T2a: dead departments like Door dropped; T2b: prod_types
+    normalised to carry d2c/b2b/uk/us/lq_sales) on a plain
     extract_all() payload -- used by the two checks below to compare a
     "direct" path against the emitted path on equal footing, since step 4
     deliberately makes the CONTRACT layer richer than extract_all()'s own
@@ -51,6 +53,7 @@ def _apply_contract_layer_mutations(raw):
         sku["is_el_component"] = _is_el_component(sku.get("coll"))
     _strip_vestigial(payload)
     _exclude_dead_categories(payload)
+    _normalize_oracle_prod_types(payload)
     return payload
 
 

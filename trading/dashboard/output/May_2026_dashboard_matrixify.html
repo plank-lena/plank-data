@@ -185,7 +185,13 @@ body::before{content:'';position:fixed;inset:0;background:
 .cat-bar-vals{font-family:var(--font-m);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .cat-bar-track{height:16px;background:var(--surface2);border-radius:3px;overflow:hidden;position:relative}
 .cat-bar-fill{height:100%;border-radius:3px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.cat-bar-fill-split{height:100%;position:absolute;top:0}
 .cat-bar-fill-ly{position:absolute;top:0;bottom:0;border-right:2px dashed rgba(0,0,0,.35)}
+.cat-bar-fill-lq{position:absolute;top:0;bottom:0;border-right:2px dashed var(--amber)}
+.cat-bars-legend{display:flex;gap:16px;margin-top:12px;padding-left:4px;flex-wrap:wrap;font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.cat-bars-legend i{display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:2px;vertical-align:-1px}
+.cat-bars-legend .lq-mark, .cat-bars-legend .ly-mark{display:inline-block;width:0;height:10px;border-right:2px dashed rgba(0,0,0,.35);margin-right:5px;vertical-align:-1px}
+.cat-bars-legend .lq-mark{border-right-color:var(--amber)}
 .cat-dir{font-weight:700}
 .cat-dir.up{color:var(--green)}
 .cat-dir.dn{color:var(--red)}
@@ -502,12 +508,22 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
     <div class="sec">
       <div class="sec-hdr">
         <div class="sec-title">Category Breakdown</div>
-        <div class="tg metric" id="subcat-tg">
-          <button class="active" onclick="setSubcatDrill(false)">Bars</button>
-          <button onclick="setSubcatDrill(true)">+ Subcategories</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="tg metric" id="cat-view-tg">
+            <button class="active" onclick="setCatView('overview')">Overview</button>
+            <button onclick="setCatView('channel')">Channel</button>
+            <button onclick="setCatView('country')">Country</button>
+            <button onclick="setCatView('vs_lq')">vs LM</button>
+            <button onclick="setCatView('vs_ly')">vs LY</button>
+          </div>
+          <div class="tg metric" id="subcat-tg">
+            <button class="active" onclick="setSubcatDrill(false)">Bars</button>
+            <button onclick="setSubcatDrill(true)">+ Subcategories</button>
+          </div>
         </div>
       </div>
       <div class="cat-bars" id="cat-bars"></div>
+      <div class="cat-bars-legend" id="cat-bars-legend"></div>
     </div>
 
     <!-- CATEGORY ANALYSIS (top collections) -->
@@ -809,12 +825,12 @@ const STATUSES = [
 ];
 
 const PROD_TYPES = [
-  {t:"Cabinetry",sales:319734,ly_sales:null,units:19508,vs_lq:null,vs_ly:null,yoy_dir:'flat',gm:0.7413,color:'rgba(160,88,48,0.9)',textColor:'rgba(130,68,36,1)',subcats:[{name:'Knob',sales:54492,units:5655,vs_ly:null},{name:'Cabinetry Accessory',sales:11952,units:1524,vs_ly:null},{name:'Handle',sales:197142,units:9913,vs_ly:null},{name:'Handle with Backplate',sales:33301,units:973,vs_ly:null},{name:'Knob with Backplate',sales:22847,units:1443,vs_ly:null}]},
-  {t:"Electric",sales:74025,ly_sales:null,units:2945,vs_lq:null,vs_ly:null,yoy_dir:'flat',gm:0.7467,color:'rgba(103,82,212,0.9)',textColor:'rgba(83,62,180,1)',subcats:[{name:'Switch & Dimmer',sales:33370,units:995,vs_ly:null},{name:'Plug Socket with USB',sales:8413,units:230,vs_ly:null},{name:'Plug Socket',sales:21213,units:928,vs_ly:null},{name:'Electric Component',sales:10880,units:740,vs_ly:null},{name:'Electric Accessory',sales:149,units:52,vs_ly:null}]},
-  {t:"Accessories",sales:27897,ly_sales:null,units:1729,vs_lq:null,vs_ly:null,yoy_dir:'flat',gm:0.7338,color:'rgba(196,64,124,0.9)',textColor:'rgba(166,44,100,1)',subcats:[{name:'Hook',sales:27334,units:1664,vs_ly:null},{name:'Tools',sales:74,units:10,vs_ly:null},{name:'Swatch',sales:315,units:31,vs_ly:null},{name:'Baseball Cap',sales:35,units:2,vs_ly:null},{name:'Storage',sales:59,units:2,vs_ly:null},{name:'Decorative Accessory',sales:17,units:2,vs_ly:null},{name:'Gifting',sales:63,units:18,vs_ly:null}]},
-  {t:"Lighting",sales:17881,ly_sales:null,units:237,vs_lq:null,vs_ly:null,yoy_dir:'flat',gm:0.7813,color:'rgba(138,180,0,0.9)',textColor:'rgba(110,145,0,1)',subcats:[{name:'Fixed Lighting',sales:17194,units:175,vs_ly:null},{name:'Lighting Accessory',sales:686,units:62,vs_ly:null}]},
-  {t:"Components",sales:2775,ly_sales:null,units:178,vs_lq:null,vs_ly:null,yoy_dir:'flat',gm:-0.3653,color:'rgba(166,48,48,0.9)',textColor:'rgba(119,34,34,1.0)',subcats:[{name:'Components',sales:284,units:161,vs_ly:null},{name:'Trade Board',sales:2491,units:17,vs_ly:null}]},
-  {t:"Unknown",sales:7207,ly_sales:null,units:610,vs_lq:null,vs_ly:null,yoy_dir:'flat',gm:null,color:'rgba(48,166,166,0.9)',textColor:'rgba(34,119,119,1.0)',subcats:[{name:'Unknown',sales:7207,units:610,vs_ly:null}]}
+  {t:"Cabinetry",sales:319734,ly_sales:null,lq_sales:350387,d2c:204855,b2b:114879,uk:143887,us:162693,units:19508,vs_lq:-0.0875,vs_ly:null,yoy_dir:'flat',gm:0.7413,color:'rgba(160,88,48,0.9)',textColor:'rgba(130,68,36,1)',subcats:[{name:'Knob',sales:54492,units:5655,vs_ly:null},{name:'Cabinetry Accessory',sales:11952,units:1524,vs_ly:null},{name:'Handle',sales:197142,units:9913,vs_ly:null},{name:'Handle with Backplate',sales:33301,units:973,vs_ly:null},{name:'Knob with Backplate',sales:22847,units:1443,vs_ly:null}]},
+  {t:"Electric",sales:74025,ly_sales:null,lq_sales:91136,d2c:53056,b2b:20970,uk:59875,us:14150,units:2945,vs_lq:-0.1877,vs_ly:null,yoy_dir:'flat',gm:0.7467,color:'rgba(103,82,212,0.9)',textColor:'rgba(83,62,180,1)',subcats:[{name:'Switch & Dimmer',sales:33370,units:995,vs_ly:null},{name:'Plug Socket with USB',sales:8413,units:230,vs_ly:null},{name:'Plug Socket',sales:21213,units:928,vs_ly:null},{name:'Electric Component',sales:10880,units:740,vs_ly:null},{name:'Electric Accessory',sales:149,units:52,vs_ly:null}]},
+  {t:"Accessories",sales:27897,ly_sales:null,lq_sales:30471,d2c:20252,b2b:7646,uk:12174,us:14760,units:1729,vs_lq:-0.0845,vs_ly:null,yoy_dir:'flat',gm:0.7338,color:'rgba(196,64,124,0.9)',textColor:'rgba(166,44,100,1)',subcats:[{name:'Hook',sales:27334,units:1664,vs_ly:null},{name:'Tools',sales:74,units:10,vs_ly:null},{name:'Swatch',sales:315,units:31,vs_ly:null},{name:'Baseball Cap',sales:35,units:2,vs_ly:null},{name:'Storage',sales:59,units:2,vs_ly:null},{name:'Decorative Accessory',sales:17,units:2,vs_ly:null},{name:'Gifting',sales:63,units:18,vs_ly:null}]},
+  {t:"Lighting",sales:17881,ly_sales:null,lq_sales:18286,d2c:12896,b2b:4985,uk:15272,us:2181,units:237,vs_lq:-0.0222,vs_ly:null,yoy_dir:'flat',gm:0.7813,color:'rgba(138,180,0,0.9)',textColor:'rgba(110,145,0,1)',subcats:[{name:'Fixed Lighting',sales:17194,units:175,vs_ly:null},{name:'Lighting Accessory',sales:686,units:62,vs_ly:null}]},
+  {t:"Components",sales:2775,ly_sales:null,lq_sales:1614,d2c:229,b2b:2547,uk:168,us:2596,units:178,vs_lq:0.7193,vs_ly:null,yoy_dir:'flat',gm:-0.3653,color:'rgba(166,48,48,0.9)',textColor:'rgba(119,34,34,1.0)',subcats:[{name:'Components',sales:284,units:161,vs_ly:null},{name:'Trade Board',sales:2491,units:17,vs_ly:null}]},
+  {t:"Unknown",sales:7207,ly_sales:null,lq_sales:null,d2c:6184,b2b:1023,uk:3607,us:3600,units:610,vs_lq:null,vs_ly:null,yoy_dir:'flat',gm:null,color:'rgba(48,166,166,0.9)',textColor:'rgba(34,119,119,1.0)',subcats:[{name:'Unknown',sales:7207,units:610,vs_ly:null}]}
 ];
 
 const SKUS = [
@@ -1335,37 +1351,105 @@ function renderTrend() {
 }
 
 // ================================================================
-// CATEGORY BARS (current + LY value, directional cue -- BRIEF #4
-// step 4 item 2: absolute values only, no YoY % printed on the bar)
+// CATEGORY BARS -- Overview (current + LY/LQ ghost markers, directional
+// cue), Channel (D2C/B2B split), Country (UK/US split), vs LM / vs LY
+// (sorted by that movement, restoring the pre-redesign 5-view toggle --
+// trading review round 1, T2b). BRIEF #4 step 4 item 2's "absolute values
+// only on the bar itself, direction-only colour cue" rule still applies to
+// Overview; vs LM/vs LY intentionally print the % since that's the whole
+// point of those two views.
 // ================================================================
-function renderCatBars() {
-  const maxVal = Math.max(...PROD_TYPES.map(t => Math.max(t.sales, t.ly_sales || 0)), 1);
-
-  document.getElementById('cat-bars').innerHTML = PROD_TYPES
+const CAT_VIEWS = ['overview','channel','country','vs_lq','vs_ly'];
+let catView = 'overview';
+function setCatView(v) {
+  catView = v;
+  document.querySelectorAll('#cat-view-tg button').forEach((b,i) => b.classList.toggle('active', CAT_VIEWS[i]===v));
+  renderCatBars();
+}
+function subcatsHTML(t) {
+  return t.subcats.length ? t.subcats
     .slice().sort((a,b) => b.sales - a.sales)
-    .map((t, i) => {
-      const col = catColor(t.t);
-      const barW = (t.sales / maxVal * 100).toFixed(1);
-      const lyW = t.ly_sales != null ? (t.ly_sales / maxVal * 100).toFixed(1) : null;
-      const lyLbl = t.ly_sales != null ? ' · ' + fmtGBP(t.ly_sales) + ' LY' : '';
-      const subcatsHTML = t.subcats.length ? t.subcats
-        .slice().sort((a,b) => b.sales - a.sales)
-        .map(sc => `<div class="subcat-row"><span>${sc.name}</span><span class="n">${fmtGBP(sc.sales)} · ${fmtU(sc.units)}u</span></div>`).join('')
-        : '<div class="subcat-row"><span class="n">No subcategory data</span></div>';
+    .map(sc => `<div class="subcat-row"><span>${sc.name}</span><span class="n">${fmtGBP(sc.sales)} · ${fmtU(sc.units)}u</span></div>`).join('')
+    : '<div class="subcat-row"><span class="n">No subcategory data</span></div>';
+}
+function renderCatBars() {
+  const legend = document.getElementById('cat-bars-legend');
+  const box = document.getElementById('cat-bars');
+  let rows;
+
+  if (catView === 'vs_lq' || catView === 'vs_ly') {
+    const key = catView;
+    const sorted = PROD_TYPES.slice().sort((a,b) => (b[key] ?? -Infinity) - (a[key] ?? -Infinity));
+    const maxAbs = Math.max(...sorted.map(t => Math.abs(t[key] || 0)), 0.01);
+    rows = sorted.map((t, i) => {
+      const v = t[key];
+      const dir = badgeClass(v);
+      const w = (Math.abs(v || 0) / maxAbs * 100).toFixed(1);
       return `
         <div class="cat-bar-row">
           <div class="cat-bar-hdr" onclick="toggleSubcat(${i})">
             <span class="cat-bar-name">${t.t}</span>
-            <span class="cat-bar-vals"><span class="cat-dir ${t.yoy_dir}">${dirArrow(t.yoy_dir)}</span>${fmtGBP(t.sales)}${lyLbl}</span>
+            <span class="cat-bar-vals"><span class="cat-dir ${dir}">${dirArrow(dir)}</span>${fmtPct(v)} · ${fmtGBP(t.sales)}</span>
+          </div>
+          <div class="cat-bar-track">
+            <div class="cat-bar-fill" style="width:${w}%;background:${dir==='dn'?'var(--red)':'var(--green)'};opacity:.75"></div>
+          </div>
+          <div class="subcat-drill" id="subcat-${i}">${subcatsHTML(t)}</div>
+        </div>`;
+    });
+    legend.innerHTML = `<span>Sorted by ${catView==='vs_lq'?'vs LM':'vs LY'} movement -- bar length is the % magnitude, not £</span>`;
+  } else if (catView === 'channel' || catView === 'country') {
+    const [kA, kB, labA, labB, colA, colB] = catView === 'channel'
+      ? ['d2c','b2b','D2C','B2B','var(--d2c)','var(--b2b)']
+      : ['uk','us','UK','US','var(--uk)','var(--us)'];
+    const sorted = PROD_TYPES.slice().sort((a,b) => b.sales - a.sales);
+    const maxVal = Math.max(...sorted.map(t => t.sales), 1);
+    rows = sorted.map((t, i) => {
+      const aW = ((t[kA]||0) / maxVal * 100).toFixed(1);
+      const bW = ((t[kB]||0) / maxVal * 100).toFixed(1);
+      const aLeft = 0, bLeft = parseFloat(aW);
+      return `
+        <div class="cat-bar-row">
+          <div class="cat-bar-hdr" onclick="toggleSubcat(${i})">
+            <span class="cat-bar-name">${t.t}</span>
+            <span class="cat-bar-vals">${fmtGBP(t[kA])} ${labA} · ${fmtGBP(t[kB])} ${labB}</span>
+          </div>
+          <div class="cat-bar-track">
+            <div class="cat-bar-fill-split" style="width:${aW}%;left:${aLeft}%;background:${colA}"></div>
+            <div class="cat-bar-fill-split" style="width:${bW}%;left:${bLeft}%;background:${colB}"></div>
+          </div>
+          <div class="subcat-drill" id="subcat-${i}">${subcatsHTML(t)}</div>
+        </div>`;
+    });
+    legend.innerHTML = `<span><i style="background:${colA}"></i>${labA}</span><span><i style="background:${colB}"></i>${labB}</span>`;
+  } else {
+    const maxVal = Math.max(...PROD_TYPES.map(t => Math.max(t.sales, t.ly_sales || 0, t.lq_sales || 0)), 1);
+    const sorted = PROD_TYPES.slice().sort((a,b) => b.sales - a.sales);
+    rows = sorted.map((t, i) => {
+      const col = catColor(t.t);
+      const barW = (t.sales / maxVal * 100).toFixed(1);
+      const lyW = t.ly_sales != null ? (t.ly_sales / maxVal * 100).toFixed(1) : null;
+      const lqW = t.lq_sales != null ? (t.lq_sales / maxVal * 100).toFixed(1) : null;
+      const lqLbl = t.lq_sales != null ? ' · ' + fmtGBP(t.lq_sales) + ' LM' : '';
+      const lyLbl = t.ly_sales != null ? ' · ' + fmtGBP(t.ly_sales) + ' LY' : '';
+      return `
+        <div class="cat-bar-row">
+          <div class="cat-bar-hdr" onclick="toggleSubcat(${i})">
+            <span class="cat-bar-name">${t.t}</span>
+            <span class="cat-bar-vals"><span class="cat-dir ${t.yoy_dir}">${dirArrow(t.yoy_dir)}</span>${fmtGBP(t.sales)}${lqLbl}${lyLbl}</span>
           </div>
           <div class="cat-bar-track">
             <div class="cat-bar-fill" style="width:${barW}%;background:${col};opacity:.75"></div>
+            ${lqW != null ? `<div class="cat-bar-fill-lq" style="left:${lqW}%"></div>` : ''}
             ${lyW != null ? `<div class="cat-bar-fill-ly" style="left:${lyW}%"></div>` : ''}
           </div>
-          <div class="subcat-drill" id="subcat-${i}">${subcatsHTML}</div>
+          <div class="subcat-drill" id="subcat-${i}">${subcatsHTML(t)}</div>
         </div>`;
-    }).join('');
+    });
+    legend.innerHTML = `<span><span class="lq-mark"></span>LM (ghost) marker</span><span><span class="ly-mark"></span>LY marker</span>`;
+  }
 
+  box.innerHTML = rows.join('');
   if (subcatDrillOpen) {
     document.querySelectorAll('.subcat-drill').forEach(el => el.classList.add('open'));
   }

@@ -128,6 +128,19 @@ def compute_prod_types(types_raw):
             't':          t['t'],
             'sales':      sales,
             'ly_sales':   ly_sales,
+            # T2b: LQ ghost marker + Channel/Country toggle views. lq_sales
+            # is real on the Matrixify path (oracle-bootstrapped) and on the
+            # oracle path itself (reconstructed from its own real vs_lq);
+            # d2c/b2b/uk/us are real on the Matrixify path only -- the oracle
+            # sheet has no such column at department grain, so they're 0.0
+            # there (see contract.py's emit_contract_from_oracle docstring
+            # note), and Channel/Country views will show flat/empty bars for
+            # an oracle-sourced dashboard. Not fabricated either way.
+            'lq_sales':   round(t['lq_sales']) if t.get('lq_sales') is not None else None,
+            'd2c':        round(t.get('d2c') or 0),
+            'b2b':        round(t.get('b2b') or 0),
+            'uk':         round(t.get('uk') or 0),
+            'us':         round(t.get('us') or 0),
             'units':      int(t['units']) if t.get('units') else 0,
             'vs_lq':      _r4(t.get('vs_lq')),
             'vs_ly':      vs_ly,
@@ -764,7 +777,9 @@ def js_block_prod_types(prod_types):
             for sc in t.get('subcats', [])
         ) + ']'
         rows.append(
-            f'  {{t:"{t["t"]}",sales:{t["sales"]},ly_sales:{_js_val(t.get("ly_sales"))},units:{t["units"]},'
+            f'  {{t:"{t["t"]}",sales:{t["sales"]},ly_sales:{_js_val(t.get("ly_sales"))},'
+            f'lq_sales:{_js_val(t.get("lq_sales"))},d2c:{t.get("d2c",0)},b2b:{t.get("b2b",0)},'
+            f'uk:{t.get("uk",0)},us:{t.get("us",0)},units:{t["units"]},'
             f'vs_lq:{_js_val(t["vs_lq"])},vs_ly:{_js_val(t.get("vs_ly"))},yoy_dir:{_js_val(t.get("yoy_dir"))},'
             f"gm:{_js_val(t['gm'])},color:{_js_val(t['color'])},textColor:{_js_val(t['textColor'])},"
             f'subcats:{subcats}}}'

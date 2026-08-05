@@ -134,6 +134,31 @@ def _exclude_dead_categories(payload):
     return payload
 
 
+def _normalize_oracle_prod_types(payload):
+    """Mutate payload in place. extract_product_types() never carries
+    d2c/b2b/uk/us (the oracle sheet's Product Type table has no such column
+    -- genuinely unavailable at this grain, not an oversight) or lq_sales
+    (an absolute figure; the sheet only gives the vs_lq RATIO). Normalise
+    every department to the same shape emit_contract_from_matrixify's
+    prod_types now carries (T2b, 2026-08-05), so compute.py/the template
+    have one shape to read regardless of source. lq_sales IS reconstructable
+    here (unlike d2c/b2b/uk/us) since the oracle's own vs_lq is real -- same
+    sales/(1+vs_lq) technique used for the Matrixify path's oracle-
+    bootstrapped lq_sales. Called by emit_contract_from_oracle.
+    """
+    for t in payload["prod_types"]:
+        vs_lq = t.get("vs_lq")
+        lq_sales = None
+        if isinstance(vs_lq, (int, float)) and abs(1 + vs_lq) > 1e-9 and t.get("sales"):
+            lq_sales = round(t["sales"] / (1 + vs_lq), 2)
+        t.setdefault("d2c", 0.0)
+        t.setdefault("b2b", 0.0)
+        t.setdefault("uk", 0.0)
+        t.setdefault("us", 0.0)
+        t["lq_sales"] = lq_sales
+    return payload
+
+
 def _is_el_component(coll_name):
     return str(coll_name or "").strip().upper() == "EL COMPONENT"
 
@@ -202,6 +227,7 @@ def emit_contract_from_oracle(oracle_xlsx, out_path=None):
         sku["is_el_component"] = _is_el_component(sku.get("coll"))
     _strip_vestigial(payload)
     _exclude_dead_categories(payload)
+    _normalize_oracle_prod_types(payload)
     provenance = {
         "source": "oracle",
         "reconciled": True,
@@ -509,9 +535,15 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
 
         dept = dept_totals.setdefault(line["department"], {
             "sales": 0.0, "units": 0, "gm_num": 0.0, "gm_den": 0.0, "subcats": {},
+            "d2c": 0.0, "b2b": 0.0, "uk": 0.0, "us": 0.0,
         })
         dept["sales"] += ab
         dept["units"] += line["units"]
+        dept["d2c" if chan == "D2C" else "b2b"] += ab
+        if bucket == "UK":
+            dept["uk"] += ab
+        elif bucket == "US":
+            dept["us"] += ab
         # item_type is Line Detail's "Product Category" grain -- the same
         # subcategory breakdown the oracle's Product Type table carries
         # (BRIEF #4 step 4 §2/§6). Unenriched lines fall into "Unknown",
@@ -624,6 +656,13 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     # collections block's LQ fields fall back to their honest 0.0/None
     # placeholder in that case.
     oracle_collections_by_key = {}
+    # department name -> reconstructed LQ sales (T2b), from the oracle
+    # bootstrap file's own real vs_lq RATIO (extract_product_types reads it
+    # straight from the sheet) -- the oracle table has no absolute prior-
+    # period column for departments, only this ratio, so the absolute
+    # figure is reconstructed as sales/(1+vs_lq), same technique quarterly.
+    # py's _recompute_yoy already uses for the analogous vs_ly-ratio case.
+    oracle_prod_type_lq = {}
     if lm_contract is not None and ly_contract is not None:
         lm_c = lm_contract if isinstance(lm_contract, dict) else load_contract(lm_contract)
         ly_c = ly_contract if isinstance(ly_contract, dict) else load_contract(ly_contract)
@@ -640,6 +679,10 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         oracle_collections_by_key = {
             (c["t"], c["c"]): c for c in oracle_headline.get("collections", [])
         }
+        for t in oracle_headline.get("prod_types", []):
+            vs_lq = t.get("vs_lq")
+            if isinstance(vs_lq, (int, float)) and abs(1 + vs_lq) > 1e-9 and t.get("sales"):
+                oracle_prod_type_lq[t["t"]] = t["sales"] / (1 + vs_lq)
     else:
         lm = ly = _current_to_lm_shape({
             "total_sales": 0, "d2c_gbp": 0, "b2b_gbp": 0, "uk_gbp": 0, "us_gbp": 0, "row_gbp": 0,
@@ -692,15 +735,29 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
     } for b, v in status_totals.items()]
 
-    prod_types = [{
-        "t": dept, "sales": v["sales"], "units": v["units"], "vs_lq": None,
-        "vs_ly": _vs(v["sales"], ly_dept_sales.get(dept)) if ly_dept_sales.get(dept) else None,
-        "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
-        "subcats": [
-            {"name": name, "sales": sc["sales"], "units": sc["units"], "vs_ly": None}
-            for name, sc in v["subcats"].items()
-        ],
-    } for dept, v in dept_totals.items()]
+    prod_types = []
+    for dept, v in dept_totals.items():
+        lq_sales = oracle_prod_type_lq.get(dept)
+        prod_types.append({
+            "t": dept, "sales": v["sales"], "units": v["units"],
+            "vs_lq": _vs(v["sales"], lq_sales) if lq_sales is not None else None,
+            "vs_ly": _vs(v["sales"], ly_dept_sales.get(dept)) if ly_dept_sales.get(dept) else None,
+            "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
+            # T2b: per-department channel/country split (Channel/Country
+            # toggle views) -- real for the Matrixify path (line-level data);
+            # the oracle path has no such column, so these are always 0.0
+            # there, same "genuinely unavailable at this grain" limitation
+            # as T2b's LQ note below.
+            "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "us": v["us"],
+            # T2b: LQ ghost-bar value -- real once oracle_prod_type_lq has
+            # this department (reconstructed from the oracle bootstrap's own
+            # vs_lq ratio, see above); None otherwise, never fabricated.
+            "lq_sales": round(lq_sales, 2) if lq_sales is not None else None,
+            "subcats": [
+                {"name": name, "sales": sc["sales"], "units": sc["units"], "vs_ly": None}
+                for name, sc in v["subcats"].items()
+            ],
+        })
 
     # Every finish that had any revenue this month renders -- BRIEF #4 step 4
     # §5/§10 retires the previous curated-8 (config.FINISH_COLORS) filter;

@@ -11,8 +11,8 @@
     "unmatched_sku_revenue_share": null,
     "country_gaps_vs_oracle": null,
     "lq_ly_source": "oracle_native",
-    "built_at": "2026-08-05T11:09:43.101108+00:00",
-    "commit": "6fe84ef43bd4f300f90040df15e119eb4d6f4bca"
+    "built_at": "2026-08-05T11:38:10.978731+00:00",
+    "commit": "5953f35a8a8429e3d8a7e37a5e9be3e13aac5db0"
   },
   "mode": "month",
   "period_model": {
@@ -173,7 +173,12 @@
           "units": 1561,
           "vs_ly": 2.7059387153523016
         }
-      ]
+      ],
+      "d2c": 0.0,
+      "b2b": 0.0,
+      "uk": 0.0,
+      "us": 0.0,
+      "lq_sales": 350386.61
     },
     {
       "t": "Taps",
@@ -189,7 +194,12 @@
           "units": 0,
           "vs_ly": -1
         }
-      ]
+      ],
+      "d2c": 0.0,
+      "b2b": 0.0,
+      "uk": 0.0,
+      "us": 0.0,
+      "lq_sales": null
     },
     {
       "t": "Accessories",
@@ -247,7 +257,12 @@
           "units": 0,
           "vs_ly": -1
         }
-      ]
+      ],
+      "d2c": 0.0,
+      "b2b": 0.0,
+      "uk": 0.0,
+      "us": 0.0,
+      "lq_sales": 30471.39
     },
     {
       "t": "Electric",
@@ -287,7 +302,12 @@
           "units": 0,
           "vs_ly": null
         }
-      ]
+      ],
+      "d2c": 0.0,
+      "b2b": 0.0,
+      "uk": 0.0,
+      "us": 0.0,
+      "lq_sales": 91135.54
     },
     {
       "t": "Lighting",
@@ -315,7 +335,12 @@
           "units": 24,
           "vs_ly": 0.5062832735181002
         }
-      ]
+      ],
+      "d2c": 0.0,
+      "b2b": 0.0,
+      "uk": 0.0,
+      "us": 0.0,
+      "lq_sales": 18285.84
     },
     {
       "t": "Components",
@@ -324,7 +349,12 @@
       "vs_lq": 0.8783874683828449,
       "vs_ly": 4.9685986698536455,
       "gm": -0.7237561141639796,
-      "subcats": []
+      "subcats": [],
+      "d2c": 0.0,
+      "b2b": 0.0,
+      "uk": 0.0,
+      "us": 0.0,
+      "lq_sales": 1614.07
     }
   ],
   "finishes": {

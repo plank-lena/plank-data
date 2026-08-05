@@ -231,10 +231,20 @@ def _aggregate_prod_types(months, lq=None):
         rows = [_find(m['prod_types'], 't', name) for m in months]
         sales = sum((r['sales'] if r else 0) or 0 for r in rows)
         units = sum((r['units'] if r else 0) or 0 for r in rows)
+        # T2b: additive, same convention as _aggregate_current's channel/
+        # country totals -- sum directly, never averaged.
+        d2c = sum((r.get('d2c') if r else 0) or 0 for r in rows)
+        b2b = sum((r.get('b2b') if r else 0) or 0 for r in rows)
+        uk = sum((r.get('uk') if r else 0) or 0 for r in rows)
+        us = sum((r.get('us') if r else 0) or 0 for r in rows)
         gm = _weighted_avg([(r['gm'], r['sales']) for r in rows if r])
         vs_ly = _recompute_yoy([(r['sales'], r.get('vs_ly')) for r in rows if r])
         prior = lq_by_name.get(name)
         vs_lq = _vs(sales, prior['sales']) if prior else None
+        # T2b: real once a prior quarter's own contract is supplied (lq),
+        # same "None until a real prior period exists" convention as
+        # _aggregate_collections' lq_total -- never reconstructed here.
+        lq_sales = prior['sales'] if prior else None
 
         lq_subcats = {sc['name']: sc for sc in prior.get('subcats', [])} if prior else {}
         subcat_names = _union_ordered([r.get('subcats', []) if r else [] for r in rows], 'name')
@@ -250,7 +260,8 @@ def _aggregate_prod_types(months, lq=None):
                             'vs_lq': sc_vs_lq, 'vs_ly': sc_vs_ly})
 
         out.append({'t': name, 'sales': sales, 'units': units, 'vs_lq': vs_lq,
-                    'vs_ly': vs_ly, 'gm': gm, 'subcats': subcats})
+                    'vs_ly': vs_ly, 'gm': gm, 'subcats': subcats,
+                    'd2c': d2c, 'b2b': b2b, 'uk': uk, 'us': us, 'lq_sales': lq_sales})
     return out
 
 
