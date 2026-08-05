@@ -323,11 +323,27 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
         top_collections = []
         for cname, ct in top_colls:
             channel_total = ct['d2c'] + ct['b2b']
+            # T3a: click-to-expand drill (finish -> collection -> top SKUs).
+            # Scoped to SKUs matching BOTH this finish and this collection --
+            # finish_skus is already finish-filtered, so this is just the
+            # collection filter on top of it, same source data, no new join.
+            coll_skus = sorted(
+                (s for s in finish_skus if s['coll'] == cname),
+                key=lambda s: -(s.get('gross') or 0),
+            )[:top_n]
             top_collections.append({
                 'c':         cname,
                 'sales':     round(ct['sales']),
                 'units':     ct['units'],
                 'b2b_share': round(ct['b2b'] / channel_total, 4) if channel_total else None,
+                'skus': [
+                    {
+                        'sku':   s['sku'],
+                        'desc':  s.get('desc') or s['sku'],
+                        'sales': round(s.get('gross') or 0),
+                        'units': int(s.get('units') or 0),
+                    } for s in coll_skus
+                ],
             })
 
         color, text_color = colors[name]
@@ -855,7 +871,11 @@ def js_block_finish_data(finish_data):
         vsLY = 'null' if fd['vsLY'] is None else str(fd['vsLY'])
         ly   = 'null' if fd['ly'] == 0 else str(fd['ly'])
         top_collections_str = '[' + ','.join(
-            f'{{c:{_js_val(tc["c"])},sales:{tc["sales"]},units:{tc["units"]},b2b_share:{_js_val(tc["b2b_share"])}}}'
+            f'{{c:{_js_val(tc["c"])},sales:{tc["sales"]},units:{tc["units"]},b2b_share:{_js_val(tc["b2b_share"])},'
+            f'skus:[' + ','.join(
+                f'{{sku:{_js_val(s["sku"])},desc:{_js_val(s["desc"])},sales:{s["sales"]},units:{s["units"]}}}'
+                for s in tc.get('skus', [])
+            ) + ']}'
             for tc in fd['top_collections']
         ) + ']'
         parts.append(

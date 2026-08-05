@@ -118,6 +118,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .fs-row-val{font-family:var(--font-m);font-size:9.5px;font-weight:600}
 .top-coll-list{display:flex;flex-direction:column;gap:5px}
 .top-coll-row{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:4px}
+.twist{font-size:9px;color:var(--muted);flex-shrink:0}
 .top-coll-name{font-family:var(--font-m);font-size:10px;color:var(--amber);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .top-coll-track{width:80px;height:5px;background:var(--surface);border-radius:2px;overflow:hidden;flex-shrink:0}
 .top-coll-fill{height:100%;border-radius:2px}
@@ -1153,13 +1154,27 @@ function renderFinishBody() {
       <div class="fs-row"><span class="fs-row-lbl">🇬🇧 UK</span><span class="fs-row-val" style="color:var(--uk)">${fmtGBP(d.uk)}</span></div>
       <div class="fs-row"><span class="fs-row-lbl">🇺🇸 US</span><span class="fs-row-val" style="color:var(--us)">${fmtGBP(d.us)}</span></div>
     </div>
-    <div class="top-coll-list">${d.top_collections.map(r => `
-      <div class="top-coll-row">
+    <div class="top-coll-list">${d.top_collections.map((r,i) => `
+      <div class="top-coll-row" onclick="toggleFinishCollDrill(${i})" style="cursor:pointer">
+        <span class="twist">▸</span>
         <span class="top-coll-name">${r.c}</span>
         <div class="top-coll-track"><div class="top-coll-fill" style="width:${(r.sales/maxVal*100).toFixed(0)}%;background:${d.color}"></div></div>
         <span class="top-coll-val">${fmtGBP(r.sales)}</span>
         <span class="top-coll-b2b">${r.b2b_share!=null?(r.b2b_share*100).toFixed(0)+'% B2B':'—'}</span>
-      </div>`).join('')}</div>`;
+      </div>
+      <div class="subcat-drill" id="fin-coll-drill-${i}">${finCollSkusHTML(r.skus)}</div>`).join('')}</div>`;
+}
+// T3a (trading review round 1): click-to-expand drill, finish -> collection
+// -> top SKUs. Reuses the .subcat-drill/.subcat-row styling Category
+// Breakdown's own subcategory drill already established, rather than a new
+// component for the same "nested detail panel" idea.
+function finCollSkusHTML(skus) {
+  return (skus && skus.length) ? skus
+    .map(s => `<div class="subcat-row"><span>${s.desc}</span><span class="n">${fmtGBP(s.sales)} · ${fmtU(s.units)}u</span></div>`).join('')
+    : '<div class="subcat-row"><span class="n">No SKU data</span></div>';
+}
+function toggleFinishCollDrill(i) {
+  document.getElementById('fin-coll-drill-' + i).classList.toggle('open');
 }
 
 function renderFinishOverview() {
