@@ -287,6 +287,15 @@ def _aggregate_finishes(months, lq=None):
             'b2b': sum((r['b2b'] if r else 0) or 0 for r in rows),
             'uk': sum((r['uk'] if r else 0) or 0 for r in rows),
             'us': sum((r['us'] if r else 0) or 0 for r in rows),
+            # Round-2 review: never summed here even after T3b added these
+            # to the monthly finish_totals/finishes shape in contract.py --
+            # left this quarterly aggregator not knowing about them at all,
+            # so compute_finish_data's raw.get('uk_u')/('us_u') fell back to
+            # 0 for every finish on a quarterly build. Confirmed reproduction:
+            # toggling Finish Analysis to UK or US on the Q2 2026 Matrixify
+            # dashboard showed 0 units for every finish before this fix.
+            'uk_u': sum((r.get('uk_u') if r else 0) or 0 for r in rows),
+            'us_u': sum((r.get('us_u') if r else 0) or 0 for r in rows),
         }
     return out
 
