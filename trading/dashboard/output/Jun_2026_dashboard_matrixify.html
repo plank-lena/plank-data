@@ -208,6 +208,9 @@ body::before{content:'';position:fixed;inset:0;background:
 .ft-btn:hover{color:rgba(0,0,0,0.88);border-color:rgba(25,32,50,0.3)}
 .ft-btn.active{color:#0a0d14;font-weight:700;border-color:transparent}
 .finish-body{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start}
+.cat-analysis-body{display:grid;grid-template-columns:190px minmax(220px,1fr) 260px;gap:16px;align-items:start}
+.cat-donut-wrap{display:flex;flex-direction:column;align-items:center}
+.cat-donut-caption{font-family:var(--font-m);font-size:9.5px;color:var(--muted);margin-top:4px;text-align:center}
 .finish-stats{display:flex;flex-direction:column;gap:8px}
 .fs-main{padding:12px;background:var(--surface2);border-radius:5px;border:1px solid var(--border)}
 .fs-val{font-family:var(--font-m);font-size:22px;font-weight:600;margin-bottom:2px}
@@ -533,7 +536,7 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
         <div class="sec-meta">top collections · B2B share</div>
       </div>
       <div class="finish-tabs" id="cat-tabs"></div>
-      <div class="finish-body" id="cat-body"></div>
+      <div class="cat-analysis-body" id="cat-body"></div>
     </div>
 
     <!-- FINISH ANALYSIS (top collections) -->
@@ -1474,11 +1477,21 @@ function initCatTabs() {
   renderCatBody();
 }
 function setCatTab(c) { selectedCatTab = c; initCatTabs(); }
+// T2c (trading review round 1): restores the pre-redesign pie + left-stats
+// pattern for Category Analysis -- the right-side list was already top
+// collections (not top-SKUs; that swap is the CURRENT redesign's own doing,
+// per compute_category_top_collections()'s docstring), so this only adds
+// the donut and the richer stats panel back, reusing PROD_TYPES' own fields
+// (T2b) rather than a new compute-side block.
 function renderCatBody() {
   const rows = CAT_TOP_COLLECTIONS[selectedCatTab] || [];
   const total = rows.reduce((s,r) => s + (r.cash.total||0), 0);
   const maxVal = Math.max(...rows.map(r => r.cash.total||0), 1);
   const col = catColor(selectedCatTab);
+  const pt = PROD_TYPES.find(t => t.t === selectedCatTab) || {};
+  const chanTotal = (pt.d2c||0) + (pt.b2b||0);
+  const d2cShare = chanTotal > 0 ? pt.d2c / chanTotal : null;
+
   const listHTML = rows.length ? rows.map(r => `
       <div class="top-coll-row">
         <span class="top-coll-name">${r.c}</span>
@@ -1487,15 +1500,81 @@ function renderCatBody() {
         <span class="top-coll-b2b">${r.b2b_share!=null?(r.b2b_share*100).toFixed(0)+'% B2B':'—'}</span>
       </div>`).join('')
     : `<div style="font-family:var(--font-m);font-size:10px;color:var(--muted);padding:8px">No collections with revenue this period</div>`;
+
   document.getElementById('cat-body').innerHTML = `
     <div class="finish-stats">
       <div class="fs-main" style="border-color:${col}">
         <div class="fs-lbl">${selectedCatTab || 'Unknown'} · ${CM_LABEL}</div>
-        <div class="fs-val" style="color:${col}">${fmtGBP(total)}</div>
+        <div class="fs-val" style="color:${col}">${fmtGBP(pt.sales != null ? pt.sales : total)}</div>
       </div>
+      <div class="fs-row"><span class="fs-row-lbl">GM%</span><span class="fs-row-val">${fmtPct(pt.gm, false)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">vs LM</span><span class="fs-row-val">${fmtPct(pt.vs_lq)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">vs LY</span><span class="fs-row-val">${fmtPct(pt.vs_ly)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">D2C share</span><span class="fs-row-val">${d2cShare!=null?(d2cShare*100).toFixed(0)+'%':'—'}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">UK</span><span class="fs-row-val">${fmtGBP(pt.uk)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">US</span><span class="fs-row-val">${fmtGBP(pt.us)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">LM value</span><span class="fs-row-val">${pt.lq_sales!=null?fmtGBP(pt.lq_sales):'—'}</span></div>
       <div class="fs-row"><span class="fs-row-lbl">Top collections</span><span class="fs-row-val">${rows.length}</span></div>
     </div>
+    <div class="cat-donut-wrap">
+      <canvas id="cat-donut" height="220" style="display:block;width:100%"></canvas>
+      <div class="cat-donut-caption">Collection share of ${selectedCatTab || 'Unknown'} · ${CM_LABEL}</div>
+    </div>
     <div class="top-coll-list">${listHTML}</div>`;
+  renderCatDonut(rows, col);
+}
+
+function shadeColor(base, i, n) {
+  const m = String(base).match(/rgba?\(([^)]+)\)/);
+  if (!m) return base;
+  const [r, g, b] = m[1].split(',').map(s => s.trim());
+  const alpha = 0.35 + 0.55 * (n > 1 ? i / (n - 1) : 0);
+  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+}
+
+function renderCatDonut(rows, baseColor) {
+  const canvas = document.getElementById('cat-donut');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width || 240, H = 220;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+
+  const TOP_N = 7;
+  const sorted = rows.slice().sort((a,b) => (b.cash.total||0) - (a.cash.total||0));
+  const top = sorted.slice(0, TOP_N);
+  const otherTotal = sorted.slice(TOP_N).reduce((s,r) => s + (r.cash.total||0), 0);
+  const slices = top.map(r => ({ name: r.c, value: r.cash.total||0 }));
+  const hasOther = otherTotal > 0;
+  if (hasOther) slices.push({ name: 'Other', value: otherTotal });
+  const total = slices.reduce((s,d) => s + d.value, 0);
+  if (!total) {
+    ctx.fillStyle = 'var(--muted)'; ctx.font = `10px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+    ctx.fillText('No collections with revenue this period', W/2, H/2);
+    return;
+  }
+
+  const cx = W/2, cy = H/2 - 4, r = Math.min(W,H)/2 - 30;
+  let angle = -Math.PI/2;
+  slices.forEach((s, i) => {
+    const frac = s.value / total;
+    const a2 = angle + frac * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, angle, a2); ctx.closePath();
+    ctx.fillStyle = s.name === 'Other' ? 'rgba(140,140,150,0.5)' : shadeColor(baseColor, i, top.length);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
+    if (frac >= 0.05) {
+      const mid = (angle + a2) / 2;
+      const lx = cx + Math.cos(mid) * (r * 0.65), ly = cy + Math.sin(mid) * (r * 0.65);
+      ctx.fillStyle = '#fff'; ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText((frac*100).toFixed(0) + '%', lx, ly + 3);
+    }
+    angle = a2;
+  });
 }
 
 // ================================================================
