@@ -462,6 +462,26 @@ def compute_matrix(collections_raw, top_n=40):
 
 # ── Static KPI tokens ─────────────────────────────────────────────────────────
 
+def _kpi_rev_trend_html(trend_3mo):
+    """T1: two small coloured arrows summarising a genuine trailing-3-
+    consecutive-months revenue series (see contract.py's emit_contract_from_
+    matrixify docstring for how trend_3mo is sourced) -- '' (nothing
+    rendered) when unavailable, never a fabricated trend.
+    """
+    if not trend_3mo or len(trend_3mo) != 3:
+        return ''
+    mm2, mm1, cm = trend_3mo
+    glyph1 = '▲' if mm1 >= mm2 else '▼'
+    glyph2 = '▲' if cm >= mm1 else '▼'
+    tip = f'Trailing 3 months: {fmt_gbp(mm2)} → {fmt_gbp(mm1)} → {fmt_gbp(cm)}'
+    return (
+        f'<span class="kpi-trend" title="{tip}">'
+        f'<span style="color:{arrow_color(mm2, mm1)}">{glyph1}</span>'
+        f'<span style="color:{arrow_color(mm1, cm)}">{glyph2}</span>'
+        f'</span>'
+    )
+
+
 def compute_kpi_tokens(current, lm, pm, mode='month'):
     c = current
     total   = c['total_sales']
@@ -518,6 +538,12 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
         'KPI_REV_LM':      fmt_pct(c.get('vs_lm')),
         'KPI_REV_LY_CLS':  badge_class(c.get('vs_ly')),
         'KPI_REV_LY':      fmt_pct(c.get('vs_ly')),
+        # T1: trailing-3-consecutive-months trend arrows beside the Total
+        # Revenue KPI -- distinct from the MoM ribbon's LY/LM/CM trajectory
+        # below. current['trend_3mo'] is [M-2, M-1, M] or None (no prior
+        # month's contract available yet, e.g. the earliest Matrixify month
+        # this repo has); the template hides the arrows entirely when null.
+        'KPI_REV_TREND_HTML': _kpi_rev_trend_html(c.get('trend_3mo')),
 
         # KPI — Units
         'KPI_UNITS_VAL':     f"{int(c['units']):,}",

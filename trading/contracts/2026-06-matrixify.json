@@ -11,8 +11,8 @@
     "unmatched_sku_revenue_share": 0.0017,
     "country_gaps_vs_oracle": null,
     "lq_ly_source": "oracle_bootstrap",
-    "built_at": "2026-08-05T10:58:39.653267+00:00",
-    "commit": "fe459792138d829dfda49dab9f529959adc50275"
+    "built_at": "2026-08-05T11:25:23.279392+00:00",
+    "commit": "14f80c02528db471c186a642c915656788f01860"
   },
   "mode": "month",
   "period_model": {
@@ -54,7 +54,12 @@
     "us_vs_lm": 0.13397395903063797,
     "us_vs_ly": 1.7767135891527068,
     "yoy_growth_pct": 0.48664771703682713,
-    "b2b_share": 0.38716669916735336
+    "b2b_share": 0.38716669916735336,
+    "trend_3mo": [
+      491893.46,
+      476929.09,
+      484389.69
+    ]
   },
   "lm": {
     "total": 476929.0867545509,

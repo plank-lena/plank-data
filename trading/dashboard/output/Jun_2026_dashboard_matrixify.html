@@ -145,6 +145,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .kpi-lbl{font-family:var(--font-m);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .kpi-val{font-family:var(--font-m);font-size:18px;font-weight:600;line-height:1}
 .kpi-badges{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.kpi-trend{cursor:help;font-size:11px;margin-left:6px;letter-spacing:1px;vertical-align:2px}
 .badge{font-family:var(--font-m);font-size:9px;padding:2px 5px;border-radius:2px;font-weight:500}
 .badge.up{background:rgba(38,196,122,.1);color:var(--green)}
 .badge.dn{background:rgba(204,42,56,.09);color:var(--red)}
@@ -367,7 +368,7 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
 <div class="kpi-row">
   <div class="kpi">
     <div class="kpi-lbl">Total Revenue</div>
-    <div class="kpi-val" id="kpi-rev">£484.4K</div>
+    <div class="kpi-val" id="kpi-rev">£484.4K<span class="kpi-trend" title="Trailing 3 months: £491.9K → £476.9K → £484.4K"><span style="color:var(--red)">▼</span><span style="color:var(--green)">▲</span></span></div>
     <div class="kpi-badges">
       <div class="badge up"><span class="badge-lbl">LM</span>+1.6%</div>
       <div class="badge up"><span class="badge-lbl">LY</span>+48.7%</div>

@@ -56,6 +56,14 @@ _ORACLE_FIXTURES = {
     "2026-06": "2026-06_Monthly_Trading_Report.xlsx",
 }
 
+# T1: the immediately-prior consecutive month, used only to source
+# current['trend_3mo']'s M-2 point (see contract.py's docstring) -- no
+# entry for 2026-04 since there's no prior month's contract to read yet.
+_PRIOR_PERIOD = {
+    "2026-05": "2026-04",
+    "2026-06": "2026-05",
+}
+
 
 def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
     # emit_contract_from_matrixify only chains when BOTH are given -- passing
@@ -81,10 +89,18 @@ def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
                   f"LM/LY from, and no --lm-contract/--ly-contract given -- LM/LY will be zero.",
                   file=sys.stderr)
 
+    prior_month_contract = None
+    prior_period = _PRIOR_PERIOD.get(period)
+    if prior_period:
+        candidate = os.path.join(CONTRACTS_DIR, f"{prior_period}-matrixify.json")
+        if os.path.exists(candidate):
+            prior_month_contract = candidate
+
     contract = emit_contract_from_matrixify(
         period=period, uk_csv=uk_csv, us_csv=us_csv,
         lm_contract=lm_contract, ly_contract=ly_contract,
         oracle_bootstrap_path=oracle_bootstrap_path,
+        prior_month_contract=prior_month_contract,
     )
 
     os.makedirs(CONTRACTS_DIR, exist_ok=True)

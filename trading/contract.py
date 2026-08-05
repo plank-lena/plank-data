@@ -397,7 +397,7 @@ def _vs(curr, prev):
 
 def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, as_of=None,
                                   lm_contract=None, ly_contract=None, oracle_bootstrap_path=None,
-                                  oracle_gaps=None, out_path=None):
+                                  oracle_gaps=None, out_path=None, prior_month_contract=None):
     """The real builder: BRIEF #5's ship-to reconcile + BRIEF #2's Line
     Detail enrichment, rolled up into extract_all()'s exact payload shape.
 
@@ -445,6 +445,15 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     the match-rate line printed to stderr. Collections' LQ is NOT populated
     via lm_contract/ly_contract chaining -- only the oracle bootstrap path
     carries collection-grain history today.
+
+    prior_month_contract (2026-08-05, T1): the immediately-prior month's own
+    already-committed Matrixify contract (dict or path), used only to derive
+    current['trend_3mo'] -- a real [M-2, M-1, M] revenue series for the
+    headline KPI's trend arrows. Independent of lm_contract/ly_contract
+    (which decide whether headline LM/LY itself is bootstrapped or chained);
+    pass this in addition to oracle_bootstrap_path, not instead of it. None
+    (current['trend_3mo'] stays None, not fabricated) when no prior month's
+    contract exists yet.
     """
     line_detail_path = line_detail_path or os.path.join(_HERE, "source", "line_detail.xlsx")
     as_of_year, as_of_month = (int(x) for x in period.split("-"))
@@ -659,6 +668,24 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     current["us_vs_lm"] = _vs(current["us_gbp"], lm["us"])
     current["us_vs_ly"] = _vs(current["us_gbp"], ly["us"])
     _add_headline_kpis(current)
+
+    # T1 (trading review round 1): a genuine trailing-3-consecutive-months
+    # revenue trend for the headline KPI's arrows -- distinct from the
+    # existing MoM ribbon's LY/LM/CM trajectory (a year-ago point plus one
+    # trailing month, not 3 consecutive months). `lm` above is real (this
+    # month's own LM), so the only missing point is M-2; prior_month_
+    # contract's own "lm" block IS M-2 (it's M-1's own LM), already real if
+    # that prior contract itself came from an oracle bootstrap or a real
+    # chain -- no new data fetch needed, just reading one field off a
+    # contract the caller already has on disk. None (not fabricated) when
+    # no prior month's contract is available, e.g. the earliest month this
+    # repo has Matrixify exports for.
+    current["trend_3mo"] = None
+    if prior_month_contract is not None:
+        pmc = prior_month_contract if isinstance(prior_month_contract, dict) else load_contract(prior_month_contract)
+        mm2_total = pmc.get("lm", {}).get("total")
+        if mm2_total is not None:
+            current["trend_3mo"] = [round(mm2_total, 2), round(lm["total"], 2), round(current["total_sales"], 2)]
 
     statuses = [{
         "s": b, "sales": v["sales"], "units": v["units"], "vs_lq": None, "vs_ly": None,
