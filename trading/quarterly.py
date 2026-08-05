@@ -62,7 +62,7 @@ for _p in (_HERE, _DASHBOARD_DIR):
 from extract import extract_all  # trading/dashboard/extract.py
 from contract import (
     PAYLOAD_KEYS, _wrap_contract, _add_headline_kpis, _is_el_component,
-    _strip_vestigial, _git_commit, _vs, _MONTH_NAMES, _current_to_lm_shape,
+    _strip_vestigial, _exclude_dead_categories, _git_commit, _vs, _MONTH_NAMES, _current_to_lm_shape,
     emit_contract_from_matrixify, load_contract, can_publish,
 )
 from common.reconciliation_gate import assert_country_reconciles
@@ -475,6 +475,11 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
     for sku in payload['skus_all']:
         sku['is_el_component'] = _is_el_component(sku.get('coll'))
     _strip_vestigial(payload)
+    # T2a: the monthly oracle files feed _aggregate_quarter_payload via raw
+    # extract_all(), bypassing emit_contract_from_oracle's own dead-category
+    # filter -- apply it here too so Door doesn't leak back in at the quarter
+    # grain.
+    _exclude_dead_categories(payload)
 
     provenance = {
         'source': 'oracle_quarter_aggregate',
@@ -550,6 +555,10 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     for sku in payload['skus_all']:
         sku['is_el_component'] = _is_el_component(sku.get('coll'))
     _strip_vestigial(payload)
+    # T2a: harmless no-op in practice -- each month's own contract already
+    # excluded dead departments at the line level before aggregation -- but
+    # applied here too for the same reason as the oracle quarter aggregator.
+    _exclude_dead_categories(payload)
 
     # Independent grand-total leak check, same convention as the monthly
     # gate (BRIEF #5) -- the aggregated country totals must still tie to

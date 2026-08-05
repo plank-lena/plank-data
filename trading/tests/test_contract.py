@@ -20,7 +20,7 @@ from extract import extract_all
 from contract import (
     emit_contract_from_oracle, emit_contract_from_matrixify, load_contract,
     render_contract, can_publish, PAYLOAD_KEYS, PROVISIONAL_BANNER_HTML,
-    _add_headline_kpis, _strip_vestigial, _is_el_component,
+    _add_headline_kpis, _strip_vestigial, _exclude_dead_categories, _is_el_component,
 )
 from validate import validate_contract
 
@@ -38,17 +38,19 @@ FIXTURE_CONTRACT_REDESIGN = os.path.join(HERE, "fixtures", "2026-05_contract_red
 
 def _apply_contract_layer_mutations(raw):
     """Mirror emit_contract_from_oracle's own payload mutations (BRIEF #4
-    step 4: headline KPIs added, is_el_component added, st/wc/inv stripped)
-    on a plain extract_all() payload -- used by the two checks below to
-    compare a "direct" path against the emitted path on equal footing,
-    since step 4 deliberately makes the CONTRACT layer richer than
-    extract_all()'s own raw shape, not just a repackaging of it.
+    step 4: headline KPIs added, is_el_component added, st/wc/inv stripped;
+    review-round-1 T2a: dead departments like Door dropped) on a plain
+    extract_all() payload -- used by the two checks below to compare a
+    "direct" path against the emitted path on equal footing, since step 4
+    deliberately makes the CONTRACT layer richer than extract_all()'s own
+    raw shape, not just a repackaging of it.
     """
     payload = {k: raw[k] for k in PAYLOAD_KEYS}
     _add_headline_kpis(payload["current"])
     for sku in payload["skus_all"]:
         sku["is_el_component"] = _is_el_component(sku.get("coll"))
     _strip_vestigial(payload)
+    _exclude_dead_categories(payload)
     return payload
 
 

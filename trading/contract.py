@@ -62,6 +62,18 @@ PAYLOAD_KEYS = (
 STATUS_BUCKETS = ("Continuity", "Newness", "Discontinued", "Dead")
 DEPARTMENTS = ("Cabinetry", "Electric", "Accessories", "Lighting", "Components", "Taps", "Unknown")
 
+# Trading review round 1, T2a (Lena, unilateral): Door is a dead category --
+# cut it entirely (headline, country, channel, groupings, charts, SKU lists,
+# movers, matrix), everywhere. One filter at line-enrichment time, applied
+# before any aggregation, so it propagates to every downstream cut without
+# re-hardcoding a department list anywhere else -- department discovery
+# elsewhere stays fully dynamic (Taps stays; a future real department isn't
+# at risk of being caught by this). The leak check still passes on the
+# Door-excluded set (uk+us+row ties to the new, smaller independent total);
+# the vs-oracle gap widening by Door's revenue is the intended effect of
+# de-scoping a dead category, not a regression to chase.
+_DEAD_DEPARTMENTS = {"Door"}
+
 # BRIEF #4 step 4 §1/§6: st/wc/inv are vestigial as of the redesign -- the
 # Sell-Through/WC KPI is removed and trading drops the inventory feed
 # dependency entirely. Stripped from every nested block at emission time
@@ -94,6 +106,31 @@ def _strip_vestigial(payload):
         for row in payload.get(block_name, []):
             for k in _VESTIGIAL_ROW_KEYS:
                 row.pop(k, None)
+    return payload
+
+
+def _exclude_dead_categories(payload):
+    """Mutate payload in place, dropping _DEAD_DEPARTMENTS from prod_types/
+    collections/skus_all (T2a, Lena unilateral: Door is a dead category, cut
+    entirely). Both front-ends call this right after _strip_vestigial.
+
+    Does NOT adjust headline totals (current.total_sales/uk_gbp/etc) here --
+    emit_contract_from_matrixify instead excludes dead departments at the
+    LINE level (its own `enriched` filter, before any aggregation), which is
+    what actually keeps headline/country totals consistent with the
+    breakdown views for that front-end; this function is a harmless no-op
+    there in practice (a dead department's lines are already gone by the
+    time this runs). The oracle front-end has no line-level data to
+    re-aggregate from (it reads pre-aggregated sheet cells), so this really
+    is a display-only filter there -- safe today because every dead
+    department's own sales figure is 0 in the source sheet (that's what
+    "dead" means in practice: an empty row Step 4's dynamic discovery
+    stopped hiding), but would silently leave a small residual in the oracle
+    headline if that ever stopped being true.
+    """
+    payload["prod_types"] = [t for t in payload["prod_types"] if t["t"] not in _DEAD_DEPARTMENTS]
+    payload["collections"] = [c for c in payload["collections"] if c["t"] not in _DEAD_DEPARTMENTS]
+    payload["skus_all"] = [s for s in payload["skus_all"] if s.get("type_") not in _DEAD_DEPARTMENTS]
     return payload
 
 
@@ -164,6 +201,7 @@ def emit_contract_from_oracle(oracle_xlsx, out_path=None):
     for sku in payload["skus_all"]:
         sku["is_el_component"] = _is_el_component(sku.get("coll"))
     _strip_vestigial(payload)
+    _exclude_dead_categories(payload)
     provenance = {
         "source": "oracle",
         "reconciled": True,
@@ -424,7 +462,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             if line["order_month"] == period:
                 line["fx_rate"] = fx_rate
                 all_lines.append(line)
-    enriched = enrich_lines(all_lines, ld_index)
+    enriched = [l for l in enrich_lines(all_lines, ld_index) if l["department"] not in _DEAD_DEPARTMENTS]
 
     country_totals = {"UK": 0.0, "US": 0.0, "ROW": 0.0}
     units_totals = {"UK": 0, "US": 0, "ROW": 0}
@@ -690,6 +728,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "collections": collections, "skus_all": skus_all,
     }
     _strip_vestigial(payload)
+    _exclude_dead_categories(payload)
 
     fx_date = f"{period}-01"
     fx_rows = {}

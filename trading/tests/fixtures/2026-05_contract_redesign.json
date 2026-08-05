@@ -11,8 +11,8 @@
     "unmatched_sku_revenue_share": null,
     "country_gaps_vs_oracle": null,
     "lq_ly_source": "oracle_native",
-    "built_at": "2026-08-04T10:40:34.857104+00:00",
-    "commit": "293a781bb4b1a614d361a7cb3188e72afc1da3c4"
+    "built_at": "2026-08-05T11:09:43.101108+00:00",
+    "commit": "6fe84ef43bd4f300f90040df15e119eb4d6f4bca"
   },
   "mode": "month",
   "period_model": {
@@ -316,15 +316,6 @@
           "vs_ly": 0.5062832735181002
         }
       ]
-    },
-    {
-      "t": "Door",
-      "sales": 0,
-      "units": 0,
-      "vs_lq": 0,
-      "vs_ly": 0,
-      "gm": 0,
-      "subcats": []
     },
     {
       "t": "Components",

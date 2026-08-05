@@ -17,8 +17,8 @@
       "2026-05_Monthly_Trading_Report.xlsx",
       "2026-06_Monthly_Trading_Report.xlsx"
     ],
-    "built_at": "2026-08-04T11:10:43.971970+00:00",
-    "commit": "c361976a4b2d77552e7b764ae7e924d5b116ef2d"
+    "built_at": "2026-08-05T11:10:13.719141+00:00",
+    "commit": "6fe84ef43bd4f300f90040df15e119eb4d6f4bca"
   },
   "mode": "quarter",
   "period_model": {
@@ -344,15 +344,6 @@
           "vs_ly": -0.5487413996300451
         }
       ]
-    },
-    {
-      "t": "Door",
-      "sales": 0,
-      "units": 0,
-      "vs_lq": null,
-      "vs_ly": null,
-      "gm": null,
-      "subcats": []
     },
     {
       "t": "Components",

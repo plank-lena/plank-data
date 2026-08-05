@@ -1,27 +1,18 @@
-"""Orchestrate extract → compute → render → validate for one monthly report."""
+"""Orchestrate extract → contract → render → validate for one monthly report."""
 
 import sys
 from pathlib import Path
 
 # Allow running as `python src/pipeline.py` from the repo root
 _SRC = Path(__file__).parent
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
+_TRADING_DIR = _SRC.parent
+for _p in (_SRC, _TRADING_DIR):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 from extract import extract_all
-from compute import (
-    compute_periods, compute_total_sales,
-    compute_statuses, compute_prod_types,
-    compute_skus, compute_newness_skus,
-    compute_collections, compute_finish_data, compute_coll_analysis,
-    compute_kpi_tokens, compute_ribbon_tokens,
-    compute_category_top_collections, compute_movers, compute_matrix,
-    js_block_periods, js_block_collections, js_block_statuses,
-    js_block_prod_types, js_block_skus, js_block_finish_data,
-    js_block_coll_analysis, js_block_newness_skus,
-    js_block_cat_top_collections, js_block_movers, js_block_matrix,
-)
-from render import tokenise, fill_template, build_token_dict
+from render import tokenise
+from contract import emit_contract_from_oracle, render_contract
 from validate import run_all
 
 # In the repo pipeline.py lives in src/; in a bundle it sits at the root next to template/.
@@ -33,9 +24,24 @@ OUTPUT_DIR   = REPO_ROOT / 'output'
 
 
 def run(xlsx_path: Path) -> Path:
+    """Delegates the actual contract-building + rendering to contract.py's
+    emit_contract_from_oracle()/render_contract() (2026-08-05, trading review
+    round 1 T2a) -- this function used to duplicate that whole extract ->
+    compute -> js_block -> token -> fill_template sequence itself, calling
+    compute.py/render.py directly rather than through the contract layer.
+    That meant this path silently never got any mutation contract.py applies
+    on top of extract_all()'s raw shape: not just T2a's dead-category
+    exclusion, but BRIEF #4 step 4's own headline KPIs (yoy_growth_pct/
+    b2b_share) and is_el_component too -- three real, disclosed gaps between
+    this file's output and render_contract's, not just one. Delegating means
+    this can't silently drift out of sync with contract.py again. Still runs
+    validate_input() against the RAW extract_all() output first (not the
+    round-tripped contract), since that check reads worksheet handles
+    (raw['_ws_ms']) the contract layer never carries.
+    """
     print(f'[pipeline] Source: {xlsx_path}')
 
-    # ── 1. Extract ────────────────────────────────────────────────────────────
+    # ── 1. Extract (for validate_input's worksheet-handle checks only) ───────
     print('[pipeline] Extracting...')
     raw = extract_all(xlsx_path)
     pm  = raw['period_model']
@@ -47,69 +53,25 @@ def run(xlsx_path: Path) -> Path:
     for w in in_warns:
         print(f'[validate] INPUT WARNING: {w}')
 
-    # ── 3. Compute ────────────────────────────────────────────────────────────
-    print('[pipeline] Computing...')
-    periods_data  = compute_periods(raw['current'], raw['lm'], raw['ly'], pm)
-    total_sales   = compute_total_sales(raw['current'])
-    statuses_data = compute_statuses(raw['statuses'])
-    types_data    = compute_prod_types(raw['prod_types'])
-    skus_data     = compute_skus(raw['skus_all'])
-    newness_data  = compute_newness_skus(raw['skus_all'])
-    coll_data     = compute_collections(raw['collections'])
-    finish_data   = compute_finish_data(raw['finishes'], raw['skus_all'])
-    coll_analysis = compute_coll_analysis(raw['collections'], raw['skus_all'])
-    kpi_tokens    = compute_kpi_tokens(raw['current'], raw['lm'], pm)
-    ribbon_tokens = compute_ribbon_tokens(raw['current'], raw['lm'], raw['ly'], pm)
-    cat_top_collections = compute_category_top_collections(coll_data)
-    movers  = compute_movers(raw['skus_all'])
-    matrix  = compute_matrix(raw['collections'])
+    # ── 3. Build the contract (extract + all of contract.py's mutations) ─────
+    print('[pipeline] Building contract...')
+    contract = emit_contract_from_oracle(xlsx_path)
 
-    # ── 4. Serialise JS blocks ────────────────────────────────────────────────
-    periods_js      = js_block_periods(periods_data)
-    collections_js  = js_block_collections(coll_data)
-    statuses_js     = js_block_statuses(statuses_data)
-    prod_types_js   = js_block_prod_types(types_data)
-    skus_js         = js_block_skus(skus_data)
-    finish_data_js  = js_block_finish_data(finish_data)
-    coll_analysis_js = js_block_coll_analysis(coll_analysis)
-    newness_skus_js  = js_block_newness_skus(newness_data)
-    cat_top_collections_js = js_block_cat_top_collections(cat_top_collections)
-    movers_js  = js_block_movers(movers)
-    matrix_js  = js_block_matrix(matrix)
-
-    tokens = build_token_dict(
-        periods_js, collections_js, statuses_js, prod_types_js, skus_js,
-        finish_data_js, total_sales, coll_analysis_js, newness_skus_js,
-        kpi_tokens, ribbon_tokens,
-        cat_top_collections_js, movers_js, matrix_js,
-    )
-    # This path reads directly from the oracle xlsx -- no provenance/gate
-    # concept here (that's contract.py's render_contract), so never provisional.
-    tokens['PROVISIONAL_BANNER'] = ''
-
-    # Shared design tokens (2026-08-05 CSS-overhaul brief §2): the :root custom
-    # properties + embedded @font-face rules live once in common/dashboard_
-    # tokens.css and get inlined here verbatim, so trading and returns can't
-    # drift apart on palette/type again. Moving this out of the template
-    # (previously hardcoded there) is intentionally a no-op to rendered output.
-    DASHBOARD_TOKENS_CSS = _HERE / '..' / '..' / 'common' / 'dashboard_tokens.css'
-    tokens['DASHBOARD_TOKENS'] = DASHBOARD_TOKENS_CSS.read_text(encoding='utf-8')
-
-    # ── 5. Tokenise template (once) ───────────────────────────────────────────
+    # ── 4. Tokenise template (once) ───────────────────────────────────────────
     if not TEMPLATE.exists():
         print(f'[pipeline] Tokenising {SRC_TEMPLATE.name} → {TEMPLATE.name}')
         src_html = SRC_TEMPLATE.read_text(encoding='utf-8')
         TEMPLATE.write_text(tokenise(src_html), encoding='utf-8')
 
-    # ── 6. Render ─────────────────────────────────────────────────────────────
+    # ── 5. Render ─────────────────────────────────────────────────────────────
     print('[pipeline] Rendering...')
     template_html = TEMPLATE.read_text(encoding='utf-8')
     from validate import validate_template_source
     for w in validate_template_source(template_html):
         print(f'[validate] TEMPLATE WARNING: {w}')
-    html = fill_template(template_html, tokens)
+    html = render_contract(contract, template_html)
 
-    # ── 7. Validate output ────────────────────────────────────────────────────
+    # ── 6. Validate output ────────────────────────────────────────────────────
     print('[pipeline] Validating output...')
     from validate import validate_output
     out_warns = validate_output(html, pm=pm)
@@ -121,7 +83,7 @@ def run(xlsx_path: Path) -> Path:
     else:
         print(f'[validate] {total_w} warning(s) — review above.')
 
-    # ── 8. Write output ───────────────────────────────────────────────────────
+    # ── 7. Write output ───────────────────────────────────────────────────────
     OUTPUT_DIR.mkdir(exist_ok=True)
     label = pm['cm']['label'].replace(' ', '_')   # e.g. "May_2026"
     out_path = OUTPUT_DIR / f'{label}_dashboard.html'
