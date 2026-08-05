@@ -187,6 +187,13 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
 
 <main>
 
+<!-- ===== 0. WHERE TO START ===== -->
+<section id="s-start"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">00 — Start here</span><h2>Where to start</h2></div>
+  <p class="sec-note">Data-derived pointers into the sections below, for whichever slice is selected — the highest combined-rank SKUs (ruling 3), the sharpest subcategory drift, the fastest-moving trend, and the largest untraceable bucket, ranked by the same rules used throughout this page. Not hand-written commentary — regenerated from the data on every build, so it never goes stale.</p>
+  <div id="startHere"></div>
+</div></section>
+
 <!-- ===== 1. VALUE LOST ===== -->
 <section id="s-value"><div class="wrap">
   <div class="sec-head"><span class="eyebrow">01 — The money</span><h2>What returns cost us</h2></div>
@@ -867,6 +874,66 @@ document.querySelectorAll('#catTable th.sortable').forEach(th=>{
   th.onclick=()=>{const k=th.dataset.k;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=k==='name'?1:-1;}render();};
 });
 
+/* ---------- section 0: where to start ---------- */
+/* Deterministic pointers into the sections below -- top-N by combined rank,
+   threshold-based callouts, all recomputed from the current slice on every
+   render. No hand-written prose naming a specific SKU/subcategory: whatever
+   is actually worst this period surfaces, not whatever was worst last time
+   someone wrote this section by hand. */
+function topSkusByCombinedRank(A,n=3){
+  const all=[];
+  A.byCat.forEach(c=>c.subs.forEach(sc=>sc.skus.forEach(s=>{if(s.sku)all.push({...s,cat:c.name,subcat:sc.name});})));
+  return combinedRank(all).slice(0,n);
+}
+function biggestMovers(A,RA,n=2){
+  const all=[];
+  A.byCat.forEach(c=>c.subs.forEach(sc=>sc.skus.forEach(s=>{if(s.sku&&s.orders>=MIN_TRACKER_ORDERS)all.push(s);})));
+  return all.map(s=>{
+    const series=RA.trend.get(s.sku)||MONTHS.map(()=>0);
+    const settled=series.slice(0,-1);
+    const delta=settled.length>=2?settled[settled.length-1]-settled[0]:0;
+    return {sku:s.sku,dir:direction(series),delta};
+  }).filter(s=>s.delta!==0&&(s.dir.c==='up'||s.dir.c==='down'))
+    .sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)).slice(0,n);
+}
+function renderStartHere(A,RA,VA){
+  const box=document.getElementById('startHere');box.innerHTML='';
+  const items=[];
+
+  topSkusByCombinedRank(A,2).forEach(s=>{
+    items.push({t:'Highest combined rank (rate × value)',
+      b:`<b>${label(s.sku)}</b> (${s.cat} → ${s.subcat}) — ${pc(s.pct)} of orders returned and ${gbp(s.vr)} in stock value, the worst joint rate×value position in this slice (ruling 3). Open ${s.cat} → ${s.subcat} in the tracker below to see it in context.`});
+  });
+
+  const sub=notableSubcategories(A)[0];
+  if(sub){
+    items.push({t:'Subcategory drifting from the pack',
+      b:`<b>${sub.name}</b> (${sub.cat}) returns at ${pc(sub.rate)} vs an average of ${pc(sub.avg)} across subcategories in this slice — ${sub.orders.toLocaleString('en-GB')} orders, ${sub.skus} SKUs. Full outlier list in §06.`});
+  }
+
+  biggestMovers(A,RA,1).forEach(s=>{
+    items.push({t:`Fastest-moving trend (${s.dir.c==='up'?'rising':'falling'})`,
+      b:`<b>${label(s.sku)}</b> — ${s.dir.t} Worth checking whether this is a real trend or a single bad batch.`});
+  });
+
+  if(VA.noSkuTotal>0){
+    const catValues=[...A.byCat.values()].map(c=>c.vr).sort((a,b)=>b-a);
+    const rank=catValues.filter(v=>v>VA.noSkuTotal).length+1;
+    const standing=rank<=catValues.length
+      ? `would rank #${rank} of ${catValues.length+1} if it were its own category`
+      : 'smaller than every category shown here, but still untraceable';
+    items.push({t:'Largest untraceable bucket',
+      b:`${gbp(VA.noSkuTotal)} in refunds cannot be traced to a product (no SKU on the line) — ${standing}. Worth chasing with whoever owns the Shopify export before trusting any category ranking too far.`});
+  }
+
+  if(!items.length){box.innerHTML='<div class="empty">Nothing clears the reporting thresholds in this slice.</div>';return;}
+  items.forEach((o,i)=>{
+    const d=el('div','callout');
+    d.innerHTML=`<span class="eyebrow">${i+1}. ${o.t}</span>${o.b}`;
+    box.appendChild(d);
+  });
+}
+
 /* ---------- section 6: outliers ---------- */
 /* Subcategories the old flat category view hid (e.g. Edge Pull at ~13% vs 8-10%
    elsewhere) -- computed dynamically, not a hardcoded name, so a future build
@@ -944,7 +1011,7 @@ function render(){
   A.byCat.forEach(c=>c.subs.forEach(sc=>sc.skus.forEach(s=>{s.pct=rateOf(s.orders,s.rord);})));
   const bits=[F.month==='All'?PERIOD_LABEL:F.month+' '+YEAR,F.region==='All'?'UK + US':F.region,F.seg.toLowerCase()];
   document.getElementById('scopeLine').textContent=bits.join(' · ');
-  renderValue(A,VA,OA);renderTrend(A,OA);renderReasons(RA);renderReviews(RA);renderTracker(A,RA);renderOutliers(A,RA,VA);
+  renderStartHere(A,RA,VA);renderValue(A,VA,OA);renderTrend(A,OA);renderReasons(RA);renderReviews(RA);renderTracker(A,RA);renderOutliers(A,RA,VA);
 }
 renderNotes();render();
 
