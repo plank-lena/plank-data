@@ -253,8 +253,9 @@ body::before{content:'';position:fixed;inset:0;background:
 .dc-name{font-family:var(--font-m);font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dc-name.sel{color:var(--amber)}
 .dc-bar-wrap{display:flex;align-items:center;gap:4px}
-.dc-track{flex:1;height:10px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.dc-track{flex:1;height:10px;background:var(--surface2);border-radius:2px;overflow:hidden;position:relative}
 .dc-fill{height:100%;border-radius:2px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.dc-fill-lq{position:absolute;top:0;bottom:0;border-right:2px dashed var(--amber)}
 .dc-vals{text-align:right}
 .dc-val-main{font-family:var(--font-m);font-size:10.5px;font-weight:600}
 .dc-val-vs{font-family:var(--font-m);font-size:8.5px;margin-top:2px}
@@ -586,6 +587,7 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
         </div>
       </div>
       <div class="dual-chart" id="coll-chart"></div>
+      <div class="cat-bars-legend"><span><span class="lq-mark"></span>LM benchmark (Sales £ only)</span></div>
       <div class="coll-drill" id="coll-drill"></div>
     </div>
 
@@ -1767,15 +1769,24 @@ function renderCollections() {
   }).slice(0, 25);
   const maxVal = Math.max(...sorted.map(c => m ? toggleVal({uk:c.uk_s,us:c.us_s,total:c.ts}, collGeo) : c.tu), 1);
 
+  // T4a (trading review round 1): LQ/LM benchmark marker under each bar --
+  // real for Sales £ (c.lq_total/lq_uk/lq_us, wired back in T0/T4a's data-
+  // layer work); no per-collection LQ UNITS figure exists in the contract
+  // at all, so the marker is Sales-only, not fabricated for Units mode.
   document.getElementById('coll-chart').innerHTML = sorted.map(c => {
     const val = m ? toggleVal({uk:c.uk_s,us:c.us_s,total:c.ts}, collGeo) : c.tu;
     const barW = (Math.max(val,0) / maxVal * 100).toFixed(1);
+    const lqVal = m ? toggleVal({uk:c.lq_uk,us:c.lq_us,total:c.lq_total}, collGeo) : null;
+    const lqW = (lqVal != null && lqVal > 0) ? (Math.min(lqVal,maxVal) / maxVal * 100).toFixed(1) : null;
     const col = catColor(c.t);
     const isSel = selectedColl === c.c;
     return `
       <div class="dc-row${isSel?' sel':''}" onclick="selectColl('${c.c.replace(/'/g,"\\'")}')">
         <div class="dc-name${isSel?' sel':''}">${c.c}</div>
-        <div class="dc-bar-wrap"><div class="dc-track"><div class="dc-fill" style="width:${barW}%;background:${col};opacity:.75"></div></div></div>
+        <div class="dc-bar-wrap"><div class="dc-track" title="${lqVal!=null?'LM: '+fmtGBP(lqVal):''}">
+          <div class="dc-fill" style="width:${barW}%;background:${col};opacity:.75"></div>
+          ${lqW != null ? `<div class="dc-fill-lq" style="left:${lqW}%"></div>` : ''}
+        </div></div>
         <div class="dc-vals">
           <div class="dc-val-main">${m ? fmtGBP(val) : fmtU(val)}</div>
           <div class="dc-val-vs ${pClass(c.vs_lq)}">${fmtPct(c.vs_lq)}</div>
