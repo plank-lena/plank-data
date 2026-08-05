@@ -302,18 +302,21 @@ def validate_contract(contract, tol=0.001):
     # BRIEF #4 step 4 §10: movers list is Live-only -- recompute against
     # the contract's own skus_all and assert compute_movers()'s filter held
     # (regression guard, not a re-derivation of the movers list itself).
+    # T4b: MOVERS is now {newness:{rising,falling}, continuity:{rising,
+    # falling}} (split by bucket) -- no top-level rising/falling anymore.
     import sys as _sys2
     _sys2.path.insert(0, os.path.join(os.path.dirname(__file__)))
     from compute import compute_movers
     movers = compute_movers(contract.get("skus_all", []))
-    for side in ("rising", "falling"):
-        for m in movers[side]:
-            sku_row = next((s for s in contract.get("skus_all", []) if s["sku"] == m["sku"]), None)
-            is_live = sku_row and (
-                sku_row.get("uk_status") in LIVE_STATUS_VALUES or sku_row.get("us_status") in LIVE_STATUS_VALUES
-            )
-            if not is_live:
-                errors.append(f"movers.{side} contains non-Live SKU {m['sku']!r}")
+    for bucket in ("newness", "continuity"):
+        for side in ("rising", "falling"):
+            for m in movers[bucket][side]:
+                sku_row = next((s for s in contract.get("skus_all", []) if s["sku"] == m["sku"]), None)
+                is_live = sku_row and (
+                    sku_row.get("uk_status") in LIVE_STATUS_VALUES or sku_row.get("us_status") in LIVE_STATUS_VALUES
+                )
+                if not is_live:
+                    errors.append(f"movers.{bucket}.{side} contains non-Live SKU {m['sku']!r}")
 
     # Enrichment coverage threshold -- warn, don't hard-block (known,
     # surfaced in metadata; BRIEF #3 §7 is explicit this isn't a gate).

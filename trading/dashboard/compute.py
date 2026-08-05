@@ -468,14 +468,37 @@ def compute_coll_analysis(collections_raw, skus_all, top_n_skus=10):
 # outline's "collection" framing is superseded by item 4's own requirement,
 # not overlooked.
 
+def _sku_newness(s):
+    """'Newness'/'Continuity'/None for one SKU, across BOTH status
+    vocabularies this codebase carries (see LIVE_STATUS_VALUES' own
+    docstring in contract.py): the oracle path's uk_status/us_status ARE
+    already the coarse bucket strings directly (confirmed against real
+    data: extract_skus_all's status columns literally read 'Continuity'/
+    'Newness'/'Discontinued'/...); the Matrixify path's uk_status/us_status
+    are Line Detail's finer enum ('Live', not 'Newness'), so its bucket
+    comes from the separate newness_bucket field instead (line_detail.py's
+    own newness_bucket, added to skus_all for exactly this split -- T4b).
+    Newness takes priority if the two markets ever disagree, same
+    either-market-counts-as-live spirit as the overall Live filter below.
+    """
+    statuses = {s.get('uk_status'), s.get('us_status')}
+    if 'Newness' in statuses:
+        return 'Newness'
+    if 'Continuity' in statuses:
+        return 'Continuity'
+    return s.get('newness_bucket')
+
+
 def compute_movers(skus_all, top_n=10):
+    """T4b (trading review round 1): movers split into separate Newness and
+    Continuity sections -- still SKU-based, Live-status-only (§4, unchanged),
+    just partitioned by bucket rather than one blended rising/falling pair.
+    """
     live = [
         s for s in skus_all
         if (s.get('uk_status') in LIVE_STATUS_VALUES or s.get('us_status') in LIVE_STATUS_VALUES)
         and s.get('vslq') is not None
     ]
-    rising = sorted(live, key=lambda s: -s['vslq'])[:top_n]
-    falling = sorted(live, key=lambda s: s['vslq'])[:top_n]
 
     def _mk(s):
         return {
@@ -483,7 +506,15 @@ def compute_movers(skus_all, top_n=10):
             'sales': round(s['gross']), 'vs_lq': _r4(s.get('vslq')),
         }
 
-    return {'rising': [_mk(s) for s in rising], 'falling': [_mk(s) for s in falling]}
+    def _rising_falling(bucket_skus):
+        rising = sorted(bucket_skus, key=lambda s: -s['vslq'])[:top_n]
+        falling = sorted(bucket_skus, key=lambda s: s['vslq'])[:top_n]
+        return {'rising': [_mk(s) for s in rising], 'falling': [_mk(s) for s in falling]}
+
+    newness_skus = [s for s in live if _sku_newness(s) == 'Newness']
+    continuity_skus = [s for s in live if _sku_newness(s) == 'Continuity']
+
+    return {'newness': _rising_falling(newness_skus), 'continuity': _rising_falling(continuity_skus)}
 
 
 # ── MATRIX -- revenue x GM bubble points + size-legend values ───────────────
@@ -838,15 +869,24 @@ def js_block_cat_top_collections(cat_top_collections):
 
 
 def js_block_movers(movers):
+    # T4b: MOVERS is now {newness:{rising,falling}, continuity:{rising,falling}}
+    # -- one blended rising/falling pair no longer exists.
     def _row(m):
         return (f'{{sku:{_js_val(m["sku"])},desc:{_js_val(m["desc"])},coll:{_js_val(m["coll"])},'
                 f't:{_js_val(m["type_"])},sales:{m["sales"]},vs_lq:{_js_val(m["vs_lq"])}}}')
-    rising = ',\n'.join('  ' + _row(m) for m in movers['rising'])
-    falling = ',\n'.join('  ' + _row(m) for m in movers['falling'])
+    def _list(rows):
+        return ',\n'.join('    ' + _row(m) for m in rows)
+    def _bucket(b):
+        return (
+            '{\n'
+            f'    rising: [\n{_list(b["rising"])}\n    ],\n'
+            f'    falling: [\n{_list(b["falling"])}\n    ]\n'
+            '  }'
+        )
     return (
         'const MOVERS = {\n'
-        f'  rising: [\n{rising}\n  ],\n'
-        f'  falling: [\n{falling}\n  ]\n'
+        f'  newness: {_bucket(movers["newness"])},\n'
+        f'  continuity: {_bucket(movers["continuity"])}\n'
         '};'
     )
 

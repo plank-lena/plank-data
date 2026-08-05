@@ -148,14 +148,25 @@ def check_movers_populate_from_real_lq(contract):
     must actually populate -- the whole point of chaining a prior quarter
     in. An empty movers list here would mean the self-heal silently isn't
     working, not just an unavailable-data disclosure.
+
+    T4b (trading review round 1): movers are now split into separate
+    newness/continuity buckets (compute_movers' own top_n=10 applies PER
+    bucket, not to one blended list), so this no longer asserts exactly 10
+    -- a bucket with fewer than 10 eligible Live SKUs legitimately returns
+    fewer, that's not a self-heal failure. Asserts both buckets actually
+    populate (not empty), which is the real thing this check guards.
     """
     from compute import compute_movers
     movers = compute_movers(contract["skus_all"])
     n_with_real_vslq = sum(1 for s in contract["skus_all"] if s.get("vslq") is not None)
     print("\n=== QoQ movers populate now that Q1 is a real LQ ===")
     print(f"  SKUs with a real vs_lq: {n_with_real_vslq} of {len(contract['skus_all'])}")
-    print(f"  rising: {len(movers['rising'])}, falling: {len(movers['falling'])}")
-    return n_with_real_vslq > 0 and len(movers["rising"]) == 10 and len(movers["falling"]) == 10
+    for bucket in ("newness", "continuity"):
+        print(f"  {bucket}: rising {len(movers[bucket]['rising'])}, falling {len(movers[bucket]['falling'])}")
+    return n_with_real_vslq > 0 and all(
+        len(movers[b]["rising"]) > 0 and len(movers[b]["falling"]) > 0
+        for b in ("newness", "continuity")
+    )
 
 
 def check_template_renders_no_monthly_leak(contract):

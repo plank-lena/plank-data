@@ -591,13 +591,22 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
       <div class="coll-drill" id="coll-drill"></div>
     </div>
 
-    <!-- MOVERS -->
+    <!-- MOVERS -- split into Newness / Continuity sections (T4b, trading
+         review round 1); still SKU-based, Live-status only (§4) -->
     <div class="sec">
       <div class="sec-hdr">
-        <div class="sec-title">QoQ SKU Movers</div>
+        <div class="sec-title">QoQ SKU Movers — Newness</div>
         <div class="sec-meta">vs Q1 2026 · Live status only</div>
       </div>
-      <div class="movers-pair" id="movers"></div>
+      <div class="movers-pair" id="movers-newness"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-title">QoQ SKU Movers — Continuity</div>
+        <div class="sec-meta">vs Q1 2026 · Live status only</div>
+      </div>
+      <div class="movers-pair" id="movers-continuity"></div>
     </div>
 
     <!-- MATRIX -->
@@ -1075,12 +1084,22 @@ const CAT_TOP_COLLECTIONS = {
 };
 
 const MOVERS = {
-  rising: [
+  newness: {
+    rising: [
 
-  ],
-  falling: [
+    ],
+    falling: [
 
-  ]
+    ]
+  },
+  continuity: {
+    rising: [
+
+    ],
+    falling: [
+
+    ]
+  }
 };
 
 const MATRIX = {
@@ -1855,6 +1874,10 @@ function renderCollDrill() {
 // ================================================================
 // MOVERS (top-10 rising + top-10 falling SKUs, Live-only)
 // ================================================================
+// T4b (trading review round 1): movers split into separate Newness and
+// Continuity sections -- each gets its own rise/fall pair, rendered by the
+// same mkItem/column markup as before, just called twice against MOVERS'
+// new {newness,continuity} shape instead of once against a blended list.
 function renderMovers() {
   const mkItem = (m, cls) => `
     <div class="mover-item">
@@ -1867,15 +1890,19 @@ function renderMovers() {
         <div class="mi-abs">${cls==='up'?'▲':'▼'} vs LQ</div>
       </div>
     </div>`;
-  document.getElementById('movers').innerHTML = `
-    <div class="mover-col rise">
-      <h4>▲ Rising vs LQ</h4>
-      ${MOVERS.rising.map(m => mkItem(m, 'up')).join('') || '<div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">No data</div>'}
-    </div>
-    <div class="mover-col fall">
-      <h4>▼ Falling vs LQ</h4>
-      ${MOVERS.falling.map(m => mkItem(m, 'dn')).join('') || '<div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">No data</div>'}
-    </div>`;
+  const renderBucket = (containerId, bucket) => {
+    document.getElementById(containerId).innerHTML = `
+      <div class="mover-col rise">
+        <h4>▲ Rising vs LQ</h4>
+        ${bucket.rising.map(m => mkItem(m, 'up')).join('') || '<div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">No data</div>'}
+      </div>
+      <div class="mover-col fall">
+        <h4>▼ Falling vs LQ</h4>
+        ${bucket.falling.map(m => mkItem(m, 'dn')).join('') || '<div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">No data</div>'}
+      </div>`;
+  };
+  renderBucket('movers-newness', MOVERS.newness);
+  renderBucket('movers-continuity', MOVERS.continuity);
 }
 
 // ================================================================

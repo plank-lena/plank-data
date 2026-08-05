@@ -16,8 +16,8 @@
       "total": -0.0562
     },
     "lq_ly_source": "oracle_bootstrap",
-    "built_at": "2026-08-05T12:02:41.195124+00:00",
-    "commit": "d00b30fd092d2f896fd3c677cab6225fd7eaf203"
+    "built_at": "2026-08-05T12:15:52.314942+00:00",
+    "commit": "d3a2cb139ddb84c081f366b6d58622f5fcddcfe4"
   },
   "mode": "month",
   "period_model": {
@@ -2138,7 +2138,8 @@
       "us_u": 217.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2161,7 +2162,8 @@
       "us_u": 71.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2184,7 +2186,8 @@
       "us_u": 42.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2207,7 +2210,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2230,7 +2234,8 @@
       "us_u": 48.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2253,7 +2258,8 @@
       "us_u": 15.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2276,7 +2282,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2299,7 +2306,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2322,7 +2330,8 @@
       "us_u": 79.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2345,7 +2354,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -2368,7 +2378,8 @@
       "us_u": 16.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -2391,7 +2402,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2414,7 +2426,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2437,7 +2450,8 @@
       "us_u": 19.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2460,7 +2474,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2483,7 +2498,8 @@
       "us_u": 54.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2506,7 +2522,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2529,7 +2546,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2552,7 +2570,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2575,7 +2594,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2598,7 +2618,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2621,7 +2642,8 @@
       "us_u": 19.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2644,7 +2666,8 @@
       "us_u": 19.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2667,7 +2690,8 @@
       "us_u": 25.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2690,7 +2714,8 @@
       "us_u": 20.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2713,7 +2738,8 @@
       "us_u": 21.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2736,7 +2762,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2759,7 +2786,8 @@
       "us_u": 101.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2782,7 +2810,8 @@
       "us_u": 67.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2805,7 +2834,8 @@
       "us_u": 43.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2828,7 +2858,8 @@
       "us_u": 173.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2851,7 +2882,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2874,7 +2906,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2897,7 +2930,8 @@
       "us_u": 28.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2920,7 +2954,8 @@
       "us_u": 70.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2943,7 +2978,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -2966,7 +3002,8 @@
       "us_u": 49.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -2989,7 +3026,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3012,7 +3050,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3035,7 +3074,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3058,7 +3098,8 @@
       "us_u": 45.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3081,7 +3122,8 @@
       "us_u": 165.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3104,7 +3146,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3127,7 +3170,8 @@
       "us_u": 25.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3150,7 +3194,8 @@
       "us_u": 21.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3173,7 +3218,8 @@
       "us_u": 30.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3196,7 +3242,8 @@
       "us_u": 113.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3219,7 +3266,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3242,7 +3290,8 @@
       "us_u": 35.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3265,7 +3314,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3288,7 +3338,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3311,7 +3362,8 @@
       "us_u": 26.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3334,7 +3386,8 @@
       "us_u": 56.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3357,7 +3410,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -3380,7 +3434,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3403,7 +3458,8 @@
       "us_u": 61.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3426,7 +3482,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3449,7 +3506,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -3472,7 +3530,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3495,7 +3554,8 @@
       "us_u": 159.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3518,7 +3578,8 @@
       "us_u": 19.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3541,7 +3602,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3564,7 +3626,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3587,7 +3650,8 @@
       "us_u": 20.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3610,7 +3674,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3633,7 +3698,8 @@
       "us_u": 191.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3656,7 +3722,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3679,7 +3746,8 @@
       "us_u": 57.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -3702,7 +3770,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3725,7 +3794,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3748,7 +3818,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3771,7 +3842,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3794,7 +3866,8 @@
       "us_u": 346.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3817,7 +3890,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3840,7 +3914,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -3863,7 +3938,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3886,7 +3962,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3909,7 +3986,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3932,7 +4010,8 @@
       "us_u": 37.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -3955,7 +4034,8 @@
       "us_u": 56.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -3978,7 +4058,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4001,7 +4082,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4024,7 +4106,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4047,7 +4130,8 @@
       "us_u": 25.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4070,7 +4154,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4093,7 +4178,8 @@
       "us_u": 303.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4116,7 +4202,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4139,7 +4226,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4162,7 +4250,8 @@
       "us_u": 36.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4185,7 +4274,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4208,7 +4298,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4231,7 +4322,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4254,7 +4346,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4277,7 +4370,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4300,7 +4394,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4323,7 +4418,8 @@
       "us_u": 267.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4346,7 +4442,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4369,7 +4466,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4392,7 +4490,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4415,7 +4514,8 @@
       "us_u": 46.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4438,7 +4538,8 @@
       "us_u": 41.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4461,7 +4562,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4484,7 +4586,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4507,7 +4610,8 @@
       "us_u": 74.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4530,7 +4634,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4553,7 +4658,8 @@
       "us_u": 23.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4576,7 +4682,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4599,7 +4706,8 @@
       "us_u": 70.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4622,7 +4730,8 @@
       "us_u": 16.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4645,7 +4754,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4668,7 +4778,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4691,7 +4802,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4714,7 +4826,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4737,7 +4850,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4760,7 +4874,8 @@
       "us_u": 67.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4783,7 +4898,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4806,7 +4922,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4829,7 +4946,8 @@
       "us_u": 26.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4852,7 +4970,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4875,7 +4994,8 @@
       "us_u": 164.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -4898,7 +5018,8 @@
       "us_u": 38.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4921,7 +5042,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4944,7 +5066,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -4967,7 +5090,8 @@
       "us_u": 203.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -4990,7 +5114,8 @@
       "us_u": 253.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5013,7 +5138,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5036,7 +5162,8 @@
       "us_u": 105.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5059,7 +5186,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5082,7 +5210,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5105,7 +5234,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5128,7 +5258,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -5151,7 +5282,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5174,7 +5306,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -5197,7 +5330,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5220,7 +5354,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5243,7 +5378,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5266,7 +5402,8 @@
       "us_u": 22.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -5289,7 +5426,8 @@
       "us_u": 13.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5312,7 +5450,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5335,7 +5474,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5358,7 +5498,8 @@
       "us_u": 410.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5381,7 +5522,8 @@
       "us_u": 44.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5404,7 +5546,8 @@
       "us_u": 143.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5427,7 +5570,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5450,7 +5594,8 @@
       "us_u": 27.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5473,7 +5618,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5496,7 +5642,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5519,7 +5666,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5542,7 +5690,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5565,7 +5714,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5588,7 +5738,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5611,7 +5762,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5634,7 +5786,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5657,7 +5810,8 @@
       "us_u": 25.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5680,7 +5834,8 @@
       "us_u": 66.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5703,7 +5858,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5726,7 +5882,8 @@
       "us_u": 80.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5749,7 +5906,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5772,7 +5930,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5795,7 +5954,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5818,7 +5978,8 @@
       "us_u": 151.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5841,7 +6002,8 @@
       "us_u": 32.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5864,7 +6026,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5887,7 +6050,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5910,7 +6074,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -5933,7 +6098,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5956,7 +6122,8 @@
       "us_u": 20.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -5979,7 +6146,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6002,7 +6170,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6025,7 +6194,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6048,7 +6218,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6071,7 +6242,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6094,7 +6266,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6117,7 +6290,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6140,7 +6314,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6163,7 +6338,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6186,7 +6362,8 @@
       "us_u": 32.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6209,7 +6386,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6232,7 +6410,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6255,7 +6434,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -6278,7 +6458,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -6301,7 +6482,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6324,7 +6506,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6347,7 +6530,8 @@
       "us_u": 70.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6370,7 +6554,8 @@
       "us_u": 18.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6393,7 +6578,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6416,7 +6602,8 @@
       "us_u": 24.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6439,7 +6626,8 @@
       "us_u": 27.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6462,7 +6650,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6485,7 +6674,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6508,7 +6698,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6531,7 +6722,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6554,7 +6746,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6577,7 +6770,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6600,7 +6794,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6623,7 +6818,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6646,7 +6842,8 @@
       "us_u": 47.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6669,7 +6866,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -6692,7 +6890,8 @@
       "us_u": 60.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6715,7 +6914,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6738,7 +6938,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6761,7 +6962,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6784,7 +6986,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6807,7 +7010,8 @@
       "us_u": 43.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6830,7 +7034,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6853,7 +7058,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6876,7 +7082,8 @@
       "us_u": 37.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6899,7 +7106,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -6922,7 +7130,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6945,7 +7154,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -6968,7 +7178,8 @@
       "us_u": 113.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -6991,7 +7202,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7014,7 +7226,8 @@
       "us_u": 26.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7037,7 +7250,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7060,7 +7274,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7083,7 +7298,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7106,7 +7322,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7129,7 +7346,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7152,7 +7370,8 @@
       "us_u": 30.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7175,7 +7394,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7198,7 +7418,8 @@
       "us_u": 34.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7221,7 +7442,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7244,7 +7466,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7267,7 +7490,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7290,7 +7514,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7313,7 +7538,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7336,7 +7562,8 @@
       "us_u": 15.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7359,7 +7586,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7382,7 +7610,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7405,7 +7634,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7428,7 +7658,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7451,7 +7682,8 @@
       "us_u": 28.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7474,7 +7706,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7497,7 +7730,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7520,7 +7754,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7543,7 +7778,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7566,7 +7802,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7589,7 +7826,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7612,7 +7850,8 @@
       "us_u": 89.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7635,7 +7874,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7658,7 +7898,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7681,7 +7922,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7704,7 +7946,8 @@
       "us_u": 12.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7727,7 +7970,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7750,7 +7994,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7773,7 +8018,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7796,7 +8042,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7819,7 +8066,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7842,7 +8090,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7865,7 +8114,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7888,7 +8138,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -7911,7 +8162,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -7934,7 +8186,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7957,7 +8210,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -7980,7 +8234,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8003,7 +8258,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8026,7 +8282,8 @@
       "us_u": 20.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8049,7 +8306,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8072,7 +8330,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8095,7 +8354,8 @@
       "us_u": 25.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -8118,7 +8378,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8141,7 +8402,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -8164,7 +8426,8 @@
       "us_u": 51.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8187,7 +8450,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8210,7 +8474,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -8233,7 +8498,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8256,7 +8522,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8279,7 +8546,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8302,7 +8570,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8325,7 +8594,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8348,7 +8618,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8371,7 +8642,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8394,7 +8666,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8417,7 +8690,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -8440,7 +8714,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8463,7 +8738,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8486,7 +8762,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8509,7 +8786,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8532,7 +8810,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8555,7 +8834,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8578,7 +8858,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8601,7 +8882,8 @@
       "us_u": 75.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8624,7 +8906,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8647,7 +8930,8 @@
       "us_u": 69.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8670,7 +8954,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8693,7 +8978,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -8716,7 +9002,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8739,7 +9026,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8762,7 +9050,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8785,7 +9074,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8808,7 +9098,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -8831,7 +9122,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8854,7 +9146,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8877,7 +9170,8 @@
       "us_u": 17.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -8900,7 +9194,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -8923,7 +9218,8 @@
       "us_u": 85.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8946,7 +9242,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8969,7 +9266,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -8992,7 +9290,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9015,7 +9314,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9038,7 +9338,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9061,7 +9362,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9084,7 +9386,8 @@
       "us_u": 25.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -9107,7 +9410,8 @@
       "us_u": 23.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9130,7 +9434,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9153,7 +9458,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9176,7 +9482,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -9199,7 +9506,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9222,7 +9530,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9245,7 +9554,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9268,7 +9578,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9291,7 +9602,8 @@
       "us_u": 43.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -9314,7 +9626,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9337,7 +9650,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9360,7 +9674,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9383,7 +9698,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9406,7 +9722,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9429,7 +9746,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9452,7 +9770,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -9475,7 +9794,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9498,7 +9818,8 @@
       "us_u": 17.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9521,7 +9842,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9544,7 +9866,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9567,7 +9890,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9590,7 +9914,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9613,7 +9938,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9636,7 +9962,8 @@
       "us_u": 22.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9659,7 +9986,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9682,7 +10010,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9705,7 +10034,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9728,7 +10058,8 @@
       "us_u": 18.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -9751,7 +10082,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -9774,7 +10106,8 @@
       "us_u": 55.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9797,7 +10130,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9820,7 +10154,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9843,7 +10178,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9866,7 +10202,8 @@
       "us_u": 13.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9889,7 +10226,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9912,7 +10250,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9935,7 +10274,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -9958,7 +10298,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -9981,7 +10322,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10004,7 +10346,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10027,7 +10370,8 @@
       "us_u": 41.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10050,7 +10394,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10073,7 +10418,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10096,7 +10442,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10119,7 +10466,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10142,7 +10490,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10165,7 +10514,8 @@
       "us_u": 34.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10188,7 +10538,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10211,7 +10562,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10234,7 +10586,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10257,7 +10610,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10280,7 +10634,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10303,7 +10658,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10326,7 +10682,8 @@
       "us_u": 59.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10349,7 +10706,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10372,7 +10730,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10395,7 +10754,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10418,7 +10778,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10441,7 +10802,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10464,7 +10826,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10487,7 +10850,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10510,7 +10874,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10533,7 +10898,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10556,7 +10922,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10579,7 +10946,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10602,7 +10970,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10625,7 +10994,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10648,7 +11018,8 @@
       "us_u": 58.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10671,7 +11042,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10694,7 +11066,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10717,7 +11090,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10740,7 +11114,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10763,7 +11138,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10786,7 +11162,8 @@
       "us_u": 45.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10809,7 +11186,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10832,7 +11210,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10855,7 +11234,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10878,7 +11258,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10901,7 +11282,8 @@
       "us_u": 96.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10924,7 +11306,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -10947,7 +11330,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -10970,7 +11354,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -10993,7 +11378,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11016,7 +11402,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11039,7 +11426,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11062,7 +11450,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11085,7 +11474,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11108,7 +11498,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11131,7 +11522,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11154,7 +11546,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11177,7 +11570,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11200,7 +11594,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11223,7 +11618,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11246,7 +11642,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11269,7 +11666,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11292,7 +11690,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11315,7 +11714,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11338,7 +11738,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11361,7 +11762,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11384,7 +11786,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11407,7 +11810,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11430,7 +11834,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11453,7 +11858,8 @@
       "us_u": 55.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11476,7 +11882,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11499,7 +11906,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11522,7 +11930,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11545,7 +11954,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11568,7 +11978,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11591,7 +12002,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11614,7 +12026,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11637,7 +12050,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11660,7 +12074,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11683,7 +12098,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11706,7 +12122,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11729,7 +12146,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11752,7 +12170,8 @@
       "us_u": 15.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11775,7 +12194,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11798,7 +12218,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11821,7 +12242,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11844,7 +12266,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11867,7 +12290,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11890,7 +12314,8 @@
       "us_u": 30.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -11913,7 +12338,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -11936,7 +12362,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -11959,7 +12386,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -11982,7 +12410,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12005,7 +12434,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12028,7 +12458,8 @@
       "us_u": 38.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12051,7 +12482,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12074,7 +12506,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12097,7 +12530,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12120,7 +12554,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12143,7 +12578,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12166,7 +12602,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12189,7 +12626,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12212,7 +12650,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12235,7 +12674,8 @@
       "us_u": 18.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12258,7 +12698,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12281,7 +12722,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12304,7 +12746,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12327,7 +12770,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12350,7 +12794,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12373,7 +12818,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12396,7 +12842,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12419,7 +12866,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12442,7 +12890,8 @@
       "us_u": 13.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12465,7 +12914,8 @@
       "us_u": 51.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12488,7 +12938,8 @@
       "us_u": 20.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12511,7 +12962,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12534,7 +12986,8 @@
       "us_u": 15.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12557,7 +13010,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12580,7 +13034,8 @@
       "us_u": 13.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12603,7 +13058,8 @@
       "us_u": 15.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12626,7 +13082,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12649,7 +13106,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12672,7 +13130,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12695,7 +13154,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12718,7 +13178,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12741,7 +13202,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12764,7 +13226,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12787,7 +13250,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12810,7 +13274,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12833,7 +13298,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12856,7 +13322,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12879,7 +13346,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12902,7 +13370,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -12925,7 +13394,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -12948,7 +13418,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12971,7 +13442,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -12994,7 +13466,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13017,7 +13490,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13040,7 +13514,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13063,7 +13538,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13086,7 +13562,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13109,7 +13586,8 @@
       "us_u": 13.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13132,7 +13610,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13155,7 +13634,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13178,7 +13658,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13201,7 +13682,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13224,7 +13706,8 @@
       "us_u": 19.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13247,7 +13730,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13270,7 +13754,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13293,7 +13778,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13316,7 +13802,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13339,7 +13826,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13362,7 +13850,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13385,7 +13874,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13408,7 +13898,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13431,7 +13922,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13454,7 +13946,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13477,7 +13970,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13500,7 +13994,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13523,7 +14018,8 @@
       "us_u": 32.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13546,7 +14042,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13569,7 +14066,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13592,7 +14090,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13615,7 +14114,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13638,7 +14138,8 @@
       "us_u": 12.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -13661,7 +14162,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13684,7 +14186,8 @@
       "us_u": 0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13707,7 +14210,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13730,7 +14234,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13753,7 +14258,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13776,7 +14282,8 @@
       "us_u": 12.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13799,7 +14306,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13822,7 +14330,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -13845,7 +14354,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13868,7 +14378,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13891,7 +14402,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13914,7 +14426,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13937,7 +14450,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13960,7 +14474,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -13983,7 +14498,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14006,7 +14522,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14029,7 +14546,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14052,7 +14570,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14075,7 +14594,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14098,7 +14618,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14121,7 +14642,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14144,7 +14666,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14167,7 +14690,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14190,7 +14714,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14213,7 +14738,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14236,7 +14762,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14259,7 +14786,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14282,7 +14810,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14305,7 +14834,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14328,7 +14858,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14351,7 +14882,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14374,7 +14906,8 @@
       "us_u": 14.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14397,7 +14930,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -14420,7 +14954,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14443,7 +14978,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14466,7 +15002,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14489,7 +15026,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14512,7 +15050,8 @@
       "us_u": 40.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14535,7 +15074,8 @@
       "us_u": 37.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14558,7 +15098,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14581,7 +15122,8 @@
       "us_u": 18.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14604,7 +15146,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14627,7 +15170,8 @@
       "us_u": 71.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14650,7 +15194,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14673,7 +15218,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14696,7 +15242,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14719,7 +15266,8 @@
       "us_u": 27.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14742,7 +15290,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14765,7 +15314,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14788,7 +15338,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14811,7 +15362,8 @@
       "us_u": 38.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14834,7 +15386,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14857,7 +15410,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14880,7 +15434,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14903,7 +15458,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14926,7 +15482,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14949,7 +15506,8 @@
       "us_u": 32.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -14972,7 +15530,8 @@
       "us_u": 16.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -14995,7 +15554,8 @@
       "us_u": 11.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15018,7 +15578,8 @@
       "us_u": 20.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15041,7 +15602,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15064,7 +15626,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15087,7 +15650,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15110,7 +15674,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -15133,7 +15698,8 @@
       "us_u": 41.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15156,7 +15722,8 @@
       "us_u": 31.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15179,7 +15746,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15202,7 +15770,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15225,7 +15794,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15248,7 +15818,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15271,7 +15842,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15294,7 +15866,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15317,7 +15890,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15340,7 +15914,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15363,7 +15938,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15386,7 +15962,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15409,7 +15986,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15432,7 +16010,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15455,7 +16034,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15478,7 +16058,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15501,7 +16082,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15524,7 +16106,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15547,7 +16130,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15570,7 +16154,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15593,7 +16178,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15616,7 +16202,8 @@
       "us_u": 17.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15639,7 +16226,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -15662,7 +16250,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15685,7 +16274,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15708,7 +16298,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15731,7 +16322,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15754,7 +16346,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15777,7 +16370,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15800,7 +16394,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15823,7 +16418,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15846,7 +16442,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15869,7 +16466,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15892,7 +16490,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15915,7 +16514,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15938,7 +16538,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -15961,7 +16562,8 @@
       "us_u": 10.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -15984,7 +16586,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16007,7 +16610,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16030,7 +16634,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -16053,7 +16658,8 @@
       "us_u": 15.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16076,7 +16682,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16099,7 +16706,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16122,7 +16730,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16145,7 +16754,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16168,7 +16778,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16191,7 +16802,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -16214,7 +16826,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -16237,7 +16850,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -16260,7 +16874,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -16283,7 +16898,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16306,7 +16922,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16329,7 +16946,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16352,7 +16970,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -16375,7 +16994,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16398,7 +17018,8 @@
       "us_u": 34.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16421,7 +17042,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16444,7 +17066,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16467,7 +17090,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16490,7 +17114,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16513,7 +17138,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16536,7 +17162,8 @@
       "us_u": 43.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16559,7 +17186,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16582,7 +17210,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16605,7 +17234,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16628,7 +17258,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16651,7 +17282,8 @@
       "us_u": 12.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16674,7 +17306,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -16697,7 +17330,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -16720,7 +17354,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16743,7 +17378,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16766,7 +17402,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16789,7 +17426,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -16812,7 +17450,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16835,7 +17474,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16858,7 +17498,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16881,7 +17522,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -16904,7 +17546,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -16927,7 +17570,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16950,7 +17594,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -16973,7 +17618,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -16996,7 +17642,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17019,7 +17666,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17042,7 +17690,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17065,7 +17714,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17088,7 +17738,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17111,7 +17762,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17134,7 +17786,8 @@
       "us_u": 7.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17157,7 +17810,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17180,7 +17834,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17203,7 +17858,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17226,7 +17882,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17249,7 +17906,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17272,7 +17930,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17295,7 +17954,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17318,7 +17978,8 @@
       "us_u": 19.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17341,7 +18002,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17364,7 +18026,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17387,7 +18050,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17410,7 +18074,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17433,7 +18098,8 @@
       "us_u": 9.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17456,7 +18122,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17479,7 +18146,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17502,7 +18170,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17525,7 +18194,8 @@
       "us_u": 16.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17548,7 +18218,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17571,7 +18242,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17594,7 +18266,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17617,7 +18290,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17640,7 +18314,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17663,7 +18338,8 @@
       "us_u": 8.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17686,7 +18362,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17709,7 +18386,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17732,7 +18410,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17755,7 +18434,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17778,7 +18458,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17801,7 +18482,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17824,7 +18506,8 @@
       "us_u": 5.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17847,7 +18530,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17870,7 +18554,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17893,7 +18578,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -17916,7 +18602,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17939,7 +18626,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -17962,7 +18650,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -17985,7 +18674,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18008,7 +18698,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18031,7 +18722,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -18054,7 +18746,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18077,7 +18770,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18100,7 +18794,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -18123,7 +18818,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18146,7 +18842,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -18169,7 +18866,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18192,7 +18890,8 @@
       "us_u": 4.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18215,7 +18914,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": true
+      "is_el_component": true,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18238,7 +18938,8 @@
       "us_u": 3.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18261,7 +18962,8 @@
       "us_u": 6.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18284,7 +18986,8 @@
       "us_u": 34.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18307,7 +19010,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -18330,7 +19034,8 @@
       "us_u": 2.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     },
     {
       "rank": null,
@@ -18353,7 +19058,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Newness"
     },
     {
       "rank": null,
@@ -18376,7 +19082,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -18399,7 +19106,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": "Continuity"
     },
     {
       "rank": null,
@@ -18422,7 +19130,8 @@
       "us_u": 1.0,
       "lq": null,
       "ly": null,
-      "is_el_component": false
+      "is_el_component": false,
+      "newness_bucket": null
     }
   ]
 }

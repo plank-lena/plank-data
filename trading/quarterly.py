@@ -332,7 +332,11 @@ def _aggregate_skus(months, lq=None):
             if isinstance(s.get('gm'), (int, float)) and s.get('gross'):
                 t['gm_num'] += s['gross'] * s['gm']
                 t['gm_den'] += s['gross']
-            for field in ('desc', 'coll', 'type_', 'finish', 'uk_status', 'us_status'):
+            # T4b: newness_bucket carried through "as of quarter end" too --
+            # same static-attribute convention as desc/coll/type_/finish/
+            # status (latest month's value wins), needed for the Matrixify
+            # quarterly path's own Newness/Continuity movers split.
+            for field in ('desc', 'coll', 'type_', 'finish', 'uk_status', 'us_status', 'newness_bucket'):
                 if s.get(field):
                     t[field] = s[field]
 
@@ -351,6 +355,7 @@ def _aggregate_skus(months, lq=None):
             'd2c': t['d2c'], 'b2b': t['b2b'], 'uk': t['uk'], 'uk_u': t['uk_u'],
             'us': t['us'], 'us_u': t['us_u'],
             'lq': prior_gross, 'ly': (t['ly'] if t['_ly_seen'] else None),
+            'newness_bucket': t.get('newness_bucket'),
         })
     return skus_all
 

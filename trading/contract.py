@@ -601,6 +601,11 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             "desc": line["description"], "coll": line["collection"], "type_": line["department"],
             "finish": line["finish"], "uk_status": line["status_uk"], "us_status": line["status_us"],
             "gm": line["gm_pct"], "is_el_component": line["is_el_component"],
+            # T4b: split movers into Newness/Continuity sections -- a static
+            # per-SKU catalog attribute (line_detail.py's own newness_bucket,
+            # already used to build LIVE_STATUS_VALUES' per-line status
+            # rollup), not something that varies line to line for one SKU.
+            "newness_bucket": line["newness_bucket"],
         })
         s["gross"] += ab
         s["units"] += line["units"]
@@ -807,7 +812,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "gross": v["gross"], "units": v["units"], "vslq": None, "gm": v["gm"],
         "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "uk_u": v["uk_u"],
         "us": v["us"], "us_u": v["us_u"], "lq": None, "ly": None,
-        "is_el_component": v["is_el_component"],
+        "is_el_component": v["is_el_component"], "newness_bucket": v["newness_bucket"],
     } for sku, v in sku_totals.items()]
 
     payload = {
