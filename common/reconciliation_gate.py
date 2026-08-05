@@ -21,6 +21,12 @@ Returns-specific rules implemented here:
     orders floor (assert_min_orders_threshold, D2 §2).
   - Buckets that must always be surfaced (e.g. no-SKU refunds, D2 §3) must
     be reported even when zero, never silently dropped (assert_bucket_reported).
+  - A returns export must actually overlap the sales cohort it's paired with,
+    by a plausible margin (assert_returns_overlap_sales) -- learned the hard
+    way: a wrong/partial returns file can join cleanly (no error) while
+    matching almost none of the period's real orders, silently producing a
+    near-empty, garbage-low return rate. Don't trust a source file by its
+    filename; check that it actually covers what it's supposed to.
 
 Trading-specific rule implemented here:
   - uk + us + row must equal an INDEPENDENTLY computed grand total (summed
@@ -172,4 +178,30 @@ def assert_bucket_reported(value, label):
     assert value is not None, (
         f"RECONCILE FAIL: {label} bucket missing -- must be reported "
         f"explicitly (even if zero), never silently dropped"
+    )
+
+
+def assert_returns_overlap_sales(returned_orders, sales_orders, min_rate=0.01, min_absolute=5):
+    """Assert a returns export actually covers the sales cohort it's paired
+    with, by a plausible margin -- not just that the join ran without error.
+
+    Learned the hard way building the Q2 dashboard: a plausibly-named but
+    wrong/partial returns export (source/ytd_returns.csv, 1,040 rows) joined
+    cleanly against Q1 sales with zero errors, but matched only 54 of 9,768
+    orders (0.55%) -- an implausible return rate for a real store, and a
+    silent sign the file was a sample/wrong scope, not the thing it claimed
+    to be. The real export (ytd_returns_2.numbers) matched 715/9,768 (7.3%).
+
+    returned_orders: distinct sales orders in this period with >=1 matching
+        return (i.e. ret["order"].nunique() after the period join).
+    sales_orders: distinct sales orders in this period (s["order"].nunique()).
+    min_rate/min_absolute: generous floors, not a precise expectation -- this
+    catches "the file is obviously wrong," not "the rate looks a bit off."
+    """
+    rate = returned_orders / sales_orders if sales_orders else 0
+    assert returned_orders >= min_absolute and rate >= min_rate, (
+        f"RECONCILE FAIL: only {returned_orders} of {sales_orders} sales orders "
+        f"({rate:.2%}) have a matching return in this period -- implausibly low "
+        f"for a real returns export. Check the returns source file actually "
+        f"covers this period/cohort; don't trust it by filename alone."
     )

@@ -88,6 +88,7 @@ from common.reconciliation_gate import (
     assert_no_impossible_rate,
     assert_min_orders_threshold,
     assert_bucket_reported,
+    assert_returns_overlap_sales,
 )
 
 DEFAULT_MONTH_NUMS = [1, 2, 3]
@@ -318,6 +319,7 @@ def prep(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
         stage=("stage", "first"),
     )
     ret = ret.join(home, on="order", how="inner")
+    assert_returns_overlap_sales(ret["order"].nunique(), s["order"].nunique())
 
     # enrich (status + finish, from Line Detail)
     status_lookup = dict(zip(ld_std["sku"], ld_std["status"]))
