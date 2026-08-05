@@ -2,11 +2,11 @@
 workbook + returns export must reproduce the committed 2026Q1 fixture within
 tolerance.
 
-Requires source/Q1_Jan_Feb_Mar_2026.xlsx and source/ytd_returns_2.numbers
-locally -- both are gitignored (dropped feeds, per ROADMAP.md), so this test
-is a maintainer-local check, not something CI can run without them present.
-Skips (does not fail) if either source is missing, since that's an
-environment gap, not a correctness regression.
+Requires source/Q1_Jan_Feb_Mar_2026.xlsx, source/ytd_returns_2.numbers (UK), and
+source/ytd_returns_us.numbers (US) locally -- all gitignored (dropped feeds, per
+ROADMAP.md), so this test is a maintainer-local check, not something CI can run
+without them present. Skips (does not fail) if any source is missing, since
+that's an environment gap, not a correctness regression.
 
 Run:  python returns/tests/test_regression.py
 """
@@ -22,7 +22,10 @@ from returns import build
 HERE = os.path.dirname(__file__)
 FIXTURE_DIR = os.path.join(HERE, "fixtures", "2026Q1")
 SRC = os.path.join(HERE, "..", "..", "source", "Q1_Jan_Feb_Mar_2026.xlsx")
-RETURNS_SRC = os.path.join(HERE, "..", "..", "source", "ytd_returns_2.numbers")
+RETURNS_SRC = [
+    os.path.join(HERE, "..", "..", "source", "ytd_returns_2.numbers"),
+    os.path.join(HERE, "..", "..", "source", "ytd_returns_us.numbers"),
+]
 TOL = 0.001  # 0.1% relative, matches the reconciliation gate's tolerance
 
 
@@ -66,7 +69,7 @@ def _compare_dict(name, actual, expected_row):
 
 
 def main():
-    if not os.path.exists(SRC) or not os.path.exists(RETURNS_SRC):
+    if not os.path.exists(SRC) or not all(os.path.exists(p) for p in RETURNS_SRC):
         print(f"SKIP: source file(s) not found ({SRC}, {RETURNS_SRC}) -- maintainer-local test")
         return 0
 

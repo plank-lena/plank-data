@@ -32,9 +32,15 @@ RULED (Q1 2026 review meeting, see BRIEF_returns_dashboard_v2.md §1-§7):
 
 MULTI-SOURCE (2026-08-05): the sales side and the returns side are loaded
 independently and joined only by order id, so any period can be built by pairing
-whichever sales source covers it with a rolling returns-app export (a .csv or
-.numbers, e.g. source/ytd_returns_2.numbers, not scoped to one quarter -- see
-load_returns_export()):
+whichever sales source covers it with the rolling returns-app exports (.csv or
+.numbers, not scoped to one quarter -- see load_returns_export()). The returns
+side is itself TWO per-store exports, not one: source/ytd_returns_2.numbers
+(UK) + source/ytd_returns_us.numbers (US) -- confirmed 2026-08-05 that a
+single combined export never existed; every row of the original "one rolling
+file" fell in the UK store's order-id range only, silently zeroing US on both
+dashboards until the per-market overlap assert (see prep()) was added to catch
+this class of bug for good. Always pass both when building a period that spans
+both markets.
   - Q1 2026: load_workbook_sales() -- the single Q1_Jan_Feb_Mar_2026.xlsx workbook
     (Shopify Data + Line Detail sheets).
   - Q2 2026 (and beyond): load_matrixify_sales() + load_line_detail_file() --
@@ -108,7 +114,8 @@ FAULT_REASONS = {
 FAULT_SUBREASONS = {"Size", "Function"}  # unchanged from the pre-existing quality logic
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "source/Q1_Jan_Feb_Mar_2026.xlsx"
-RETURNS_SRC = sys.argv[2] if len(sys.argv) > 2 else "source/ytd_returns_2.numbers"
+RETURNS_SRC = (sys.argv[2].split(",") if len(sys.argv) > 2
+               else ["source/ytd_returns_2.numbers", "source/ytd_returns_us.numbers"])
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +266,7 @@ def _read_returns_table(path):
     return pd.read_csv(path, encoding="utf-8-sig")
 
 
-def load_returns_export(path):
+def load_returns_export(paths):
     """A rolling returns-app export (Order Id, Stage, SKU, Quantity, Return Type,
     Return Reason, Please tell us why, ...), not scoped to any one quarter -- .csv
     or .numbers. No Country column -- unneeded, since mkt/seg are always sourced
@@ -268,8 +275,29 @@ def load_returns_export(path):
     against a real export; Order Id is the same Shopify-internal numeric id space
     as both the workbook's Shopify Data sheet and Matrixify's own "ID" column, so
     it joins cleanly against either sales source.
+
+    `paths`: a single path, or an iterable of paths -- the returns-app exports
+    per store (e.g. source/ytd_returns_2.numbers for UK + source/ytd_returns_us
+    .numbers for US) are two SEPARATE files, not one combined export (confirmed
+    2026-08-05: the "single rolling export" only ever covered the UK store's
+    order-id range -- 0 of 8,114 rows fell in the US store's id space -- which
+    silently zeroed every US figure on both committed dashboards until this was
+    caught; see the per-market assert_returns_overlap_sales call in prep()).
+    Multiple exports are simply concatenated before the sku+order dedupe join,
+    since market is never read from this file. Stores' exports aren't
+    guaranteed to carry the same optional columns -- e.g. the US export has no
+    "Please tell us why" free-text column at all -- so a frame missing it gets
+    it filled in as blank before the same "(none)" fallback applies.
     """
-    df = _read_returns_table(path)
+    if isinstance(paths, (str, os.PathLike)):
+        paths = [paths]
+    frames = []
+    for path in paths:
+        df = _read_returns_table(path)
+        if "Please tell us why" not in df.columns:
+            df["Please tell us why"] = None
+        frames.append(df)
+    df = pd.concat(frames, ignore_index=True, sort=False)
     return pd.DataFrame({
         "order": pd.array(df["Order Id"], dtype="Int64").astype(str),
         "sku": df["SKU"].astype(str).str.strip(),
@@ -320,6 +348,15 @@ def prep(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
     )
     ret = ret.join(home, on="order", how="inner")
     assert_returns_overlap_sales(ret["order"].nunique(), s["order"].nunique())
+    # Per-market too, not just overall -- a market can silently drop out of a
+    # blended-file check that still passes because another market's overlap is
+    # healthy (this is exactly how US returns went to zero unnoticed: the
+    # combined UK+US assert above stayed green off UK's overlap alone).
+    for mkt in sorted(s["mkt"].dropna().unique()):
+        assert_returns_overlap_sales(
+            ret.loc[ret["mkt"] == mkt, "order"].nunique(),
+            s.loc[s["mkt"] == mkt, "order"].nunique(),
+        )
 
     # enrich (status + finish, from Line Detail)
     status_lookup = dict(zip(ld_std["sku"], ld_std["status"]))
