@@ -527,7 +527,8 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
 
 # ── Matrixify front-end ──────────────────────────────────────────────────────
 
-def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, lq_contract=None, out_path=None):
+def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, lq_contract=None,
+                                          oracle_bootstrap_path=None, out_path=None):
     """The Matrixify-sourced quarterly contract. month_specs: 3
     (period, uk_csv, us_csv) tuples in chronological order. lq_contract:
     same meaning as emit_contract_from_oracle_quarter's -- a previously-
@@ -546,6 +547,25 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     RECONCILE_HANDOFF.md for why: the oracle's returns figure reflects an
     early, still-maturing snapshot (~9-15 days post-close) that a
     deterministic rebuild cannot reproduce exactly by design.
+
+    oracle_bootstrap_path (2026-08-05, B2 -- round 2 review): a real
+    QUARTERLY-mode oracle workbook (e.g. 2026-Q2_Quarterly_Trading_Report.
+    xlsx), used ONLY to backfill per-SKU vslq/lq when no lq_contract is
+    available -- _aggregate_skus's own vslq is None for every SKU without a
+    real prior quarter to chain from (confirmed: 0/928 SKUs on the first
+    Q2 2026 build, which is what emptied Movers and the SKU Performance
+    vs-LM columns on quarterly builds). This quarterly oracle file turns
+    out to carry genuine Q1-vs-Q2 SKU-level data in its own sheet (896/924
+    SKUs had a real vslq when checked directly) -- the same "the oracle
+    file already has this, just extract and match by SKU code" technique
+    T4a used for collections and the monthly per-SKU fix used for months,
+    one level up. Matched by exact SKU code; only fills SKUs lq_contract-
+    chaining left as None (a real lq_contract, when present, is a higher-
+    fidelity source -- an actual previously-published quarter -- and wins).
+    Does NOT touch any other block (collections/finishes/prod_types stay
+    on their existing lq_contract-only mechanism) -- scoped precisely to
+    the one field this bug report is about, not a general quarterly-oracle-
+    bootstrap facility.
     """
     if len(month_specs) != 3:
         raise ValueError(f"emit_contract_from_matrixify_quarter needs exactly 3 months, got {len(month_specs)}")
@@ -567,6 +587,27 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
 
     lq = load_contract(lq_contract) if lq_contract is not None else None
     payload = _aggregate_quarter_payload(months, lq=lq)
+
+    # B2: backfill per-SKU vslq/lq from the quarterly oracle bootstrap where
+    # lq_contract-chaining left it None -- see this function's own docstring.
+    if oracle_bootstrap_path is not None:
+        oracle_q = extract_all(oracle_bootstrap_path)
+        oracle_sku_lq = {
+            sk['sku']: sk['lq'] for sk in oracle_q.get('skus_all', [])
+            if isinstance(sk.get('lq'), (int, float))
+        }
+        matched = 0
+        for s in payload['skus_all']:
+            if s.get('vslq') is None and s['sku'] in oracle_sku_lq:
+                lq_val = oracle_sku_lq[s['sku']]
+                s['vslq'] = _vs(s['gross'], lq_val)
+                s['lq'] = round(lq_val, 2)
+                matched += 1
+        print(f"quarterly: {matched}/{len(payload['skus_all'])} SKUs backfilled with the quarterly "
+              f"oracle bootstrap's own per-SKU vs-LQ (exact SKU code match) -- unmatched ones keep "
+              f"vslq=None/lq=None (a genuinely new SKU this quarter, or one the oracle sheet doesn't "
+              f"carry), never fabricated.", file=sys.stderr)
+
     _add_headline_kpis(payload['current'])
     for sku in payload['skus_all']:
         sku['is_el_component'] = _is_el_component(sku.get('coll'))
@@ -597,7 +638,14 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
         'enrichment_coverage': None,
         'unmatched_sku_revenue_share': None,
         'country_gaps_vs_oracle': [c['provenance'].get('country_gaps_vs_oracle') for c in month_contracts],
-        'lq_ly_source': 'ly_from_monthly_matrixify_blocks__lq_unavailable',
+        # B2: the headline-level LQ this label already describes stays
+        # unavailable either way (no real Q1 total_sales chain) -- the
+        # oracle bootstrap only ever backfills the FINER-grained per-SKU
+        # vslq (Movers/SKU Performance), so that's called out as its own
+        # suffix rather than overloading what "lq_unavailable" means here.
+        'lq_ly_source': ('ly_from_monthly_matrixify_blocks__lq_unavailable__sku_vslq_from_oracle_bootstrap'
+                          if oracle_bootstrap_path
+                          else 'ly_from_monthly_matrixify_blocks__lq_unavailable'),
         'aggregated_from': [p for p, _, _ in month_specs],
         'built_at': datetime.now(timezone.utc).isoformat(),
         'commit': _git_commit(),

@@ -17,7 +17,15 @@ Matrixify front-end. Fixing it means deciding how each month should source
 its own lm/ly inside the aggregate (bootstrap each month from its own
 oracle fixture too? chain from already-committed monthly Matrixify
 contracts?) -- a real decision for whoever owns quarterly.py next, not
-something this glue script should decide silently.
+something this glue script should decide silently. (Separately: round-2
+review's B3 -- vs-LY is unavailable at the QUARTER headline grain for the
+same underlying reason, no 2025 Matrixify data exists to source it from;
+that's a data-staging decision, not something this script can fix either.)
+
+Auto-detects a quarterly oracle bootstrap file (_QUARTER_ORACLE_FIXTURES)
+for the SKU-level vs-LQ backfill (B2, round-2 review) -- see
+emit_contract_from_matrixify_quarter's own docstring for what this does
+and doesn't cover.
 
 Run:
   python trading/build_matrixify_quarterly_dashboard.py 2026-04 2026-05 2026-06
@@ -37,8 +45,15 @@ from quarterly import emit_contract_from_matrixify_quarter
 
 TEMPLATE = os.path.join(_DASHBOARD_DIR, "template", "dashboard.template.html")
 SOURCE_DIR = os.path.join(_HERE, "source")
+ORACLE_FIXTURE_DIR = os.path.join(_HERE, "tests", "fixtures")
 CONTRACTS_DIR = os.path.join(_HERE, "contracts")
 OUTPUT_DIR = os.path.join(_DASHBOARD_DIR, "output")
+
+# B2: committed quarterly-mode oracle workbooks usable as a per-SKU vs-LQ
+# bootstrap source, keyed by the 3 consecutive months they cover.
+_QUARTER_ORACLE_FIXTURES = {
+    ("2026-04", "2026-05", "2026-06"): "2026-Q2_Quarterly_Trading_Report.xlsx",
+}
 
 
 def build(periods, lq_contract=None, out_suffix="_matrixify"):
@@ -48,7 +63,13 @@ def build(periods, lq_contract=None, out_suffix="_matrixify"):
         (p, os.path.join(SOURCE_DIR, f"orders_{p}_UK.csv"), os.path.join(SOURCE_DIR, f"orders_{p}_US.csv"))
         for p in periods
     ]
-    contract = emit_contract_from_matrixify_quarter(month_specs, lq_contract=lq_contract)
+    oracle_bootstrap_path = None
+    fixture = _QUARTER_ORACLE_FIXTURES.get(tuple(periods))
+    if fixture:
+        oracle_bootstrap_path = os.path.join(ORACLE_FIXTURE_DIR, fixture)
+    contract = emit_contract_from_matrixify_quarter(
+        month_specs, lq_contract=lq_contract, oracle_bootstrap_path=oracle_bootstrap_path,
+    )
 
     q_label = contract["period_model"]["cm"]["label"]  # e.g. "Q2 2026"
     os.makedirs(CONTRACTS_DIR, exist_ok=True)
