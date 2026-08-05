@@ -48,6 +48,7 @@ section{padding:44px 0;border-bottom:1px solid var(--border)}
 .hero-fig{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap;margin:8px 0 26px}
 .bignum{font-family:var(--font-d);font-size:clamp(46px,7vw,76px);font-weight:900;line-height:.9;letter-spacing:-.02em;color:var(--red)}
 .bignum-lab{font-family:var(--font-m);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.tip-label{cursor:help;border-bottom:1px dotted var(--muted)}
 .hero-side{font-size:13.5px;color:var(--muted);max-width:34ch;padding-bottom:6px}
 .hero-side b{color:var(--text);font-weight:600}
 
@@ -193,7 +194,7 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
 
   <div class="hero-fig">
     <div>
-      <div class="bignum-lab">Value returned (stock only)</div>
+      <div class="bignum-lab tip-label" title="RRP-ex-VAT list value of the units actually returned, exchange value netted out (ruling 5). Excludes shipping refunds, partial credits/goodwill, and any refund with no unit attached — those are real refunded money too, just reported separately in the footnotes below rather than blended into this figure.">Value returned (stock only)</div>
       <div class="bignum" id="heroVal">—</div>
     </div>
     <div class="hero-side" id="heroSide"></div>
@@ -218,7 +219,7 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
   <div class="chart-card">
     <div id="trendChart"></div>
     <div class="legend">
-      <span><i style="background:var(--red)"></i>Value returned (stock only)</span>
+      <span class="tip-label" title="RRP-ex-VAT list value of the units actually returned, exchange value netted out (ruling 5). Excludes shipping refunds, partial credits/goodwill, and any refund with no unit attached — reported separately, not blended in."><i style="background:var(--red)"></i>Value returned (stock only)</span>
       <span><i style="background:var(--amber)"></i>Return rate — orders-based</span>
       <span><i style="background:#C9CFC6"></i>Incomplete — returns still landing</span>
     </div>
@@ -927,6 +928,7 @@ function renderNotes(){
     '<b>Category / subcategory come from <code>common/sku_taxonomy.py</code>,</b> the shared classifier the review scanner also uses, so a SKU lands in the same tree on both halves of this page. Family is a display label only (v1; no separate family axis) — approximate by construction, built by stripping the SKU\'s type code, size, and finish tokens.',
     '<b>Reason data is weak by construction.</b> The first dropdown option absorbs indecision. The free-text follow-up is only collected on that one reason, and roughly six in ten customers fill it in. Treat reason mix as a hypothesis generator, not evidence.',
     '<b>Review themes are a separate corpus with separate limits.</b> They come from <code>review_feedback.py</code>, mining Yotpo text for product themes on its own window, with no trade flag. The join to a SKU is exact-match and sparse; where no exact match exists this page falls back to the SKU\'s family, then to a dash — never to a guess. Deleted/escalated reviews are kept deliberately (filtering them out removes effectively all explicit product criticism), and syndicated copies of one review across a product group are counted once, not once per SKU.',
+    '<b>"Stock only" means exactly that (ruling 5).</b> Every value figure on this page is the RRP-ex-VAT list value of returned units, exchange value netted out — never a blended total. Shipping refunds, partial credits/goodwill, and any refund with no unit attached are pulled OUT and reported separately in §1’s footnotes; a no-SKU refund is its own footnoted bucket too, never absorbed into the headline. See the number for what it excludes, not just what it counts.',
     '<b>Value is stock refund value, not margin.</b> The cost of a return — inbound freight, inspection, refinishing, write-off on anything not resaleable — is not in this file. The real number is higher than every figure shown here.',
     '<b>No live tracker.</b> This is a build-on-demand static file (Option A) — a colleague or a schedule triggers a fresh build; there is no daily-refreshing version of this page, and none should be promised.'
   ];
