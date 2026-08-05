@@ -191,8 +191,9 @@ def compute_category_top_collections(collections_computed, top_n=8):
 
 # ── SKUS (top 25 overall) ─────────────────────────────────────────────────────
 
-def compute_skus(skus_all):
-    top = sorted(skus_all, key=lambda s: -s['gross'])[:25]
+def compute_skus(skus_all, top_n=50):
+    # T6 (trading review round 1): 25 -> 50.
+    top = sorted(skus_all, key=lambda s: -s['gross'])[:top_n]
     out = []
     for i, s in enumerate(top):
         vs_ly_val = None
@@ -224,14 +225,19 @@ def compute_skus(skus_all):
     return out
 
 
-# ── NEWNESS_SKUS (top 25 Newness SKUs) ───────────────────────────────────────
+# ── NEWNESS_SKUS (top 50 Newness SKUs) ───────────────────────────────────────
 
-def compute_newness_skus(skus_all):
-    newness = [
-        s for s in skus_all
-        if s['uk_status'] == 'Newness' or s['us_status'] == 'Newness'
-    ]
-    top = sorted(newness, key=lambda s: -s['gross'])[:25]
+def compute_newness_skus(skus_all, top_n=50):
+    """T6: 25 -> 50. Also fixes a real, pre-existing cross-vocabulary bug
+    found alongside T4b's movers split: this filter only ever matched the
+    oracle path's own coarse uk_status/us_status values ('Newness' literally),
+    silently returning empty on the Matrixify path, where those same fields
+    are Line Detail's finer enum ('Live', never 'Newness') -- confirmed
+    empirically empty against real May 2026 Matrixify data before this fix.
+    _sku_newness() (introduced for T4b) already bridges both vocabularies.
+    """
+    newness = [s for s in skus_all if _sku_newness(s) == 'Newness']
+    top = sorted(newness, key=lambda s: -s['gross'])[:top_n]
     out = []
     for s in top:
         out.append({
