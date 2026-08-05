@@ -275,7 +275,8 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
 <section id="s-tracker"><div class="wrap">
   <div class="sec-head"><span class="eyebrow">05 — Investigation list</span><h2>Category tracker</h2>
     <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">click to drill: category → subcategory → SKU</span></div>
-  <p class="sec-note">The single investigation surface (the old separate quality watchlist is folded in here). Category and subcategory rows sort by value returned; SKUs within a subcategory rank by a <b>combined rank</b> of % orders returned and return value together (ruling 3) — a high rate on a cheap, low-volume SKU is a small problem, a high value on a low rate is a volume effect, and neither alone tells you where to look first. <b>SKUs need at least 20 orders sold in the period to appear</b> — below that a rate moves too much on a handful of orders to act on. Family is shown on each SKU row (e.g. KEPLER 160/220/280 read as one product in three sizes) — v1 doesn't add a separate family axis, just the label.</p>
+  <div class="fg" style="margin-bottom:16px"><span class="eyebrow">Sort category/subcategory rows by</span><div class="seg" id="fSort"></div></div>
+  <p class="sec-note">The single investigation surface (the old separate quality watchlist is folded in here). Category and subcategory rows sort by value returned by default — toggle above to sort by return rate instead; any column header can also be clicked directly. SKUs within a subcategory always rank by a <b>combined rank</b> of % orders returned and return value together (ruling 3) — a high rate on a cheap, low-volume SKU is a small problem, a high value on a low rate is a volume effect, and neither alone tells you where to look first. <b>SKUs need at least 20 orders sold in the period to appear</b> — below that a rate moves too much on a handful of orders to act on. Family is shown on each SKU row (e.g. KEPLER 160/220/280 read as one product in three sizes) — v1 doesn't add a separate family axis, just the label.</p>
   <p class="sec-note" style="margin-top:-14px">On SKU rows, ◆ next to the return value marks a SKU where a single order holds half or more of its returned units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter.</p>
   <div class="tscroll"><table id="catTable"><thead><tr>
     <th class="sortable" data-k="name">Category / Subcategory / SKU</th>
@@ -383,6 +384,19 @@ function buildFilters(){
   buildSeg('fRegion','region',[{v:'All',label:'All'},{v:'UK',label:'UK'},{v:'US',label:'US'}]);
   buildSeg('fSeg','seg',[{v:'Retail',label:'Retail'},{v:'Trade',label:'Trade'}]);
   buildSeg('fMonth','month',[{v:'All',label:'Quarter'}].concat(MONTHS.map(m=>({v:m,label:m}))));
+}
+// Sort toggle for category/subcategory rows (R2) -- a visible shortcut onto the
+// same sortK/sortDir state clicking a column header already drives; SKU rows
+// underneath always use combinedRank() regardless of this setting.
+const SORT_OPTS=[{v:'vr',label:'Return value'},{v:'rate',label:'Return rate'}];
+function buildSortToggle(){
+  const box=document.getElementById('fSort');box.innerHTML='';
+  SORT_OPTS.forEach(o=>{
+    const b=el('button',null,o.label);
+    b.setAttribute('aria-pressed',String(sortK===o.v));
+    b.onclick=()=>{sortK=o.v;sortDir=-1;render();};
+    box.appendChild(b);
+  });
 }
 document.getElementById('resetBtn').onclick=()=>{F={region:'All',seg:'Retail',month:'All'};openCats.clear();openSubs.clear();render();};
 
@@ -922,6 +936,7 @@ function renderNotes(){
 /* ---------- render ---------- */
 function render(){
   buildFilters();
+  buildSortToggle();
   const A=agg(), RA=aggReasons(), VA=aggValue(), OA=aggOrders();
   // attach pct (orders-based rate) onto each SKU node so combinedRank() can use it
   A.byCat.forEach(c=>c.subs.forEach(sc=>sc.skus.forEach(s=>{s.pct=rateOf(s.orders,s.rord);})));
