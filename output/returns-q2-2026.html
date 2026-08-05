@@ -254,9 +254,7 @@ tr.sku-row td:first-child{padding-left:36px;font-size:12.5px;color:var(--text)}
 .dir.flat{color:var(--muted)}
 .dir.thin{color:var(--surface3)}
 .dir.spike{color:var(--amber)}
-.uo{cursor:help;white-space:nowrap}
-.uo-sep{color:var(--surface3)}
-.uo .conc,.conc{color:var(--amber);font-size:9px;margin-left:4px;vertical-align:1px}
+.conc{cursor:help;color:var(--amber);font-size:9px;margin-left:4px;vertical-align:1px}
 
 .warnbar{border:1px solid var(--amber);background:rgba(192,120,0,.06);padding:11px 15px;font-size:13px;margin:0 0 24px;max-width:82ch}
 .warnbar b{font-weight:600}
@@ -388,13 +386,12 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
   <div class="sec-head"><span class="eyebrow">05 — Investigation list</span><h2>Category tracker</h2>
     <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">click to drill: category → subcategory → SKU</span></div>
   <p class="sec-note">The single investigation surface (the old separate quality watchlist is folded in here). Category and subcategory rows sort by value returned; SKUs within a subcategory rank by a <b>combined rank</b> of % orders returned and return value together (ruling 3) — a high rate on a cheap, low-volume SKU is a small problem, a high value on a low rate is a volume effect, and neither alone tells you where to look first. <b>SKUs need at least 20 orders sold in the period to appear</b> — below that a rate moves too much on a handful of orders to act on. Family is shown on each SKU row (e.g. KEPLER 160/220/280 read as one product in three sizes) — v1 doesn't add a separate family axis, just the label.</p>
-  <p class="sec-note" style="margin-top:-14px">On SKU rows, units returned are shown over the number of distinct orders behind them, with ◆ marking a count where a single order holds half or more of the units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter.</p>
+  <p class="sec-note" style="margin-top:-14px">On SKU rows, ◆ next to the return value marks a SKU where a single order holds half or more of its returned units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter.</p>
   <div class="tscroll"><table id="catTable"><thead><tr>
     <th class="sortable" data-k="name">Category / Subcategory / SKU</th>
     <th class="sortable" data-k="vr">Return value</th>
     <th class="sortable" data-k="gs">Gross sales</th>
     <th class="sortable" data-k="pct">% of sales</th>
-    <th class="sortable" data-k="ur">Units returned<span class="thin"> / orders</span></th>
     <th class="sortable" data-k="us">Units sold</th>
     <th class="sortable" data-k="rate">Return rate</th>
     <th>Reason</th>
@@ -725,17 +722,14 @@ function renderReasons(RA){
      specification problems the headline reason mix hides completely.`;
 }
 
-/* ---------- shared: units over distinct orders ---------- */
-const CONC=0.5;   // one order holding this share of units is a single-customer event
-function unitOrders(units,o){
-  if(!units)return '<span class="thin">·</span>';
-  if(!o||!o.o)return units.toLocaleString('en-GB');
+/* ---------- shared: single-order concentration flag ---------- */
+const CONC=0.5;   // one order holding this share of a SKU's returned units is a single-customer event
+function concFlag(o){
+  if(!o||!o.o)return '';
   const conc=o.top/Math.max(1,o.u)>=CONC;
-  const tip=conc
-    ? `${o.u} units from ${o.o} order${o.o===1?'':'s'} — but one order alone accounts for ${o.top}. Treat as a single customer, not a pattern.`
-    : `${o.u} units from ${o.o} order${o.o===1?'':'s'}; largest single order ${o.top}.`;
-  return `<span class="uo" title="${tip}">${units.toLocaleString('en-GB')}<span class="uo-sep"> / </span>${o.o}`
-       + (conc?'<span class="conc" aria-label="concentrated in one order">◆</span>':'')+'</span>';
+  if(!conc)return '';
+  const tip=`${o.u} units returned from ${o.o} order${o.o===1?'':'s'} — but one order alone accounts for ${o.top}. Treat as a single customer, not a pattern.`;
+  return `<span class="conc" title="${tip}" aria-label="concentrated in one order">◆</span>`;
 }
 
 /* ---------- shared: sparkline + direction ---------- */
@@ -911,7 +905,7 @@ function renderTracker(A,RA){
     tr.tabIndex=0;
     tr.innerHTML=`<td><span class="twist">▸</span> <span class="cat-dot" style="background:${catColor(c.name)}"></span>${c.name}</td>
       <td>${gbp(c.lost)}</td><td class="thin">${gbp(c.gs)}</td><td>${pc(c.pct)}</td>
-      <td>${c.ur.toLocaleString('en-GB')}</td><td class="thin">${c.us.toLocaleString('en-GB')}</td>
+      <td class="thin">${c.us.toLocaleString('en-GB')}</td>
       <td class="rate-cell"><div class="rate-bg" style="width:${c.rate/maxRate*70}px"></div><span>${pc(c.rate)}</span></td>
       <td></td><td></td><td></td>`;
     const toggle=()=>{openCats.has(c.name)?openCats.delete(c.name):openCats.add(c.name);renderTracker(A,RA);};
@@ -928,7 +922,7 @@ function renderTracker(A,RA){
       const sr=el('tr','sub-row'+(subOpen?' open':''));
       sr.innerHTML=`<td><span class="twist">▸</span> ${sc.name}</td>
         <td>${gbp(sc.lost)}</td><td class="thin">${gbp(sc.gs)}</td><td>${pc(sc.pct)}</td>
-        <td>${sc.ur.toLocaleString('en-GB')}</td><td class="thin">${sc.us.toLocaleString('en-GB')}</td>
+        <td class="thin">${sc.us.toLocaleString('en-GB')}</td>
         <td class="rate-cell"><div class="rate-bg" style="width:${sc.rate/maxRate*70}px"></div><span>${pc(sc.rate)}</span></td>
         <td></td><td></td><td></td>`;
       const subToggle=()=>{openSubs.has(subKey)?openSubs.delete(subKey):openSubs.add(subKey);renderTracker(A,RA);};
@@ -938,7 +932,7 @@ function renderTracker(A,RA){
       if(!subOpen)return;
 
       const skus=combinedRank([...sc.skus.values()]);
-      if(!skus.length){const r=el('tr','sku-row');r.innerHTML='<td colspan="10" class="thin">No SKU clears the 20-order floor in this slice.</td>';tb.appendChild(r);return;}
+      if(!skus.length){const r=el('tr','sku-row');r.innerHTML='<td colspan="9" class="thin">No SKU clears the 20-order floor in this slice.</td>';tb.appendChild(r);return;}
       skus.forEach(s=>{
         const rs=RA.bySku.get(s.sku);
         const ord=orderStats(rs);
@@ -947,9 +941,9 @@ function renderTracker(A,RA){
         const tip=MONTHS.map((m,i)=>m+' '+series[i]).join('  ·  ')+'  —  '+dir.t;
         const r=el('tr','sku-row');
         r.innerHTML=`<td>${label(s.sku)}<span class="fam-tag">${s.family||'—'}</span><span class="sku-code">${s.sku}</span></td>
-          <td>${gbp(s.vr)}</td><td class="thin">${gbp(s.gs)}</td>
+          <td>${gbp(s.vr)}${concFlag(ord)}</td><td class="thin">${gbp(s.gs)}</td>
           <td>${s.gs>0?pc(s.vr/s.gs):'<span class="thin">—</span>'}</td>
-          <td>${unitOrders(s.ur,ord)}</td><td class="thin">${s.us.toLocaleString('en-GB')}</td>
+          <td class="thin">${s.us.toLocaleString('en-GB')}</td>
           <td><span>${pc(s.pct)}</span></td>
           <td class="thin">${dominantReason(rs)||'—'}</td>
           <td>${reviewCell(s.sku,s.family)}</td>
