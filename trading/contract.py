@@ -569,15 +569,18 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
 
         if line["finish"]:
             f = finish_totals.setdefault(line["finish"], {
-                "total": 0.0, "units": 0, "d2c": 0.0, "b2b": 0.0, "uk": 0.0, "us": 0.0,
+                "total": 0.0, "units": 0, "d2c": 0.0, "b2b": 0.0,
+                "uk": 0.0, "us": 0.0, "uk_u": 0, "us_u": 0,
             })
             f["total"] += ab
             f["units"] += line["units"]
             f["d2c" if chan == "D2C" else "b2b"] += ab
             if bucket == "UK":
                 f["uk"] += ab
+                f["uk_u"] += line["units"]
             elif bucket == "US":
                 f["us"] += ab
+                f["us_u"] += line["units"]
 
         ck = (line["department"], line["collection"])
         c = coll_totals.setdefault(ck, {
@@ -767,6 +770,9 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         name: {
             "total": v["total"], "units": v["units"], "vsLQ": None, "vsLY": None,
             "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "us": v["us"],
+            # T3b: units-by-country, needed for a genuine Units x UK/US
+            # toggle at finish grain (cash-by-country already existed).
+            "uk_u": v["uk_u"], "us_u": v["us_u"],
         } for name, v in finish_totals.items()
     }
 

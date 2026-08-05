@@ -442,7 +442,18 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
     <div class="sec finish-sec">
       <div class="sec-hdr" style="margin-bottom:12px">
         <div class="sec-title">Finish Analysis</div>
-        <div class="sec-meta" id="finish-meta">top collections · B2B share</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="sec-meta" id="finish-meta">top collections · B2B share</div>
+          <div class="tg metric" id="finish-metric-tg">
+            <button class="active" onclick="setFinishMetric('sales')">Sales £</button>
+            <button onclick="setFinishMetric('units')">Units</button>
+          </div>
+          <div class="tg geo" id="finish-geo-tg">
+            <button class="active total" onclick="setFinishGeo('total')">Total</button>
+            <button class="uk" onclick="setFinishGeo('uk')">🇬🇧</button>
+            <button class="us" onclick="setFinishGeo('us')">🇺🇸</button>
+          </div>
+        </div>
       </div>
       <div class="finish-tabs" id="finish-tabs"></div>
       <div class="finish-body" id="finish-body"></div>
@@ -639,6 +650,7 @@ const TOTAL_SALES = {{TOTAL_SALES}};
 // ================================================================
 let trendMetric = 'sales', trendSeg = 'total';
 let collMetric = 'sales', collGeo = 'total';
+let finishMetric = 'sales', finishGeo = 'total';
 let skuMetric = 'sales', skuGeo = 'all';
 let tSortKey = 'total_sales', tSortDir = 'desc', tPage = 0;
 let nSortKey = 'sales', nSortDir = 'desc', nPage = 0;
@@ -720,6 +732,19 @@ function setCollGeo(g) {
   document.querySelectorAll('#coll-geo-tg button').forEach((b,i) => b.classList.toggle('active', ['total','uk','us'][i]===g));
   renderCollections();
   if (selectedColl) renderCollDrill();
+}
+// T3b (trading review round 1): section-level toggles for Finish Analysis,
+// independent of the headline's own toggles -- same .tg/.tg.geo pattern
+// and setCollMetric/setCollGeo wiring Collection Performance already uses.
+function setFinishMetric(m) {
+  finishMetric = m;
+  document.querySelectorAll('#finish-metric-tg button').forEach((b,i) => b.classList.toggle('active', (i===0&&m==='sales')||(i===1&&m==='units')));
+  renderFinishBody();
+}
+function setFinishGeo(g) {
+  finishGeo = g;
+  document.querySelectorAll('#finish-geo-tg button').forEach((b,i) => b.classList.toggle('active', ['total','uk','us'][i]===g));
+  renderFinishBody();
 }
 function setSkuMetric(m) {
   skuMetric = m;
@@ -1142,24 +1167,35 @@ function renderFinishBody() {
   if (selectedFinishTab === FINISH_OVERVIEW_KEY) { renderFinishOverview(); return; }
   const d = FINISH_DATA[selectedFinishTab];
   if (!d) { document.getElementById('finish-body').innerHTML = ''; return; }
-  const maxVal = Math.max(...d.top_collections.map(r => r.sales), 1);
+
+  // T3b: own Sales/Units x Total/UK/US toggle, independent of any headline
+  // toggle -- fmtFn/headline/each row all read through the same finishMetric/
+  // finishGeo state via toggleVal(), same helper Collection Performance uses.
+  const fmtFn = finishMetric === 'sales' ? fmtGBP : fmtU;
+  const headlineVal = toggleVal(
+    finishMetric === 'sales' ? {uk:d.uk, us:d.us, total:d.total} : {uk:d.uk_u, us:d.us_u, total:d.units},
+    finishGeo
+  );
+  const rowVal = r => toggleVal(finishMetric === 'sales' ? r.cash : r.unitsByGeo, finishGeo);
+  const maxVal = Math.max(...d.top_collections.map(r => rowVal(r) || 0), 1);
+
   document.getElementById('finish-body').innerHTML = `
     <div class="finish-stats">
       <div class="fs-main" style="border-color:${d.color}">
-        <div class="fs-lbl">${selectedFinishTab} · ${CM_LABEL}</div>
-        <div class="fs-val" style="color:${d.color}">${fmtGBP(d.total)}</div>
-        <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px">${d.units.toLocaleString()} units</div>
+        <div class="fs-lbl">${selectedFinishTab} · ${CM_LABEL}${finishGeo!=='total'?' · '+finishGeo.toUpperCase():''}</div>
+        <div class="fs-val" style="color:${d.color}">${fmtFn(headlineVal)}</div>
+        <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px">${finishMetric==='sales'?d.units.toLocaleString()+' units':fmtGBP(d.total)}</div>
       </div>
       <div class="fs-row"><span class="fs-row-lbl">B2B share</span><span class="fs-row-val">${d.b2b_share!=null?(d.b2b_share*100).toFixed(0)+'%':'—'}</span></div>
-      <div class="fs-row"><span class="fs-row-lbl">🇬🇧 UK</span><span class="fs-row-val" style="color:var(--uk)">${fmtGBP(d.uk)}</span></div>
-      <div class="fs-row"><span class="fs-row-lbl">🇺🇸 US</span><span class="fs-row-val" style="color:var(--us)">${fmtGBP(d.us)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">🇬🇧 UK</span><span class="fs-row-val" style="color:var(--uk)">${finishMetric==='sales'?fmtGBP(d.uk):fmtU(d.uk_u)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">🇺🇸 US</span><span class="fs-row-val" style="color:var(--us)">${finishMetric==='sales'?fmtGBP(d.us):fmtU(d.us_u)}</span></div>
     </div>
     <div class="top-coll-list">${d.top_collections.map((r,i) => `
       <div class="top-coll-row" onclick="toggleFinishCollDrill(${i})" style="cursor:pointer">
         <span class="twist">▸</span>
         <span class="top-coll-name">${r.c}</span>
-        <div class="top-coll-track"><div class="top-coll-fill" style="width:${(r.sales/maxVal*100).toFixed(0)}%;background:${d.color}"></div></div>
-        <span class="top-coll-val">${fmtGBP(r.sales)}</span>
+        <div class="top-coll-track"><div class="top-coll-fill" style="width:${(Math.max(rowVal(r)||0,0)/maxVal*100).toFixed(0)}%;background:${d.color}"></div></div>
+        <span class="top-coll-val">${fmtFn(rowVal(r))}</span>
         <span class="top-coll-b2b">${r.b2b_share!=null?(r.b2b_share*100).toFixed(0)+'% B2B':'—'}</span>
       </div>
       <div class="subcat-drill" id="fin-coll-drill-${i}">${finCollSkusHTML(r.skus)}</div>`).join('')}</div>`;
@@ -1169,8 +1205,15 @@ function renderFinishBody() {
 // Breakdown's own subcategory drill already established, rather than a new
 // component for the same "nested detail panel" idea.
 function finCollSkusHTML(skus) {
+  // T3b: SKU-level drill reads the same finishMetric/finishGeo toggle as
+  // the collection row it's nested under, so the whole section stays
+  // internally consistent under any toggle state.
   return (skus && skus.length) ? skus
-    .map(s => `<div class="subcat-row"><span>${s.desc}</span><span class="n">${fmtGBP(s.sales)} · ${fmtU(s.units)}u</span></div>`).join('')
+    .map(s => {
+      const sales = toggleVal(s.cash, finishGeo);
+      const units = toggleVal(s.unitsByGeo, finishGeo);
+      return `<div class="subcat-row"><span>${s.desc}</span><span class="n">${fmtGBP(sales)} · ${fmtU(units)}u</span></div>`;
+    }).join('')
     : '<div class="subcat-row"><span class="n">No SKU data</span></div>';
 }
 function toggleFinishCollDrill(i) {

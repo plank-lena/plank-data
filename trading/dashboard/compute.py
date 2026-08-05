@@ -313,11 +313,18 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
 
         coll_totals = {}
         for s in finish_skus:
-            ct = coll_totals.setdefault(s['coll'], {'sales': 0.0, 'units': 0, 'd2c': 0.0, 'b2b': 0.0})
+            ct = coll_totals.setdefault(s['coll'], {
+                'sales': 0.0, 'units': 0, 'd2c': 0.0, 'b2b': 0.0,
+                'uk': 0.0, 'us': 0.0, 'uk_u': 0, 'us_u': 0,
+            })
             ct['sales'] += s.get('gross') or 0
             ct['units'] += s.get('units') or 0
             ct['d2c']   += s.get('d2c') or 0
             ct['b2b']   += s.get('b2b') or 0
+            ct['uk']    += s.get('uk') or 0
+            ct['us']    += s.get('us') or 0
+            ct['uk_u']  += s.get('uk_u') or 0
+            ct['us_u']  += s.get('us_u') or 0
 
         top_colls = sorted(coll_totals.items(), key=lambda kv: -kv[1]['sales'])[:top_n]
         top_collections = []
@@ -336,12 +343,19 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
                 'sales':     round(ct['sales']),
                 'units':     ct['units'],
                 'b2b_share': round(ct['b2b'] / channel_total, 4) if channel_total else None,
+                # T3b: section-level Sales/Units x UK/US toggle -- {uk,us,
+                # total} shape matches the existing toggleVal() helper
+                # Collection Performance's own toggle already reads.
+                'cash':  {'uk': round(ct['uk']), 'us': round(ct['us']), 'total': round(ct['sales'])},
+                'unitsByGeo': {'uk': ct['uk_u'], 'us': ct['us_u'], 'total': ct['units']},
                 'skus': [
                     {
                         'sku':   s['sku'],
                         'desc':  s.get('desc') or s['sku'],
                         'sales': round(s.get('gross') or 0),
                         'units': int(s.get('units') or 0),
+                        'cash':  {'uk': round(s.get('uk') or 0), 'us': round(s.get('us') or 0), 'total': round(s.get('gross') or 0)},
+                        'unitsByGeo': {'uk': int(s.get('uk_u') or 0), 'us': int(s.get('us_u') or 0), 'total': int(s.get('units') or 0)},
                     } for s in coll_skus
                 ],
             })
@@ -362,6 +376,10 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
             'b2b_share':       round((raw.get('b2b') or 0) / channel_total, 4) if channel_total else None,
             'uk':              round(raw.get('uk') or 0),
             'us':              round(raw.get('us') or 0),
+            # T3b: units-by-country -- 0 on the oracle path (no such column
+            # in the sheet's Finish table), real on the Matrixify path.
+            'uk_u':            int(raw.get('uk_u') or 0),
+            'us_u':            int(raw.get('us_u') or 0),
             'lq_uk':           0,
             'lq_us':           0,
             'top_collections': top_collections,
@@ -870,10 +888,14 @@ def js_block_finish_data(finish_data):
     for name, fd in finish_data.items():
         vsLY = 'null' if fd['vsLY'] is None else str(fd['vsLY'])
         ly   = 'null' if fd['ly'] == 0 else str(fd['ly'])
+        def _geo_dict(d):
+            return f'{{uk:{_js_val(d["uk"])},us:{_js_val(d["us"])},total:{_js_val(d["total"])}}}'
         top_collections_str = '[' + ','.join(
             f'{{c:{_js_val(tc["c"])},sales:{tc["sales"]},units:{tc["units"]},b2b_share:{_js_val(tc["b2b_share"])},'
+            f'cash:{_geo_dict(tc["cash"])},unitsByGeo:{_geo_dict(tc["unitsByGeo"])},'
             f'skus:[' + ','.join(
-                f'{{sku:{_js_val(s["sku"])},desc:{_js_val(s["desc"])},sales:{s["sales"]},units:{s["units"]}}}'
+                f'{{sku:{_js_val(s["sku"])},desc:{_js_val(s["desc"])},sales:{s["sales"]},units:{s["units"]},'
+                f'cash:{_geo_dict(s["cash"])},unitsByGeo:{_geo_dict(s["unitsByGeo"])}}}'
                 for s in tc.get('skus', [])
             ) + ']}'
             for tc in fd['top_collections']
@@ -884,7 +906,8 @@ def js_block_finish_data(finish_data):
             f"    total:{fd['total']}, lq:{fd['lq']}, ly:{ly},"
             f" units:{fd['units']}, vsLQ:{fd['vsLQ']}, vsLY:{vsLY},\n"
             f"    d2c:{fd['d2c']}, b2b:{fd['b2b']}, b2b_share:{_js_val(fd.get('b2b_share'))},"
-            f" uk:{fd['uk']}, us:{fd['us']}, lq_uk:{fd['lq_uk']}, lq_us:{fd['lq_us']},\n"
+            f" uk:{fd['uk']}, us:{fd['us']}, uk_u:{fd['uk_u']}, us_u:{fd['us_u']},"
+            f" lq_uk:{fd['lq_uk']}, lq_us:{fd['lq_us']},\n"
             f"    top_collections:{top_collections_str}\n"
             f"  }},"
         )
