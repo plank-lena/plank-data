@@ -115,6 +115,12 @@ def build_value_rows(shopv):
 def render(src=None, reviews_json=DEFAULT_REVIEWS_JSON, out_path=DEFAULT_OUT):
     src = src or build.SRC
     s, ret, zap, shopv = build.prep(src)
+    # build.py's "m" is the numeric month (1/2/3); the template's JS keys its
+    # month filter/byMonth buckets off the string labels ("Jan"/"Feb"/"Mar"), so
+    # every row array must carry the label, not the raw number, or every
+    # per-month filter/aggregation silently matches nothing.
+    for df in (s, ret, zap, shopv):
+        df["m"] = df["m"].map(build.MONTHS)
 
     payload = {
         "cube": build_cube(s, ret, shopv),
