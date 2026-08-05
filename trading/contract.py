@@ -286,10 +286,26 @@ _MONTH_NAMES = ("January", "February", "March", "April", "May", "June",
 
 
 def _period_label(period_str):
-    """'2026-05' -> {'label': 'May 2026', 'short': "May '26"}."""
+    """'2026-05' -> {'label': 'May 2026', 'short': "May '26"}.
+
+    `label` uses the 3-letter abbreviation, matching the oracle sheet's own
+    convention (extract.py's _parse_period reads e.g. "Apr - 2026" verbatim)
+    and what _period_str_from_label parses back via strptime's "%b" -- this
+    is load-bearing, not cosmetic. Found building the Matrixify quarterly
+    glue script (T0, 2026-08-05): the previous version put the FULL month
+    name in `label` ('April'), which _period_str_from_label's "%b" format
+    can't parse ('unconverted data remains: il') -- the exact %B-vs-%b bug
+    class ROADMAP.md §2 already documents finding once in the parser itself,
+    recurring here on the generating side. Invisible for May specifically
+    (spelled identically abbreviated or full) and never caught because
+    emit_contract_from_matrixify_quarter -- the only caller that reaches
+    this function without going through the oracle-bootstrap branch, which
+    sources period_model from extract_all() instead -- had never actually
+    been run for April or June before this script's first real invocation.
+    """
     year, month = period_str.split("-")
-    name = _MONTH_NAMES[int(month) - 1]
-    return {"label": f"{name} {year}", "short": f"{name[:3]} '{year[2:]}"}
+    name = _MONTH_NAMES[int(month) - 1][:3]
+    return {"label": f"{name} {year}", "short": f"{name} '{year[2:]}"}
 
 
 def _status_bucket(line):
@@ -378,6 +394,19 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     Never fabricates: st/wc/inv are None throughout (no inventory feed
     wired -- BRIEF #3 §6/§9); unmatched SKUs roll into department/
     collection "Unknown", never dropped, so totals still tie.
+
+    Per-collection LQ (2026-08-05, trading review round 1 T4a): when
+    oracle_bootstrap_path is given, its own "collections" block already
+    carries real prior-period lq_total/lq_uk/lq_us per (department,
+    collection) -- extract.py's extract_collections reads them from the
+    oracle sheet's own LQ columns regardless of which month's oracle it is.
+    Matched by (department, collection) name against this function's own
+    Matrixify-computed collections; unmatched ones (new/renamed collection,
+    or a genuine oracle/Matrixify department-naming mismatch) keep the
+    honest lq_total=0.0/vs_lq=None placeholder rather than a guess -- see
+    the match-rate line printed to stderr. Collections' LQ is NOT populated
+    via lm_contract/ly_contract chaining -- only the oracle bootstrap path
+    carries collection-grain history today.
     """
     line_detail_path = line_detail_path or os.path.join(_HERE, "source", "line_detail.xlsx")
     as_of_year, as_of_month = (int(x) for x in period.split("-"))
@@ -537,6 +566,17 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
 
     # ── lm/ly: contract-chain when given, else bootstrap once from the oracle ──
     ly_dept_sales = {}  # department name -> LY sales, for prod_types' vs_ly (§6)
+    # (department, collection) -> that collection's own LQ row from the oracle
+    # bootstrap file, when one is given. Any oracle workbook already carries
+    # real prior-period collection figures in its own LQ columns (extract.py's
+    # extract_collections reads them unconditionally) -- this is genuinely
+    # better than trying to chain a prior month's own Matrixify contract,
+    # since it works even for the very first month built (no prior Matrixify
+    # contract needed at all). Populated only in the oracle_bootstrap branch
+    # below; stays empty in the contract_chain/none_available branches, so the
+    # collections block's LQ fields fall back to their honest 0.0/None
+    # placeholder in that case.
+    oracle_collections_by_key = {}
     if lm_contract is not None and ly_contract is not None:
         lm_c = lm_contract if isinstance(lm_contract, dict) else load_contract(lm_contract)
         ly_c = ly_contract if isinstance(ly_contract, dict) else load_contract(ly_contract)
@@ -550,6 +590,9 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         lm, ly = oracle_headline["lm"], oracle_headline["ly"]
         period_model = oracle_headline["period_model"]
         lq_ly_source = "oracle_bootstrap"
+        oracle_collections_by_key = {
+            (c["t"], c["c"]): c for c in oracle_headline.get("collections", [])
+        }
     else:
         lm = ly = _current_to_lm_shape({
             "total_sales": 0, "d2c_gbp": 0, "b2b_gbp": 0, "uk_gbp": 0, "us_gbp": 0, "row_gbp": 0,
@@ -606,13 +649,29 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     }
 
     collections_sorted = sorted(coll_totals.items(), key=lambda kv: -kv[1]["ts"])
-    collections = [{
-        "r": i + 1, "t": dept, "c": coll, "ts": v["ts"], "tu": v["tu"], "vs_lq": None,
-        "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
-        "d2c": v["d2c"], "b2b": v["b2b"], "uk_s": v["uk_s"], "us_s": v["us_s"], "row_s": v["row_s"],
-        "lq_total": 0.0, "lq_uk": 0.0, "lq_us": 0.0, "uk_vs": None, "us_vs": None,
-        "skus": len(v["skus"]),
-    } for i, ((dept, coll), v) in enumerate(collections_sorted)]
+    collections = []
+    for i, ((dept, coll), v) in enumerate(collections_sorted):
+        oracle_row = oracle_collections_by_key.get((dept, coll))
+        lq_total = oracle_row["lq_total"] if oracle_row else 0.0
+        lq_uk = oracle_row["lq_uk"] if oracle_row else 0.0
+        lq_us = oracle_row["lq_us"] if oracle_row else 0.0
+        collections.append({
+            "r": i + 1, "t": dept, "c": coll, "ts": v["ts"], "tu": v["tu"],
+            "vs_lq": _vs(v["ts"], lq_total) if oracle_row else None,
+            "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
+            "d2c": v["d2c"], "b2b": v["b2b"], "uk_s": v["uk_s"], "us_s": v["us_s"], "row_s": v["row_s"],
+            "lq_total": lq_total, "lq_uk": lq_uk, "lq_us": lq_us,
+            "uk_vs": _vs(v["uk_s"], lq_uk) if oracle_row else None,
+            "us_vs": _vs(v["us_s"], lq_us) if oracle_row else None,
+            "skus": len(v["skus"]),
+        })
+    if oracle_collections_by_key:
+        matched = sum(1 for c in collections if c["lq_total"] != 0.0)
+        print(f"contract: {matched}/{len(collections)} collections matched the oracle bootstrap's "
+              f"own LQ columns by (department, collection) name -- unmatched ones get lq_total=0.0/"
+              f"vs_lq=None (a new/renamed collection this period, or a genuine name mismatch "
+              f"between the oracle's and Matrixify's department classification), never fabricated.",
+              file=sys.stderr)
 
     skus_all = [{
         "rank": None, "sku": sku, "desc": v["desc"] or sku, "coll": v["coll"], "type_": v["type_"],
