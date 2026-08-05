@@ -211,6 +211,14 @@ body::before{content:'';position:fixed;inset:0;background:
 .cat-analysis-body{display:grid;grid-template-columns:190px minmax(220px,1fr) 260px;gap:16px;align-items:start}
 .cat-donut-wrap{display:flex;flex-direction:column;align-items:center}
 .cat-donut-caption{font-family:var(--font-m);font-size:9.5px;color:var(--muted);margin-top:4px;text-align:center}
+.fin-ov-wrap{display:grid;grid-template-columns:minmax(220px,1fr) 220px;gap:20px;align-items:center;grid-column:1 / -1}
+.fin-pie-wrap{display:flex;flex-direction:column;align-items:center}
+.fin-pie-caption{font-family:var(--font-m);font-size:9.5px;color:var(--muted);margin-top:4px;text-align:center}
+.fin-legend{display:flex;flex-direction:column;gap:6px}
+.fin-leg-row{display:flex;align-items:center;gap:8px;font-family:var(--font-m);font-size:10px}
+.fin-leg-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.fin-leg-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fin-leg-val{color:var(--muted);flex-shrink:0}
 .finish-stats{display:flex;flex-direction:column;gap:8px}
 .fs-main{padding:12px;background:var(--surface2);border-radius:5px;border:1px solid var(--border)}
 .fs-val{font-family:var(--font-m);font-size:22px;font-weight:600;margin-bottom:2px}
@@ -1652,10 +1660,20 @@ function renderCatDonut(rows, baseColor) {
 // ================================================================
 // FINISH ANALYSIS (top collections per finish)
 // ================================================================
+// T2d (trading review round 1): "Compare All" restores the pre-redesign
+// overall finishes pie (a23f393's renderFinishOverview/#finish-view-tg) as
+// a pseudo-tab alongside the existing per-finish drill, rather than a
+// separate section -- one less thing fighting for space, and the tab
+// styling/active-state machinery is already exactly what this needs.
+const FINISH_OVERVIEW_KEY = '__overview__';
 function initFinishTabs() {
   const names = Object.keys(FINISH_DATA).sort((a,b) => FINISH_DATA[b].total - FINISH_DATA[a].total);
-  if (!selectedFinishTab || !names.includes(selectedFinishTab)) selectedFinishTab = names[0];
-  document.getElementById('finish-tabs').innerHTML = names.map(n => {
+  if (!selectedFinishTab || (selectedFinishTab !== FINISH_OVERVIEW_KEY && !names.includes(selectedFinishTab))) {
+    selectedFinishTab = FINISH_OVERVIEW_KEY;
+  }
+  const overviewBtn = `<button class="ft-btn${selectedFinishTab===FINISH_OVERVIEW_KEY?' active':''}" onclick="setFinishTab('${FINISH_OVERVIEW_KEY}')"
+    style="${selectedFinishTab===FINISH_OVERVIEW_KEY?'background:#18181c;color:#fff':''}">Compare All</button>`;
+  document.getElementById('finish-tabs').innerHTML = overviewBtn + names.map(n => {
     const d = FINISH_DATA[n];
     return `<button class="ft-btn${n===selectedFinishTab?' active':''}" onclick="setFinishTab('${n.replace(/'/g,"\\'")}')"
       style="${n===selectedFinishTab?'background:'+d.color+';color:#fff':''}">${n}</button>`;
@@ -1664,6 +1682,7 @@ function initFinishTabs() {
 }
 function setFinishTab(n) { selectedFinishTab = n; initFinishTabs(); }
 function renderFinishBody() {
+  if (selectedFinishTab === FINISH_OVERVIEW_KEY) { renderFinishOverview(); return; }
   const d = FINISH_DATA[selectedFinishTab];
   if (!d) { document.getElementById('finish-body').innerHTML = ''; return; }
   const maxVal = Math.max(...d.top_collections.map(r => r.sales), 1);
@@ -1685,6 +1704,72 @@ function renderFinishBody() {
         <span class="top-coll-val">${fmtGBP(r.sales)}</span>
         <span class="top-coll-b2b">${r.b2b_share!=null?(r.b2b_share*100).toFixed(0)+'% B2B':'—'}</span>
       </div>`).join('')}</div>`;
+}
+
+function renderFinishOverview() {
+  // FINISH_DATA's own key order is already revenue-ranked (compute_finish_
+  // data's `ranked` sort) -- top 8 by revenue, not a hardcoded name list,
+  // so this stays correct as the real top finishes change period to
+  // period. Each finish's `color` already comes from assign_finish_colors'
+  // curated-8 base palette when its name matches one of those 8 (T2d's
+  // "uses the curated palette" requirement) and a generated hue otherwise
+  // -- no separate curated-name list to duplicate/maintain client-side.
+  const TOP_N = 8;
+  const names = Object.keys(FINISH_DATA);
+  const top = names.slice(0, TOP_N);
+  const otherTotal = names.slice(TOP_N).reduce((s,n) => s + (FINISH_DATA[n].total||0), 0);
+  const slices = top.map(n => ({ name: n, value: FINISH_DATA[n].total||0, color: FINISH_DATA[n].color }));
+  const hasOther = otherTotal > 0;
+  if (hasOther) slices.push({ name: 'Other', value: otherTotal, color: 'rgba(140,140,150,0.5)' });
+  const total = slices.reduce((s,d) => s + d.value, 0);
+
+  const legendHTML = slices.map(s => `
+    <div class="fin-leg-row">
+      <span class="fin-leg-swatch" style="background:${s.color}"></span>
+      <span class="fin-leg-name">${s.name}</span>
+      <span class="fin-leg-val">${fmtGBP(s.value)} · ${total?((s.value/total)*100).toFixed(0):0}%</span>
+    </div>`).join('');
+
+  document.getElementById('finish-body').innerHTML = total ? `
+    <div class="fin-ov-wrap">
+      <div class="fin-pie-wrap">
+        <canvas id="finish-pie" height="240" style="display:block;width:100%"></canvas>
+        <div class="fin-pie-caption">Finish share of sales · ${CM_LABEL}${hasOther?` (top ${TOP_N} + Other)`:''}</div>
+      </div>
+      <div class="fin-legend">${legendHTML}</div>
+    </div>` : `<div style="font-family:var(--font-m);font-size:10px;color:var(--muted);padding:8px">No finish data this period</div>`;
+
+  if (total) renderFinishPie(slices, total);
+}
+
+function renderFinishPie(slices, total) {
+  const canvas = document.getElementById('finish-pie');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width || 260, H = 240;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 10;
+  let angle = -Math.PI/2;
+  slices.forEach(s => {
+    const frac = s.value / total;
+    const a2 = angle + frac * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, angle, a2); ctx.closePath();
+    ctx.fillStyle = s.color; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
+    if (frac >= 0.04) {
+      const mid = (angle + a2) / 2;
+      const lx = cx + Math.cos(mid) * (r * 0.65), ly = cy + Math.sin(mid) * (r * 0.65);
+      ctx.fillStyle = '#fff'; ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+      ctx.fillText((frac*100).toFixed(0) + '%', lx, ly + 3);
+    }
+    angle = a2;
+  });
 }
 
 // ================================================================
