@@ -1661,7 +1661,11 @@ function renderScatter() {
   const padL = 55, padR = 20, padT = 15, padB = 40;
   const cW = W - padL - padR, cH = H - padT - padB;
   const gms = MATRIX.points.map(p => p.gm).filter(v => v != null);
-  const minGM = gms.length ? Math.min(...gms, 0.6) : 0.6;
+  // T5 (trading review round 1): clip the x-axis at 0% GM -- a collection
+  // sold at a genuine loss shouldn't push the axis into negative-% territory
+  // (confusing to read); it renders pinned to the 0% edge instead, via the
+  // clampedGM below, rather than disappearing or drawing off-canvas.
+  const minGM = Math.max(0, gms.length ? Math.min(...gms, 0.6) : 0.6);
   const maxGM = gms.length ? Math.max(...gms, 0.85) : 0.85;
   const maxS = Math.max(...MATRIX.points.map(p => p.revenue), 1);
 
@@ -1697,7 +1701,8 @@ function renderScatter() {
 
   MATRIX.points.slice(0, 20).forEach(p => {
     if (p.gm == null) return;
-    const x = padL + ((p.gm - minGM) / ((maxGM - minGM) || 1)) * cW;
+    const clampedGM = Math.max(p.gm, minGM);
+    const x = padL + ((clampedGM - minGM) / ((maxGM - minGM) || 1)) * cW;
     const y = padT + cH - (p.revenue / maxS) * cH;
     const r = rFor(p.size);
     const col = catColor(p.t);
