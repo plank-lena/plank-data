@@ -472,6 +472,17 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     via lm_contract/ly_contract chaining -- only the oracle bootstrap path
     carries collection-grain history today.
 
+    Per-SKU vs-LM (2026-08-05, follow-up after T4a/T4b): same technique,
+    one grain finer -- skus_all's own vslq/lq were hardcoded None/None
+    throughout this whole function until now (a real, disclosed gap:
+    Movers and the SKU Performance tables' vs-LM columns were always empty
+    on this path). Matched by exact SKU code against the oracle bootstrap's
+    own per-SKU vslq ratio -- a cleaner match than the (department,
+    collection) name pairing above, since a SKU code is an exact catalog
+    identifier, not a display name that can drift between the two sources.
+    Also NOT populated via lm_contract/ly_contract chaining, same reasoning
+    as collections' LQ.
+
     prior_month_contract (2026-08-05, T1): the immediately-prior month's own
     already-committed Matrixify contract (dict or path), used only to derive
     current['trend_3mo'] -- a real [M-2, M-1, M] revenue series for the
@@ -671,6 +682,13 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     # figure is reconstructed as sales/(1+vs_lq), same technique quarterly.
     # py's _recompute_yoy already uses for the analogous vs_ly-ratio case.
     oracle_prod_type_lq = {}
+    # SKU code -> reconstructed LQ sales (found post-review, per-SKU vslq
+    # was hardcoded None throughout -- same reconstruction technique as
+    # oracle_prod_type_lq, just matched by exact SKU code instead of a
+    # (department, collection) name pair, which should be a cleaner match
+    # than either of those since a SKU code is an exact identifier, not a
+    # display name that can drift between the two sources.
+    oracle_sku_lq = {}
     if lm_contract is not None and ly_contract is not None:
         lm_c = lm_contract if isinstance(lm_contract, dict) else load_contract(lm_contract)
         ly_c = ly_contract if isinstance(ly_contract, dict) else load_contract(ly_contract)
@@ -691,6 +709,10 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             vs_lq = t.get("vs_lq")
             if isinstance(vs_lq, (int, float)) and abs(1 + vs_lq) > 1e-9 and t.get("sales"):
                 oracle_prod_type_lq[t["t"]] = t["sales"] / (1 + vs_lq)
+        for sk in oracle_headline.get("skus_all", []):
+            vslq = sk.get("vslq")
+            if isinstance(vslq, (int, float)) and abs(1 + vslq) > 1e-9 and sk.get("gross"):
+                oracle_sku_lq[sk["sku"]] = sk["gross"] / (1 + vslq)
     else:
         lm = ly = _current_to_lm_shape({
             "total_sales": 0, "d2c_gbp": 0, "b2b_gbp": 0, "uk_gbp": 0, "us_gbp": 0, "row_gbp": 0,
@@ -806,14 +828,32 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
               f"between the oracle's and Matrixify's department classification), never fabricated.",
               file=sys.stderr)
 
-    skus_all = [{
-        "rank": None, "sku": sku, "desc": v["desc"] or sku, "coll": v["coll"], "type_": v["type_"],
-        "finish": v["finish"] or "", "uk_status": v["uk_status"] or "", "us_status": v["us_status"] or "",
-        "gross": v["gross"], "units": v["units"], "vslq": None, "gm": v["gm"],
-        "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "uk_u": v["uk_u"],
-        "us": v["us"], "us_u": v["us_u"], "lq": None, "ly": None,
-        "is_el_component": v["is_el_component"], "newness_bucket": v["newness_bucket"],
-    } for sku, v in sku_totals.items()]
+    skus_all = []
+    for sku, v in sku_totals.items():
+        lq_sales = oracle_sku_lq.get(sku)
+        skus_all.append({
+            "rank": None, "sku": sku, "desc": v["desc"] or sku, "coll": v["coll"], "type_": v["type_"],
+            "finish": v["finish"] or "", "uk_status": v["uk_status"] or "", "us_status": v["us_status"] or "",
+            "gross": v["gross"], "units": v["units"],
+            # Per-SKU vs-LM (2026-08-05, follow-up to T4a/T4b): reconstructed
+            # from the oracle bootstrap's own real per-SKU vslq ratio when a
+            # match exists by exact SKU code; None otherwise (a genuinely new
+            # SKU this period, or no oracle bootstrap given at all) -- never
+            # fabricated. This is what feeds Movers and the SKU Performance
+            # tables' vs-LM columns, previously always None on this path.
+            "vslq": _vs(v["gross"], lq_sales) if lq_sales is not None else None,
+            "gm": v["gm"],
+            "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "uk_u": v["uk_u"],
+            "us": v["us"], "us_u": v["us_u"],
+            "lq": round(lq_sales, 2) if lq_sales is not None else None, "ly": None,
+            "is_el_component": v["is_el_component"], "newness_bucket": v["newness_bucket"],
+        })
+    if oracle_sku_lq:
+        matched = sum(1 for s in skus_all if s["vslq"] is not None)
+        print(f"contract: {matched}/{len(skus_all)} SKUs matched the oracle bootstrap's own "
+              f"per-SKU vs-LM ratio by exact SKU code -- unmatched ones get vslq=None/lq=None "
+              f"(a genuinely new SKU this period, or one the oracle sheet doesn't carry), "
+              f"never fabricated.", file=sys.stderr)
 
     payload = {
         "mode": "month",
