@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Returns Review — Plank Hardware — Q1 2026</title>
+<title>{{PAGE_TITLE}}</title>
 <style id="fonts">/*{{EMBEDDED_FONTS}}*/</style>
 <style>
 :root{
@@ -181,7 +181,7 @@ footer{padding:30px 0 60px;font-family:var(--mono);font-size:11px;color:var(--mu
     <div class="eyebrow">Plank Hardware · Product &amp; Buying</div>
     <h1>Returns review</h1>
   </div>
-  <div class="sub" id="scopeLine">Q1 2026 · orders placed Jan–Mar</div>
+  <div class="sub" id="scopeLine">{{SCOPE_DEFAULT}}</div>
 </div></header>
 
 <div class="filters" id="filterBar"><div class="wrap filters-in">
@@ -221,7 +221,7 @@ footer{padding:30px 0 60px;font-family:var(--mono);font-size:11px;color:var(--mu
 <!-- ===== 2. TREND ===== -->
 <section id="s-trend"><div class="wrap">
   <div class="sec-head"><span class="eyebrow">02 — Movement</span><h2>Month by month</h2></div>
-  <p class="sec-note">Value returned by month, with return rate as <b>returned orders ÷ orders</b> (ruling 2 — never a unit-based rate). Every row is bucketed by the order's sale month, not the refund month (ruling 1), so the most recent month always under-reports — returns against March orders were still arriving after the quarter closed. January is a Christmas-returns month structurally different from Feb/Mar — read it year-over-year only, never as part of a Jan→Feb→Mar trend line.</p>
+  <p class="sec-note">Value returned by month, with return rate as <b>returned orders ÷ orders</b> (ruling 2 — never a unit-based rate). Every row is bucketed by the order's sale month, not the refund month (ruling 1), so the most recent month in the period always under-reports — its returns were still arriving after the window closed. <span id="janCaveat"></span></p>
   <div class="chart-card">
     <div id="trendChart"></div>
     <div class="legend">
@@ -323,7 +323,7 @@ footer{padding:30px 0 60px;font-family:var(--mono);font-size:11px;color:var(--mu
 </main>
 
 <footer><div class="wrap">
-  Static review build from <code>Q1_Jan_Feb_Mar_2026.xlsx</code>. Sources: Shopify order export (value, units, trade flag) and the returns app export (reasons, stage), joined to Line Detail for category/subcategory via <code>common/sku_taxonomy.py</code>, plus <code>review_feedback.py</code>'s Yotpo scan for the reviews section.<br>
+  Static review build from <code>{{SOURCE_FILENAME}}</code>. Sources: the sales export (value, units, trade flag) and the returns app export (reasons, stage), joined to Line Detail for category/subcategory via <code>common/sku_taxonomy.py</code>, plus <code>review_feedback.py</code>'s Yotpo scan for the reviews section.<br>
   Build-on-demand static file (Option A) — there is no live/daily-refreshing version of this page; a colleague or a schedule triggers a fresh build and drops the result in Slack/Drive.
 </div></footer>
 
@@ -341,7 +341,9 @@ const R={M:0,CO:1,SEG:2,CAT:3,SUB:4,FAM:5,SKU:6,ORDER:7,QTY:8,REASON:9,SUBREASON
 const VAL={M:0,CO:1,SEG:2,SKU:3,QNZ:4,ISEXCH:5,VAL:6};
 // orders: [m,country,seg,returned] -- one row per DISTINCT order (see aggOrders())
 const ORD={M:0,CO:1,SEG:2,RET:3};
-const MONTHS=['Jan','Feb','Mar'];
+const MONTHS=D.months||['Jan','Feb','Mar'];
+const PERIOD_LABEL=D.periodLabel||'Q1 2026';
+const YEAR=D.year||2026;
 const NAMES=D.names||{};
 
 const DEFAULT_REASON='Not right for my project';
@@ -554,9 +556,14 @@ function renderTrend(A,OA){
   pts.forEach((p,i)=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#EEEFE9" stroke="#A8823C" stroke-width="2"/>`;
     s+=`<text class="axis-t" x="${p[0]}" y="${p[1]-11}" text-anchor="middle" fill="#A8823C" style="font-size:11px">${pc(data[i].rate,1)}</text>`;});
   s+=`<line class="grid-line" x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}" stroke="#16191A"/>`;
-  s+=`<text class="axis-t" x="${PL}" y="${H-2}" style="font-size:10px">* Jan is YoY-only — a Christmas-returns month, not comparable MoM to Feb/Mar</text>`;
+  if(MONTHS.includes('Jan')){
+    s+=`<text class="axis-t" x="${PL}" y="${H-2}" style="font-size:10px">* Jan is YoY-only — a Christmas-returns month, not comparable MoM to the rest of the period</text>`;
+  }
   s+=`</svg>`;
   document.getElementById('trendChart').innerHTML=s;
+  document.getElementById('janCaveat').textContent=MONTHS.includes('Jan')
+    ? 'January is a Christmas-returns month structurally different from the rest of the quarter — read it year-over-year only, never as part of a Jan→Feb→Mar trend line.'
+    : '';
 }
 
 /* ---------- section 3: reasons ---------- */
@@ -922,7 +929,7 @@ function render(){
   const A=agg(), RA=aggReasons(), VA=aggValue(), OA=aggOrders();
   // attach pct (orders-based rate) onto each SKU node so combinedRank() can use it
   A.byCat.forEach(c=>c.subs.forEach(sc=>sc.skus.forEach(s=>{s.pct=rateOf(s.orders,s.rord);})));
-  const bits=[F.month==='All'?'Q1 2026':F.month+' 2026',F.region==='All'?'UK + US':F.region,F.seg.toLowerCase()];
+  const bits=[F.month==='All'?PERIOD_LABEL:F.month+' '+YEAR,F.region==='All'?'UK + US':F.region,F.seg.toLowerCase()];
   document.getElementById('scopeLine').textContent=bits.join(' · ');
   renderValue(A,VA,OA);renderTrend(A,OA);renderReasons(RA);renderReviews(RA);renderTracker(A,RA);renderOutliers(A,RA,VA);
 }

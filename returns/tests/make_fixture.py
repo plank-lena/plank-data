@@ -13,14 +13,17 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 import pandas as pd
 
-from returns.build import run
+from returns import build
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "2026Q1")
 SRC = sys.argv[1] if len(sys.argv) > 1 else "source/Q1_Jan_Feb_Mar_2026.xlsx"
+RETURNS_SRC = sys.argv[2] if len(sys.argv) > 2 else "source/ytd_returns_2.numbers"
 
 if __name__ == "__main__":
     os.makedirs(FIXTURE_DIR, exist_ok=True)
-    blocks = run(SRC)
+    sales_df, ld_std = build.load_workbook_sales(SRC)
+    returns_df = build.load_returns_export(RETURNS_SRC)
+    blocks = build.run(sales_df, ld_std, returns_df, month_nums=[1, 2, 3], year=2026)
     for name, block in blocks.items():
         if name == "tracker":
             # SKU-level, MultiIndex, legitimately volatile row-by-row (ranking can

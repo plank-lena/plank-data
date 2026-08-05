@@ -10,28 +10,38 @@ to pre-bake, and the brief tags the drill [X] (client-side interactivity). Tradi
 and returns share visual language (see common/embedded_fonts.css), not rendering
 mechanism.
 
-Run:  python returns/render.py [source.xlsx] [out.html] [--reviews reviews.json]
+Period-agnostic (2026-08-05): takes already-loaded sales_df/ld_std/returns_df (see
+build.py's loaders) plus month_nums/year, so the same renderer produces Q1, Q2, or
+any other period's dashboard -- see returns/build_q1.py / build_q2.py for the two
+periods currently wired up.
 """
 import sys
 import os
 import json
+import calendar
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import pandas as pd
 
 from returns import build
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "template.html")
 FONTS_CSS = os.path.join(os.path.dirname(__file__), "..", "common", "embedded_fonts.css")
 DEFAULT_REVIEWS_JSON = os.path.join(os.path.dirname(__file__), "..", "reviews", "reviews.json")
-DEFAULT_OUT = os.path.join(os.path.dirname(__file__), "..", "output", "returns-q1-2026.html")
+
+QUARTER_LABELS = {(1, 2, 3): "Q1", (4, 5, 6): "Q2", (7, 8, 9): "Q3", (10, 11, 12): "Q4"}
+
+
+def _default_period_label(month_nums, year, months):
+    key = tuple(sorted(month_nums))
+    if key in QUARTER_LABELS:
+        return f"{QUARTER_LABELS[key]} {year}"
+    return f"{months[month_nums[0]]}–{months[month_nums[-1]]} {year}"
 
 
 def _names(s):
     """sku -> display name (product title), for the SKU-row label."""
-    d = s.dropna(subset=["c5"]).drop_duplicates("sku")
-    return dict(zip(d["sku"], d["c5"]))
+    d = s.dropna(subset=["name"]).drop_duplicates("sku")
+    return dict(zip(d["sku"], d["name"]))
 
 
 def build_cube(s, ret, shopv):
@@ -66,10 +76,9 @@ def build_orders(s, ret):
     """One row per DISTINCT ORDER: [m, mkt, seg, returned(0/1)]. The headline/trend
     orders-based rate needs a true distinct-order count under any filter combo --
     summing the cube's per-SKU "orders" column would double-count an order that
-    spans multiple SKUs (~1.8x inflation, confirmed against this source file).
-    Per-category/subcategory/SKU order counts in the cube stay as they are: those
-    are legitimately distinct-per-group and, per the existing convention, never
-    summed across groups.
+    spans multiple SKUs. Per-category/subcategory/SKU order counts in the cube stay
+    as they are: those are legitimately distinct-per-group and, per the existing
+    convention, never summed across groups.
     """
     o = s.drop_duplicates("order")[["m", "mkt", "seg", "order"]].copy()
     returned_orders = set(ret["order"])
@@ -78,13 +87,13 @@ def build_orders(s, ret):
 
 
 def build_gross(shopv):
-    """Gross sales by (month, country, seg), from the FULL Shopify population
+    """Gross sales by (month, country, seg), from the FULL sales population
     (shopv) -- matches value_split()'s own gross-sales denominator, which
     includes no-SKU lines. The cube's gross_sales is sku-attributed only
     (s excludes rows with no resolvable SKU), so it's the wrong denominator for
     the hero's "% of gross sales" -- a no-SKU line still generated real revenue.
     """
-    g = shopv.groupby(["m", "mkt", "seg"])["c8"].sum().reset_index()
+    g = shopv.groupby(["m", "mkt", "seg"])["cash"].sum().reset_index()
     return g.values.tolist()
 
 
@@ -98,7 +107,7 @@ def build_reasons(zap):
 
 
 def build_value_rows(shopv):
-    """Collapsed Shopify-side rows for the client-side stock/value-only/no-SKU
+    """Collapsed sales-side rows for the client-side stock/value-only/no-SKU
     split (ruling 5, §3) -- collapsed to (month, country, seg, sku, qty!=0,
     is_exchange-line) before flattening; line-level detail isn't needed, only the
     zero/nonzero incidence and the $ total. sku is "" for no-SKU rows.
@@ -112,15 +121,15 @@ def build_value_rows(shopv):
     return g[["m", "mkt", "seg", "sku_or_blank", "qty_nonzero", "is_exch", "val"]].values.tolist()
 
 
-def render(src=None, reviews_json=DEFAULT_REVIEWS_JSON, out_path=DEFAULT_OUT):
-    src = src or build.SRC
-    s, ret, zap, shopv = build.prep(src)
-    # build.py's "m" is the numeric month (1/2/3); the template's JS keys its
-    # month filter/byMonth buckets off the string labels ("Jan"/"Feb"/"Mar"), so
-    # every row array must carry the label, not the raw number, or every
-    # per-month filter/aggregation silently matches nothing.
-    for df in (s, ret, zap, shopv):
-        df["m"] = df["m"].map(build.MONTHS)
+def render(sales_df, ld_std, returns_df, month_nums=None, year=build.DEFAULT_YEAR,
+           period_label=None, source_label=None, reviews_json=DEFAULT_REVIEWS_JSON,
+           out_path=None):
+    month_nums = list(month_nums or build.DEFAULT_MONTH_NUMS)
+    months = {m: calendar.month_abbr[m] for m in month_nums}
+    period_label = period_label or _default_period_label(month_nums, year, months)
+    source_label = source_label or "the configured sources"
+
+    s, ret, zap, shopv, months = build.prep(sales_df, ld_std, returns_df, month_nums, year)
 
     payload = {
         "cube": build_cube(s, ret, shopv),
@@ -129,6 +138,9 @@ def render(src=None, reviews_json=DEFAULT_REVIEWS_JSON, out_path=DEFAULT_OUT):
         "valueRows": build_value_rows(shopv),
         "gross": build_gross(shopv),
         "names": _names(s),
+        "months": list(months.values()),
+        "periodLabel": period_label,
+        "year": year,
     }
     payload_json = json.dumps(payload, separators=(",", ":"), default=str)
 
@@ -143,19 +155,18 @@ def render(src=None, reviews_json=DEFAULT_REVIEWS_JSON, out_path=DEFAULT_OUT):
     with open(FONTS_CSS, encoding="utf-8") as fh:
         fonts_css = fh.read()
 
+    month_span = f"{months[month_nums[0]]}–{months[month_nums[-1]]}" if len(months) > 1 else months[month_nums[0]]
     html = html.replace("/*{{EMBEDDED_FONTS}}*/", fonts_css)
+    html = html.replace("{{PAGE_TITLE}}", f"Returns Review — Plank Hardware — {period_label}")
+    html = html.replace("{{SCOPE_DEFAULT}}", f"{period_label} · orders placed {month_span}")
+    html = html.replace("{{SOURCE_FILENAME}}", source_label)
     html = html.replace("{{PAYLOAD_JSON}}", payload_json)
     html = html.replace("{{REVIEW_JSON}}", review_json)
 
+    out_path = out_path or os.path.join(
+        os.path.dirname(__file__), "..", "output", f"returns-{period_label.lower().replace(' ', '-')}.html"
+    )
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write(html)
     return out_path
-
-
-if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    src = args[0] if len(args) > 0 else None
-    out = args[1] if len(args) > 1 else DEFAULT_OUT
-    written = render(src, out_path=out)
-    print(f"wrote {written}")

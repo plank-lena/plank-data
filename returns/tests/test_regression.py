@@ -1,11 +1,12 @@
 """Regression test: re-running the returns builder against the real Q1
-workbook must reproduce the committed 2026Q1 fixture within tolerance.
+workbook + returns export must reproduce the committed 2026Q1 fixture within
+tolerance.
 
-Requires source/Q1_Jan_Feb_Mar_2026.xlsx locally -- that file is gitignored
-(a dropped feed, per ROADMAP.md), so this test is a maintainer-local check,
-not something CI can run without the source file present. Skips (does not
-fail) if the source file is missing, since that's an environment gap, not a
-correctness regression.
+Requires source/Q1_Jan_Feb_Mar_2026.xlsx and source/ytd_returns_2.numbers
+locally -- both are gitignored (dropped feeds, per ROADMAP.md), so this test
+is a maintainer-local check, not something CI can run without them present.
+Skips (does not fail) if either source is missing, since that's an
+environment gap, not a correctness regression.
 
 Run:  python returns/tests/test_regression.py
 """
@@ -16,11 +17,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 import pandas as pd
 
-from returns.build import run
+from returns import build
 
 HERE = os.path.dirname(__file__)
 FIXTURE_DIR = os.path.join(HERE, "fixtures", "2026Q1")
 SRC = os.path.join(HERE, "..", "..", "source", "Q1_Jan_Feb_Mar_2026.xlsx")
+RETURNS_SRC = os.path.join(HERE, "..", "..", "source", "ytd_returns_2.numbers")
 TOL = 0.001  # 0.1% relative, matches the reconciliation gate's tolerance
 
 
@@ -64,11 +66,13 @@ def _compare_dict(name, actual, expected_row):
 
 
 def main():
-    if not os.path.exists(SRC):
-        print(f"SKIP: source file not found at {SRC} (maintainer-local test)")
+    if not os.path.exists(SRC) or not os.path.exists(RETURNS_SRC):
+        print(f"SKIP: source file(s) not found ({SRC}, {RETURNS_SRC}) -- maintainer-local test")
         return 0
 
-    blocks = run(SRC)
+    sales_df, ld_std = build.load_workbook_sales(SRC)
+    returns_df = build.load_returns_export(RETURNS_SRC)
+    blocks = build.run(sales_df, ld_std, returns_df, month_nums=[1, 2, 3], year=2026)
     all_failures = []
     for name, block in blocks.items():
         if name == "tracker":
