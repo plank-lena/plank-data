@@ -271,6 +271,10 @@ def render_contract(contract, template_html):
         js_block_cat_top_collections(cat_top_collections), js_block_movers(movers), js_block_matrix(matrix),
     )
     tokens["PROVISIONAL_BANNER"] = "" if can_publish(contract) else PROVISIONAL_BANNER_HTML
+    # Shared design tokens (2026-08-05 CSS-overhaul brief §2) -- see
+    # trading/dashboard/pipeline.py's identical fill for the full rationale.
+    with open(os.path.join(_HERE, "..", "common", "dashboard_tokens.css"), encoding="utf-8") as _fh:
+        tokens["DASHBOARD_TOKENS"] = _fh.read()
     html = fill_template(template_html, tokens)
     return html
 

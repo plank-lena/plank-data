@@ -87,6 +87,14 @@ def run(xlsx_path: Path) -> Path:
     # concept here (that's contract.py's render_contract), so never provisional.
     tokens['PROVISIONAL_BANNER'] = ''
 
+    # Shared design tokens (2026-08-05 CSS-overhaul brief §2): the :root custom
+    # properties + embedded @font-face rules live once in common/dashboard_
+    # tokens.css and get inlined here verbatim, so trading and returns can't
+    # drift apart on palette/type again. Moving this out of the template
+    # (previously hardcoded there) is intentionally a no-op to rendered output.
+    DASHBOARD_TOKENS_CSS = _HERE / '..' / '..' / 'common' / 'dashboard_tokens.css'
+    tokens['DASHBOARD_TOKENS'] = DASHBOARD_TOKENS_CSS.read_text(encoding='utf-8')
+
     # ── 5. Tokenise template (once) ───────────────────────────────────────────
     if not TEMPLATE.exists():
         print(f'[pipeline] Tokenising {SRC_TEMPLATE.name} → {TEMPLATE.name}')

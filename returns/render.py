@@ -7,7 +7,8 @@ render time, no live/daily-refreshing tracker -- see ROADMAP.md / brief §6).
 Client-side aggregation (not trading's server-baked {{TOKEN}}/js_block_* approach):
 the 3-level drill x retail/trade x region x month combinatorics would be unwieldy
 to pre-bake, and the brief tags the drill [X] (client-side interactivity). Trading
-and returns share visual language (see common/embedded_fonts.css), not rendering
+and returns share visual language (see common/dashboard_tokens.css for the design
+tokens/fonts and common/dashboard_colors.py for category colors), not rendering
 mechanism.
 
 Period-agnostic (2026-08-05): takes already-loaded sales_df/ld_std/returns_df (see
@@ -23,9 +24,10 @@ import calendar
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from returns import build
+from common.dashboard_colors import assign_dept_colors_stable
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "template.html")
-FONTS_CSS = os.path.join(os.path.dirname(__file__), "..", "common", "embedded_fonts.css")
+DASHBOARD_TOKENS_CSS = os.path.join(os.path.dirname(__file__), "..", "common", "dashboard_tokens.css")
 DEFAULT_REVIEWS_JSON = os.path.join(os.path.dirname(__file__), "..", "reviews", "reviews.json")
 
 QUARTER_LABELS = {(1, 2, 3): "Q1", (4, 5, 6): "Q2", (7, 8, 9): "Q3", (10, 11, 12): "Q4"}
@@ -106,6 +108,29 @@ def build_reasons(zap):
     return zap[cols].values.tolist()
 
 
+def build_category_colors(s):
+    """{category: [mainColor, textColor]} via the shared assign_dept_colors_
+    stable() (common/dashboard_colors.py) -- same algorithm/curated-table
+    pattern trading uses for its department colors, called with returns' own
+    item_type-level category vocabulary (Handle, Knob, Hook, ... via common/
+    sku_taxonomy.py), which is a different taxonomy depth than trading's
+    4-key department table (Cabinetry/Electric/Accessories/Lighting, via
+    trading/line_detail.py's separate classifier -- deliberately not the same
+    field, see sku_taxonomy.py's own docstring). Same mechanism, not the same
+    literal names, since the two reports categorize at different granularity;
+    a genuinely overlapping name gets a genuinely identical color either way.
+
+    The _stable variant (not plain assign_dept_colors()) matters here
+    specifically because returns has multiple co-existing period builds
+    (Q1, Q2, ...) that each only see their own period's category set --
+    without persisting first-assigned hues, "Handle" would render a different
+    colour in the Q1 dashboard than in the Q2 one (confirmed empirically
+    before this fix: 20 of 21 shared categories disagreed).
+    """
+    names = [c for c in s["category"].dropna().unique() if c]
+    return assign_dept_colors_stable(sorted(names))
+
+
 def build_value_rows(shopv):
     """Collapsed sales-side rows for the client-side stock/value-only/no-SKU
     split (ruling 5, §3) -- collapsed to (month, country, seg, sku, qty!=0,
@@ -138,6 +163,7 @@ def render(sales_df, ld_std, returns_df, month_nums=None, year=build.DEFAULT_YEA
         "valueRows": build_value_rows(shopv),
         "gross": build_gross(shopv),
         "names": _names(s),
+        "catColors": build_category_colors(s),
         "months": list(months.values()),
         "periodLabel": period_label,
         "year": year,
@@ -152,11 +178,11 @@ def render(sales_df, ld_std, returns_df, month_nums=None, year=build.DEFAULT_YEA
 
     with open(TEMPLATE, encoding="utf-8") as fh:
         html = fh.read()
-    with open(FONTS_CSS, encoding="utf-8") as fh:
-        fonts_css = fh.read()
+    with open(DASHBOARD_TOKENS_CSS, encoding="utf-8") as fh:
+        dashboard_tokens_css = fh.read()
 
     month_span = f"{months[month_nums[0]]}–{months[month_nums[-1]]}" if len(months) > 1 else months[month_nums[0]]
-    html = html.replace("/*{{EMBEDDED_FONTS}}*/", fonts_css)
+    html = html.replace("{{DASHBOARD_TOKENS}}", dashboard_tokens_css)
     html = html.replace("{{PAGE_TITLE}}", f"Returns Review — Plank Hardware — {period_label}")
     html = html.replace("{{SCOPE_DEFAULT}}", f"{period_label} · orders placed {month_span}")
     html = html.replace("{{SOURCE_FILENAME}}", source_label)
