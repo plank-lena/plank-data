@@ -286,6 +286,7 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
   <div class="fg" style="margin-bottom:16px"><span class="eyebrow">Sort category/subcategory rows by</span><div class="seg" id="fSort"></div></div>
   <p class="sec-note">The single investigation surface (the old separate quality watchlist is folded in here). Category and subcategory rows sort by value returned by default — toggle above to sort by return rate instead; any column header can also be clicked directly. SKUs within a subcategory always rank by a <b>combined rank</b> of % orders returned and return value together (ruling 3) — a high rate on a cheap, low-volume SKU is a small problem, a high value on a low rate is a volume effect, and neither alone tells you where to look first. <b>SKUs need at least 20 orders sold in the period to appear</b> — below that a rate moves too much on a handful of orders to act on. Family is shown on each SKU row (e.g. KEPLER 160/220/280 read as one product in three sizes) — v1 doesn't add a separate family axis, just the label.</p>
   <p class="sec-note" style="margin-top:-14px">On SKU rows, ◆ next to the return value marks a SKU where a single order holds half or more of its returned units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter.</p>
+  <div class="legend" id="catLegend" style="margin-bottom:14px"></div>
   <div class="tscroll"><table id="catTable"><thead><tr>
     <th class="sortable" data-k="name">Category / Subcategory / SKU</th>
     <th class="sortable" data-k="vr">Return value</th>
@@ -806,6 +807,14 @@ function renderTracker(A,RA){
     if(k==='name')return sortDir*a.name.localeCompare(b.name);
     return sortDir*((a[k]||0)-(b[k]||0));
   });
+  // colour-dot key (R5) -- alphabetical regardless of the table's own sort, so
+  // the key doesn't reshuffle every time sortK/sortDir changes. Same hues as
+  // trading (common/dashboard_colors.py's stable registry), just this report's
+  // own item_type-grain category vocabulary -- see build_category_colors()'s
+  // docstring in returns/render.py.
+  const legendBox=document.getElementById('catLegend');
+  legendBox.innerHTML=[...cats].sort((a,b)=>a.name.localeCompare(b.name))
+    .map(c=>`<span><i style="background:${catColor(c.name)};border-radius:50%"></i>${c.name}</span>`).join('');
   const maxRate=Math.max(0.01,...cats.map(c=>c.rate));
   const tb=document.querySelector('#catTable tbody');tb.innerHTML='';
   document.querySelectorAll('#catTable th.sortable').forEach(th=>{
