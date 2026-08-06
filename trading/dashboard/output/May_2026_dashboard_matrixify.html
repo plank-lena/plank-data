@@ -769,6 +769,40 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
   </div>
 </div>
 
+<!-- SKU2 (round-3 review): bottom-20 SKUs by cash, excluding Components.
+     Same columns as the Top SKU Performance table (SKU1's Description
+     column included); static, no sort/pagination controls needed at 20
+     fixed rows. -->
+<div class="full-row" style="border-top:2px solid rgba(212,76,48,0.25)">
+  <div class="sec-hdr" style="margin-bottom:14px">
+    <div>
+      <div class="sec-title" style="color:var(--red)">Bottom 20 SKU Performance</div>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px">May 2026 · lowest-selling SKUs by cash · excludes Components</div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>SKU</th>
+          <th>Description</th>
+          <th>Collection</th>
+          <th>Type</th>
+          <th class="td-r">Sales £</th>
+          <th class="td-r">Units</th>
+          <th class="td-r">UK</th>
+          <th class="td-r">US</th>
+          <th class="td-r">vs LM</th>
+          <th class="td-r">vs LY</th>
+          <th class="td-r">GM%</th>
+        </tr>
+      </thead>
+      <tbody id="bottom-sku-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
 // ================================================================
 // DATA (pre-computed server-side -- BRIEF #4 step 4 §6/§7: JS never
@@ -951,6 +985,29 @@ const SKUS = [
   {r:47,sku:"US-KIT-EOUT-JASP-1G-1BB-BL",d:"JASPER 1G 15A Outlet - Blackened Bronze (Black Inserts)",c:"JASPER",t:"Electric",uk_s:"Not Sold in this Market",us_s:"Live",total_sales:2137.98,total_units:71.0,vs_lq:4.2807,vs_ly:null,gm:null,is_el:false,uk_s2:0.0,uk_u:0,us_s2:2137.98,us_u:71.0,d2c:296.1,b2b:1841.88,lq:404.87,ly:0},
   {r:48,sku:"GB-LWL-ASTE-161-1AB",d:"ASTER Flush Mount Light - Antique Brass",c:"GOOD BONES",t:"Lighting",uk_s:"Disco to Resource",us_s:"Not Sold in this Market",total_sales:1999.83,total_units:14.0,vs_lq:0.5269,vs_ly:null,gm:0.7801,is_el:false,uk_s2:1999.83,uk_u:14.0,us_s2:0.0,us_u:0,d2c:1577.33,b2b:422.5,lq:1309.74,ly:0},
   {r:49,sku:"CST-BOBB-060-1BR",d:"BOBBIN 60mm Single T Bar Handle - Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"Live",us_s:"Live",total_sales:1982.34,total_units:196.0,vs_lq:-0.5156,vs_ly:null,gm:0.7308,is_el:false,uk_s2:1095.31,uk_u:140.0,us_s2:887.03,us_u:56.0,d2c:1323.96,b2b:658.38,lq:4092.44,ly:0}
+];
+
+const BOTTOM_SKUS = [
+  {r:0,sku:"KIT-ASH-HUMB-031-2SS",d:"HUMBOLDT 31mm Knurled Button Hook - Stainless Steel",c:"HUMBOLDT",t:"Accessories",uk_s:"Dead",us_s:"Disco to Resource",total_sales:0.01,total_units:4.0,vs_lq:-0.9999,vs_ly:null,gm:0.7606,is_el:false,uk_s2:0.01,uk_u:4.0,us_s2:0.0,us_u:0,d2c:0.01,b2b:0.0,lq:154.08,ly:0},
+  {r:1,sku:"EMNSTVB",d:"Half 1G Coaxial TV Socket",c:"EL COMPONENT",t:"Electric",uk_s:"Live",us_s:"Not Sold in this Market",total_sales:4.63,total_units:1.0,vs_lq:-0.0007,vs_ly:null,gm:0.8032,is_el:true,uk_s2:4.63,uk_u:1.0,us_s2:0.0,us_u:0,d2c:0.0,b2b:4.63,lq:4.63,ly:0},
+  {r:2,sku:"CBP-ELIZ-145-1UB",d:"ELIZA Handle Backplate (96mm CC) - Unlacquered Brass",c:"ELIZA",t:"Cabinetry",uk_s:"Disco to Resource",us_s:"Dead",total_sales:6.29,total_units:1.0,vs_lq:0.0019,vs_ly:null,gm:0.8588,is_el:false,uk_s2:0.0,uk_u:0,us_s2:6.29,us_u:1.0,d2c:0.0,b2b:6.29,lq:6.28,ly:0},
+  {r:3,sku:"EMFO",d:"1G Cable Tidy - Black",c:"EL COMPONENT",t:"Electric",uk_s:"Live",us_s:"Not Sold in this Market",total_sales:6.6,total_units:2.0,vs_lq:-0.3334,vs_ly:null,gm:0.5321,is_el:true,uk_s2:6.6,uk_u:2.0,us_s2:0.0,us_u:0,d2c:0.0,b2b:6.6,lq:9.9,ly:0},
+  {r:4,sku:"CBP-ELIZ-062-1UB",d:"ELIZA Knob Backplate - Unlacquered Brass",c:"ELIZA",t:"Cabinetry",uk_s:"Disco to Resource",us_s:"Dead",total_sales:6.95,total_units:1.0,vs_lq:null,vs_ly:null,gm:0.8711,is_el:false,uk_s2:6.95,uk_u:1.0,us_s2:0.0,us_u:0,d2c:6.95,b2b:0.0,lq:0,ly:0},
+  {r:5,sku:"CRP-OLMO-055-1BK",d:"OLMO Round Pull Handle - Black",c:"OLMO",t:"Cabinetry",uk_s:"Dead",us_s:"Dead",total_sales:6.98,total_units:1.0,vs_lq:0,vs_ly:null,gm:0.7431,is_el:false,uk_s2:6.98,uk_u:1.0,us_s2:0.0,us_u:0,d2c:0.0,b2b:6.98,lq:6.98,ly:0},
+  {r:6,sku:"AXM-LENA-100-10GR",d:"LENA Decorative Tassel - Chartreuse",c:"LENA",t:"Accessories",uk_s:"Live",us_s:"Live",total_sales:7.9,total_units:2.0,vs_lq:null,vs_ly:null,gm:0.8526,is_el:false,uk_s2:7.9,uk_u:2.0,us_s2:0.0,us_u:0,d2c:7.9,b2b:0.0,lq:0,ly:0},
+  {r:7,sku:"US-EL-PLA-4GU-1BR",d:"4G Universal Plate - Brass",c:"EL COMPONENT",t:"Electric",uk_s:"Not Sold in this Market",us_s:"Live",total_sales:8.18,total_units:2.0,vs_lq:-0.9247,vs_ly:null,gm:null,is_el:true,uk_s2:0.0,uk_u:0,us_s2:8.18,us_u:2.0,d2c:8.18,b2b:0.0,lq:108.67,ly:0},
+  {r:8,sku:"CBP-COHE-156-1AG",d:"COHEN 156mm Backplate - Aged Brass",c:"COHEN",t:"Cabinetry",uk_s:"Disc",us_s:"Disc",total_sales:8.88,total_units:1.0,vs_lq:-0.9006,vs_ly:null,gm:0.7157,is_el:false,uk_s2:0.0,uk_u:0,us_s2:8.88,us_u:1.0,d2c:8.88,b2b:0.0,lq:89.34,ly:0},
+  {r:9,sku:"KTH-CKB-BOBB-025-1BR",d:"BOBBIN 25mm Hook - Brass",c:"BOBBIN",t:"Accessories",uk_s:"Live",us_s:"Live",total_sales:9.14,total_units:1.0,vs_lq:-0.8514,vs_ly:null,gm:0.8105,is_el:false,uk_s2:9.14,uk_u:1.0,us_s2:0.0,us_u:0,d2c:9.14,b2b:0.0,lq:61.49,ly:0},
+  {r:10,sku:"AHP-ELNA-575-3BK",d:"ELNA 5 Hook Backplate - Black",c:"ELNA",t:"Accessories",uk_s:"Dead",us_s:"Dead",total_sales:9.15,total_units:1.0,vs_lq:-0.632,vs_ly:null,gm:0.8571,is_el:false,uk_s2:9.15,uk_u:1.0,us_s2:0.0,us_u:0,d2c:0.0,b2b:9.15,lq:24.87,ly:0},
+  {r:11,sku:"KTH-KH-HUMBOLDT-31-BR",d:"HUMBOLDT 31mm Knurled Button Hook - Brass",c:"HUMBOLDT",t:"Accessories",uk_s:"Dead",us_s:"Live",total_sales:9.69,total_units:6.0,vs_lq:-0.8807,vs_ly:null,gm:0.8019,is_el:false,uk_s2:-24.95,uk_u:2.0,us_s2:34.64,us_u:4.0,d2c:-24.95,b2b:34.64,lq:81.25,ly:0},
+  {r:12,sku:"GB-EBB-BETT-02G-5NF",d:"BETTY 2G Plastic Back Box",c:"BETTY",t:"Electric",uk_s:"Live",us_s:"Not Sold in this Market",total_sales:9.87,total_units:3.0,vs_lq:-0.6668,vs_ly:null,gm:0.8724,is_el:false,uk_s2:9.87,uk_u:3.0,us_s2:0.0,us_u:0,d2c:9.87,b2b:0.0,lq:29.62,ly:0},
+  {r:13,sku:"KIT-CKB-ELIZ-025-1PN",d:"ELIZA 25mm Knob + Backplate - Polished Nickel",c:"ELIZA",t:"Cabinetry",uk_s:"Live",us_s:"Live",total_sales:10.02,total_units:1.0,vs_lq:-0.9519,vs_ly:null,gm:0.8028,is_el:false,uk_s2:0.0,uk_u:0,us_s2:10.02,us_u:1.0,d2c:0.0,b2b:10.02,lq:208.26,ly:0},
+  {r:14,sku:"2015C-BL",d:"Power Outlet Module 15A - Black",c:"EL COMPONENT",t:"Electric",uk_s:"Not Sold in this Market",us_s:"Live",total_sales:11.1,total_units:1.0,vs_lq:0.0004,vs_ly:null,gm:null,is_el:true,uk_s2:0.0,uk_u:0,us_s2:11.1,us_u:1.0,d2c:11.1,b2b:0.0,lq:11.1,ly:0},
+  {r:15,sku:"1003S-BL",d:"4 Way Toggle Switch - Black",c:"EL COMPONENT",t:"Electric",uk_s:"Not Sold in this Market",us_s:"Live",total_sales:11.1,total_units:1.0,vs_lq:0.0593,vs_ly:null,gm:null,is_el:true,uk_s2:0.0,uk_u:0,us_s2:11.1,us_u:1.0,d2c:11.1,b2b:0.0,lq:10.48,ly:0},
+  {r:16,sku:"US-EL-BP-STA-1UB",d:"US Electrics Star Backplate - Unlacquered Brass",c:"EL COMPONENT",t:"Electric",uk_s:"Not Sold in this Market",us_s:"Live",total_sales:11.1,total_units:2.0,vs_lq:-0.6433,vs_ly:null,gm:null,is_el:true,uk_s2:0.0,uk_u:0,us_s2:11.1,us_u:2.0,d2c:11.1,b2b:0.0,lq:31.13,ly:0},
+  {r:17,sku:"CBP-COHE-156-1PN",d:"COHEN 156mm Backplate - Polished Nickel",c:"COHEN",t:"Cabinetry",uk_s:"Live",us_s:"Live",total_sales:11.1,total_units:1.0,vs_lq:-0.8582,vs_ly:null,gm:0.6736,is_el:false,uk_s2:0.0,uk_u:0,us_s2:11.1,us_u:1.0,d2c:11.1,b2b:0.0,lq:78.32,ly:0},
+  {r:18,sku:"KIT-CKB-HALL-025-1AB",d:"KIT-CKB-HALL-025-1AB",c:"Unknown",t:"Unknown",uk_s:"",us_s:"",total_sales:11.27,total_units:1.0,vs_lq:0.0002,vs_ly:null,gm:null,is_el:false,uk_s2:11.27,uk_u:1.0,us_s2:0.0,us_u:0,d2c:11.27,b2b:0.0,lq:11.27,ly:0},
+  {r:19,sku:"AHP-ELNA-575-1BR",d:"ELNA 5 Hook Backplate - Brass",c:"ELNA",t:"Accessories",uk_s:"Dead",us_s:"Not Sold in this Market",total_sales:11.65,total_units:1.0,vs_lq:0.0001,vs_ly:null,gm:0.7788,is_el:false,uk_s2:11.65,uk_u:1.0,us_s2:0.0,us_u:0,d2c:11.65,b2b:0.0,lq:11.65,ly:0}
 ];
 
 const FINISH_DATA = {
@@ -2343,6 +2400,40 @@ function renderTable() {
 }
 
 // ================================================================
+// BOTTOM-20 SKU TABLE (SKU2, round-3 review)
+// ================================================================
+// Static: BOTTOM_SKUS is already the exact 20 rows to show (server-side
+// sort ascending by cash, Components excluded, see compute_bottom_skus)
+// -- no client-side re-sort/pagination needed at a fixed 20 rows. Same
+// row shape and cell layout as renderTable()'s Sales £ / Total view.
+function renderBottomSkus() {
+  const statusColors = {Continuity:'var(--muted)',Newness:'rgba(0,188,212,0.9)',Discontinued:'var(--amber)',Dead:'var(--red)',New:'rgba(0,188,212,0.9)'};
+  document.getElementById('bottom-sku-tbody').innerHTML = BOTTOM_SKUS.map((s, i) => {
+    const ukDisplay = s.uk_s2 > 0 ? fmtGBP(s.uk_s2) : '—';
+    const usDisplay = s.us_s2 > 0 ? fmtGBP(s.us_s2) : '—';
+    const ukPill = s.uk_s2 > 0 ? `<span class="geo-pill geo-uk">${ukDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const usPill = s.us_s2 > 0 ? `<span class="geo-pill geo-us">${usDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const vsLYStr = s.vs_ly != null ? fmtPct(s.vs_ly) : '—';
+    const gmStr = s.gm != null ? (s.gm*100).toFixed(0)+'%' : '—';
+    const sCol = statusColors[s.uk_s] || 'var(--muted)';
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="color:var(--amber);font-weight:500;font-size:9px">${s.sku}</td>
+      <td>${s.d}</td>
+      <td><span class="status-dot" style="background:${sCol}"></span>${s.c}</td>
+      <td><span class="ttag" style="${catTagStyle(s.t)}">${s.t.substring(0,4)}</span></td>
+      <td class="td-r"><strong>${fmtGBP(s.total_sales)}</strong></td>
+      <td class="td-r" style="color:var(--muted)">${fmtUExact(s.total_units)}</td>
+      <td class="td-r">${ukPill}</td>
+      <td class="td-r">${usPill}</td>
+      <td class="td-r ${pClass(s.vs_lq)}">${fmtPct(s.vs_lq)}</td>
+      <td class="td-r" style="color:var(--muted)">${vsLYStr}</td>
+      <td class="td-r" style="color:var(--d2c)">${gmStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ================================================================
 // NEWNESS TABLE
 // ================================================================
 function sortN(k) {
@@ -2395,6 +2486,7 @@ function renderAll() {
   renderStatus();
   renderTable();
   renderNewness();
+  renderBottomSkus();
 }
 window.addEventListener('load', renderAll);
 window.addEventListener('resize', () => { renderTrend(); renderScatter(); });

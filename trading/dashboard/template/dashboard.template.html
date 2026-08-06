@@ -659,6 +659,40 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
   </div>
 </div>
 
+<!-- SKU2 (round-3 review): bottom-20 SKUs by cash, excluding Components.
+     Same columns as the Top SKU Performance table (SKU1's Description
+     column included); static, no sort/pagination controls needed at 20
+     fixed rows. -->
+<div class="full-row" style="border-top:2px solid rgba(212,76,48,0.25)">
+  <div class="sec-hdr" style="margin-bottom:14px">
+    <div>
+      <div class="sec-title" style="color:var(--red)">Bottom 20 SKU Performance</div>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px">{{CM_LABEL}} · lowest-selling SKUs by cash · excludes Components</div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>SKU</th>
+          <th>Description</th>
+          <th>Collection</th>
+          <th>Type</th>
+          <th class="td-r">Sales £</th>
+          <th class="td-r">Units</th>
+          <th class="td-r">UK</th>
+          <th class="td-r">US</th>
+          <th class="td-r">vs {{PREV_PERIOD_ABBR}}</th>
+          <th class="td-r">vs LY</th>
+          <th class="td-r">GM%</th>
+        </tr>
+      </thead>
+      <tbody id="bottom-sku-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
 // ================================================================
 // DATA (pre-computed server-side -- BRIEF #4 step 4 §6/§7: JS never
@@ -673,6 +707,8 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
 {{BLOCK_PROD_TYPES}}
 
 {{BLOCK_SKUS}}
+
+{{BLOCK_BOTTOM_SKUS}}
 
 {{BLOCK_FINISH_DATA}}
 
@@ -1747,6 +1783,40 @@ function renderTable() {
 }
 
 // ================================================================
+// BOTTOM-20 SKU TABLE (SKU2, round-3 review)
+// ================================================================
+// Static: BOTTOM_SKUS is already the exact 20 rows to show (server-side
+// sort ascending by cash, Components excluded, see compute_bottom_skus)
+// -- no client-side re-sort/pagination needed at a fixed 20 rows. Same
+// row shape and cell layout as renderTable()'s Sales £ / Total view.
+function renderBottomSkus() {
+  const statusColors = {Continuity:'var(--muted)',Newness:'rgba(0,188,212,0.9)',Discontinued:'var(--amber)',Dead:'var(--red)',New:'rgba(0,188,212,0.9)'};
+  document.getElementById('bottom-sku-tbody').innerHTML = BOTTOM_SKUS.map((s, i) => {
+    const ukDisplay = s.uk_s2 > 0 ? fmtGBP(s.uk_s2) : '—';
+    const usDisplay = s.us_s2 > 0 ? fmtGBP(s.us_s2) : '—';
+    const ukPill = s.uk_s2 > 0 ? `<span class="geo-pill geo-uk">${ukDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const usPill = s.us_s2 > 0 ? `<span class="geo-pill geo-us">${usDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const vsLYStr = s.vs_ly != null ? fmtPct(s.vs_ly) : '—';
+    const gmStr = s.gm != null ? (s.gm*100).toFixed(0)+'%' : '—';
+    const sCol = statusColors[s.uk_s] || 'var(--muted)';
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="color:var(--amber);font-weight:500;font-size:9px">${s.sku}</td>
+      <td>${s.d}</td>
+      <td><span class="status-dot" style="background:${sCol}"></span>${s.c}</td>
+      <td><span class="ttag" style="${catTagStyle(s.t)}">${s.t.substring(0,4)}</span></td>
+      <td class="td-r"><strong>${fmtGBP(s.total_sales)}</strong></td>
+      <td class="td-r" style="color:var(--muted)">${fmtUExact(s.total_units)}</td>
+      <td class="td-r">${ukPill}</td>
+      <td class="td-r">${usPill}</td>
+      <td class="td-r ${pClass(s.vs_lq)}">${fmtPct(s.vs_lq)}</td>
+      <td class="td-r" style="color:var(--muted)">${vsLYStr}</td>
+      <td class="td-r" style="color:var(--d2c)">${gmStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ================================================================
 // NEWNESS TABLE
 // ================================================================
 function sortN(k) {
@@ -1799,6 +1869,7 @@ function renderAll() {
   renderStatus();
   renderTable();
   renderNewness();
+  renderBottomSkus();
 }
 window.addEventListener('load', renderAll);
 window.addEventListener('resize', () => { renderTrend(); renderScatter(); });

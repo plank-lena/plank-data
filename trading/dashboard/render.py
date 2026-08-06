@@ -268,7 +268,7 @@ def build_token_dict(
     periods_js, collections_js, statuses_js, prod_types_js, skus_js,
     finish_data_js, total_sales, coll_analysis_js, newness_skus_js,
     kpi_tokens, ribbon_tokens,
-    cat_top_collections_js=None, movers_js=None, matrix_js=None,
+    cat_top_collections_js=None, movers_js=None, matrix_js=None, bottom_skus_js=None,
 ):
     """Combine all token sources into a single flat dict for fill_template."""
     toks = {}
@@ -286,4 +286,6 @@ def build_token_dict(
     toks['BLOCK_CAT_TOP_COLLECTIONS'] = cat_top_collections_js or 'const CAT_TOP_COLLECTIONS = {};'
     toks['BLOCK_MOVERS']              = movers_js or 'const MOVERS = {rising:[],falling:[]};'
     toks['BLOCK_MATRIX']              = matrix_js or 'const MATRIX = {points:[],size_key:{min:0,max:0,label:"units"}};'
+    # SKU2 (round-3 review): bottom-20 SKUs by cash, excluding Components.
+    toks['BLOCK_BOTTOM_SKUS']         = bottom_skus_js or 'const BOTTOM_SKUS = [];'
     return toks

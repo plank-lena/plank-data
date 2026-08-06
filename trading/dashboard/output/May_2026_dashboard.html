@@ -769,6 +769,40 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
   </div>
 </div>
 
+<!-- SKU2 (round-3 review): bottom-20 SKUs by cash, excluding Components.
+     Same columns as the Top SKU Performance table (SKU1's Description
+     column included); static, no sort/pagination controls needed at 20
+     fixed rows. -->
+<div class="full-row" style="border-top:2px solid rgba(212,76,48,0.25)">
+  <div class="sec-hdr" style="margin-bottom:14px">
+    <div>
+      <div class="sec-title" style="color:var(--red)">Bottom 20 SKU Performance</div>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px">May 2026 · lowest-selling SKUs by cash · excludes Components</div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>SKU</th>
+          <th>Description</th>
+          <th>Collection</th>
+          <th>Type</th>
+          <th class="td-r">Sales £</th>
+          <th class="td-r">Units</th>
+          <th class="td-r">UK</th>
+          <th class="td-r">US</th>
+          <th class="td-r">vs LM</th>
+          <th class="td-r">vs LY</th>
+          <th class="td-r">GM%</th>
+        </tr>
+      </thead>
+      <tbody id="bottom-sku-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
 // ================================================================
 // DATA (pre-computed server-side -- BRIEF #4 step 4 §6/§7: JS never
@@ -948,6 +982,29 @@ const SKUS = [
   {r:47,sku:"GB-KIT-ETOG-KEPL-2G-1AB",d:"KEPLER 2G Two Way Knurled Toggle - Antique Brass",c:"KEPLER",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:2226.27,total_units:77,vs_lq:-0.2471,vs_ly:1.598,gm:0.6545,is_el:false,uk_s2:2226.27,uk_u:77,us_s2:0,us_u:0,d2c:1722.52,b2b:503.75,lq:2956.75,ly:856.94},
   {r:48,sku:"CDB-BOBB-175-1UB",d:"BOBBIN 175mm Handle - Unlacquered Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:2221.61,total_units:120,vs_lq:-0.2826,vs_ly:null,gm:0.6894,is_el:false,uk_s2:377.34,uk_u:19,us_s2:1360.67,us_u:75,d2c:393.99,b2b:1827.62,lq:3096.9,ly:0},
   {r:49,sku:"S5-ADH-HOFF-090-1BK",d:"HOFFMAN Set of 5 90mm Hook  - Black",c:"HOFFMAN",t:"Accessories",uk_s:"Cont",us_s:"Cont",total_sales:2211.45,total_units:40,vs_lq:1.5858,vs_ly:6.62,gm:0.8156,is_el:false,uk_s2:0,uk_u:0,us_s2:2211.45,us_u:40,d2c:612.14,b2b:1599.31,lq:855.22,ly:290.22}
+];
+
+const BOTTOM_SKUS = [
+  {r:0,sku:"EMNSTVB",d:"Half 1G Coaxial TV Socket",c:"EL COMPONENT",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:4.63,total_units:1,vs_lq:0,vs_ly:null,gm:0.754,is_el:true,uk_s2:4.63,uk_u:1,us_s2:0,us_u:0,d2c:0,b2b:4.63,lq:4.63,ly:0},
+  {r:1,sku:"CBP-ELIZ-145-1UB",d:"ELIZA Handle Backplate (96mm CC) - Unlacquered Brass",c:"ELIZA",t:"Cabinetry",uk_s:"New",us_s:"New",total_sales:6.28,total_units:1,vs_lq:0,vs_ly:null,gm:0.8376,is_el:false,uk_s2:0,uk_u:0,us_s2:6.28,us_u:1,d2c:0,b2b:6.28,lq:0,ly:0},
+  {r:2,sku:"EMFO",d:"1G Cable Tidy - Black",c:"EL COMPONENT",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:6.6,total_units:2,vs_lq:-0.3334,vs_ly:null,gm:0.4151,is_el:true,uk_s2:6.6,uk_u:2,us_s2:0,us_u:0,d2c:0,b2b:6.6,lq:9.9,ly:0},
+  {r:3,sku:"CRP-OLMO-055-1BK",d:"OLMO Round Pull Handle - Black",c:"OLMO",t:"Cabinetry",uk_s:"Disc",us_s:"Dead",total_sales:6.98,total_units:1,vs_lq:0,vs_ly:null,gm:0.5716,is_el:false,uk_s2:6.98,uk_u:1,us_s2:0,us_u:0,d2c:6.98,b2b:0,lq:0,ly:0},
+  {r:4,sku:"1005A-WH",d:"3 Way Rocker Switch - White",c:"EL COMPONENT",t:"Electric",uk_s:"New",us_s:"New",total_sales:7.35,total_units:1,vs_lq:1.1649,vs_ly:null,gm:0.9306,is_el:true,uk_s2:0,uk_u:0,us_s2:7.35,us_u:1,d2c:7.35,b2b:0,lq:3.4,ly:0},
+  {r:5,sku:"Custom Switch & Outlet Builder",d:"",c:"",t:"Unknown",uk_s:"Cont",us_s:"Cont",total_sales:7.44,total_units:1,vs_lq:0,vs_ly:null,gm:1,is_el:false,uk_s2:0,uk_u:0,us_s2:7.44,us_u:1,d2c:7.44,b2b:0,lq:0,ly:0},
+  {r:6,sku:"CBP-COHE-156-1AG",d:"COHEN 156mm Backplate - Aged Brass",c:"COHEN",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:8.93,total_units:1,vs_lq:-0.9001,vs_ly:null,gm:0.7737,is_el:false,uk_s2:0,uk_u:0,us_s2:8.93,us_u:1,d2c:0,b2b:8.93,lq:89.34,ly:0},
+  {r:7,sku:"KTH-CKB-BOBB-025-1BR",d:"BOBBIN 25mm Hook - Brass",c:"BOBBIN",t:"Accessories",uk_s:"New",us_s:"New",total_sales:9.14,total_units:1,vs_lq:-0.8513,vs_ly:null,gm:0.8105,is_el:false,uk_s2:9.14,uk_u:1,us_s2:0,us_u:0,d2c:9.14,b2b:0,lq:61.49,ly:0},
+  {r:8,sku:"AHP-ELNA-575-3BK",d:"ELNA 5 Hook Backplate - Black",c:"ELNA",t:"Accessories",uk_s:"Disc",us_s:"Dead",total_sales:9.15,total_units:1,vs_lq:-0.6321,vs_ly:-0.626,gm:0.7147,is_el:false,uk_s2:9.15,uk_u:1,us_s2:0,us_u:0,d2c:9.15,b2b:0,lq:24.87,ly:24.45},
+  {r:9,sku:"GB-EBB-BETT-02G-5NF",d:"BETTY 2G Plastic Back Box",c:"BETTY",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:9.87,total_units:3,vs_lq:-0.6666,vs_ly:null,gm:0.8724,is_el:false,uk_s2:9.87,uk_u:3,us_s2:0,us_u:0,d2c:9.87,b2b:0,lq:29.62,ly:0},
+  {r:10,sku:"1003S-BL",d:"4 Way Toggle Switch - Black",c:"EL COMPONENT",t:"Electric",uk_s:"New",us_s:"New",total_sales:9.92,total_units:1,vs_lq:-0.0533,vs_ly:null,gm:0.9123,is_el:true,uk_s2:0,uk_u:0,us_s2:9.92,us_u:1,d2c:9.92,b2b:0,lq:10.48,ly:0},
+  {r:11,sku:"2015C-BL",d:"Power Outlet Module 15A - Black",c:"EL COMPONENT",t:"Electric",uk_s:"New",us_s:"New",total_sales:9.96,total_units:1,vs_lq:-0.1027,vs_ly:null,gm:0.9317,is_el:true,uk_s2:0,uk_u:0,us_s2:9.96,us_u:1,d2c:9.96,b2b:0,lq:11.1,ly:0},
+  {r:12,sku:"KIT-CKB-ELIZ-025-1PN",d:"ELIZA 25mm Knob + Backplate - Polished Nickel",c:"ELIZA",t:"Cabinetry",uk_s:"New",us_s:"New",total_sales:10.0,total_units:1,vs_lq:-0.952,vs_ly:null,gm:0.7058,is_el:false,uk_s2:0,uk_u:0,us_s2:10.0,us_u:1,d2c:0,b2b:10.0,lq:208.26,ly:0},
+  {r:13,sku:"CBP-COHE-156-1PN",d:"COHEN 156mm Backplate - Polished Nickel",c:"COHEN",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:11.13,total_units:1,vs_lq:-0.8579,vs_ly:null,gm:0.7807,is_el:false,uk_s2:0,uk_u:0,us_s2:11.13,us_u:1,d2c:11.13,b2b:0,lq:78.32,ly:0},
+  {r:14,sku:"US-EL-BP-STA-1UB",d:"US Electrics Star Backplate - Unlacquered Brass",c:"EL COMPONENT",t:"Electric",uk_s:"New",us_s:"New",total_sales:11.2,total_units:2,vs_lq:-0.6402,vs_ly:null,gm:0.7625,is_el:true,uk_s2:0,uk_u:0,us_s2:11.2,us_u:2,d2c:11.2,b2b:0,lq:31.13,ly:0},
+  {r:15,sku:"KIT-CKB-HALL-025-1AB",d:"HALLEY 25mm Knob + COHEN Backplate - Antique Brass",c:"BOBBIN",t:"Cabinetry",uk_s:"Dead",us_s:"Dead",total_sales:11.27,total_units:1,vs_lq:0,vs_ly:null,gm:0.725,is_el:false,uk_s2:11.27,uk_u:1,us_s2:0,us_u:0,d2c:11.27,b2b:0,lq:0,ly:0},
+  {r:16,sku:"AHP-ELNA-575-1BR",d:"ELNA 5 Hook Backplate - Brass",c:"ELNA",t:"Accessories",uk_s:"Disc",us_s:"N/S",total_sales:11.65,total_units:1,vs_lq:0.0001,vs_ly:null,gm:0.5579,is_el:false,uk_s2:11.65,uk_u:1,us_s2:0,us_u:0,d2c:11.65,b2b:0,lq:11.65,ly:0},
+  {r:17,sku:"GB-KIT-MODE-RTVT-PL-1BR",d:"PALO Retractive Toggle Detail with Module - Brass",c:"BOBBIN",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:11.67,total_units:1,vs_lq:-0.9429,vs_ly:null,gm:0.7562,is_el:false,uk_s2:11.67,uk_u:1,us_s2:0,us_u:0,d2c:11.67,b2b:0,lq:204.17,ly:0},
+  {r:18,sku:"GB-EBB-BETT-01G-5NF",d:"BETTY 1G Plastic Back Box",c:"BETTY",t:"Electric",uk_s:"Cont",us_s:"N/S",total_sales:12.05,total_units:5,vs_lq:-0.2093,vs_ly:null,gm:0.8631,is_el:false,uk_s2:12.05,uk_u:5,us_s2:0,us_u:0,d2c:12.05,b2b:0,lq:15.24,ly:0},
+  {r:19,sku:"AXM-LENA-100-10BG",d:"LENA Decorative Tassel - Burgundy",c:"LENA",t:"Accessories",uk_s:"Cont",us_s:"Cont",total_sales:13.16,total_units:6,vs_lq:0,vs_ly:null,gm:0.7787,is_el:false,uk_s2:13.16,uk_u:6,us_s2:0,us_u:0,d2c:9.87,b2b:3.29,lq:0,ly:0}
 ];
 
 const FINISH_DATA = {
@@ -2370,6 +2427,40 @@ function renderTable() {
 }
 
 // ================================================================
+// BOTTOM-20 SKU TABLE (SKU2, round-3 review)
+// ================================================================
+// Static: BOTTOM_SKUS is already the exact 20 rows to show (server-side
+// sort ascending by cash, Components excluded, see compute_bottom_skus)
+// -- no client-side re-sort/pagination needed at a fixed 20 rows. Same
+// row shape and cell layout as renderTable()'s Sales £ / Total view.
+function renderBottomSkus() {
+  const statusColors = {Continuity:'var(--muted)',Newness:'rgba(0,188,212,0.9)',Discontinued:'var(--amber)',Dead:'var(--red)',New:'rgba(0,188,212,0.9)'};
+  document.getElementById('bottom-sku-tbody').innerHTML = BOTTOM_SKUS.map((s, i) => {
+    const ukDisplay = s.uk_s2 > 0 ? fmtGBP(s.uk_s2) : '—';
+    const usDisplay = s.us_s2 > 0 ? fmtGBP(s.us_s2) : '—';
+    const ukPill = s.uk_s2 > 0 ? `<span class="geo-pill geo-uk">${ukDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const usPill = s.us_s2 > 0 ? `<span class="geo-pill geo-us">${usDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
+    const vsLYStr = s.vs_ly != null ? fmtPct(s.vs_ly) : '—';
+    const gmStr = s.gm != null ? (s.gm*100).toFixed(0)+'%' : '—';
+    const sCol = statusColors[s.uk_s] || 'var(--muted)';
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="color:var(--amber);font-weight:500;font-size:9px">${s.sku}</td>
+      <td>${s.d}</td>
+      <td><span class="status-dot" style="background:${sCol}"></span>${s.c}</td>
+      <td><span class="ttag" style="${catTagStyle(s.t)}">${s.t.substring(0,4)}</span></td>
+      <td class="td-r"><strong>${fmtGBP(s.total_sales)}</strong></td>
+      <td class="td-r" style="color:var(--muted)">${fmtUExact(s.total_units)}</td>
+      <td class="td-r">${ukPill}</td>
+      <td class="td-r">${usPill}</td>
+      <td class="td-r ${pClass(s.vs_lq)}">${fmtPct(s.vs_lq)}</td>
+      <td class="td-r" style="color:var(--muted)">${vsLYStr}</td>
+      <td class="td-r" style="color:var(--d2c)">${gmStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ================================================================
 // NEWNESS TABLE
 // ================================================================
 function sortN(k) {
@@ -2422,6 +2513,7 @@ function renderAll() {
   renderStatus();
   renderTable();
   renderNewness();
+  renderBottomSkus();
 }
 window.addEventListener('load', renderAll);
 window.addEventListener('resize', () => { renderTrend(); renderScatter(); });

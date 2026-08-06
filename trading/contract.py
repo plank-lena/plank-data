@@ -293,12 +293,12 @@ def render_contract(contract, template_html):
     """
     from compute import (
         compute_periods, compute_total_sales, compute_statuses, compute_prod_types,
-        compute_skus, compute_newness_skus, compute_collections,
+        compute_skus, compute_newness_skus, compute_collections, compute_bottom_skus,
         compute_finish_data, compute_coll_analysis, compute_kpi_tokens, compute_ribbon_tokens,
         compute_category_top_collections, compute_movers, compute_matrix,
         js_block_periods, js_block_collections, js_block_statuses, js_block_prod_types,
         js_block_skus, js_block_finish_data, js_block_coll_analysis,
-        js_block_newness_skus,
+        js_block_newness_skus, js_block_bottom_skus,
         js_block_cat_top_collections, js_block_movers, js_block_matrix,
     )
     from render import fill_template, build_token_dict
@@ -316,6 +316,7 @@ def render_contract(contract, template_html):
     statuses_data = compute_statuses(raw["statuses"])
     types_data = compute_prod_types(raw["prod_types"])
     skus_data = compute_skus(raw["skus_all"])
+    bottom_skus_data = compute_bottom_skus(raw["skus_all"])
     newness_data = compute_newness_skus(raw["skus_all"])
     coll_data = compute_collections(raw["collections"])
     finish_data = compute_finish_data(raw["finishes"], raw["skus_all"])
@@ -333,6 +334,7 @@ def render_contract(contract, template_html):
         js_block_coll_analysis(coll_analysis), js_block_newness_skus(newness_data),
         kpi_tokens, ribbon_tokens,
         js_block_cat_top_collections(cat_top_collections), js_block_movers(movers), js_block_matrix(matrix),
+        bottom_skus_js=js_block_bottom_skus(bottom_skus_data),
     )
     tokens["PROVISIONAL_BANNER"] = "" if can_publish(contract) else PROVISIONAL_BANNER_HTML
     # B3 (round-2 review): department-level vs-LY caveat -- see

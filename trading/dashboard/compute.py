@@ -219,38 +219,57 @@ def compute_category_top_collections(collections_computed, skus_all=None, top_n=
 
 # ── SKUS (top 25 overall) ─────────────────────────────────────────────────────
 
+def _sku_row(s, i):
+    vs_ly_val = None
+    if s.get('ly') and s['ly'] > 0:
+        vs_ly_val = round((s['gross'] - s['ly']) / s['ly'], 3)
+    return {
+        'r':           i,
+        'sku':         s['sku'],
+        'd':           s['desc'],
+        'c':           s['coll'],
+        't':           s['type_'],
+        'uk_s':        STATUS_ABBREV.get(s['uk_status'], s['uk_status']),
+        'us_s':        STATUS_ABBREV.get(s['us_status'], s['us_status']),
+        'total_sales': round(s['gross'], 2),
+        'total_units': s['units'],
+        'vs_lq':       _r4(s.get('vslq')),
+        'vs_ly':       vs_ly_val,
+        'gm':          _r4(s.get('gm')),
+        'is_el_component': bool(s.get('is_el_component')),
+        'uk_s2':       round(s['uk'], 2),
+        'uk_u':        s['uk_u'],
+        'us_s2':       round(s['us'], 2),
+        'us_u':        s['us_u'],
+        'd2c':         round(s['d2c'], 2),
+        'b2b':         round(s['b2b'], 2),
+        'lq':          round(s['lq'], 2) if s.get('lq') else 0,
+        'ly':          round(s['ly'], 2) if s.get('ly') else 0,
+    }
+
+
 def compute_skus(skus_all, top_n=50):
     # T6 (trading review round 1): 25 -> 50.
     top = sorted(skus_all, key=lambda s: -s['gross'])[:top_n]
-    out = []
-    for i, s in enumerate(top):
-        vs_ly_val = None
-        if s.get('ly') and s['ly'] > 0:
-            vs_ly_val = round((s['gross'] - s['ly']) / s['ly'], 3)
-        out.append({
-            'r':           i,
-            'sku':         s['sku'],
-            'd':           s['desc'],
-            'c':           s['coll'],
-            't':           s['type_'],
-            'uk_s':        STATUS_ABBREV.get(s['uk_status'], s['uk_status']),
-            'us_s':        STATUS_ABBREV.get(s['us_status'], s['us_status']),
-            'total_sales': round(s['gross'], 2),
-            'total_units': s['units'],
-            'vs_lq':       _r4(s.get('vslq')),
-            'vs_ly':       vs_ly_val,
-            'gm':          _r4(s.get('gm')),
-            'is_el_component': bool(s.get('is_el_component')),
-            'uk_s2':       round(s['uk'], 2),
-            'uk_u':        s['uk_u'],
-            'us_s2':       round(s['us'], 2),
-            'us_u':        s['us_u'],
-            'd2c':         round(s['d2c'], 2),
-            'b2b':         round(s['b2b'], 2),
-            'lq':          round(s['lq'], 2) if s.get('lq') else 0,
-            'ly':          round(s['ly'], 2) if s.get('ly') else 0,
-        })
-    return out
+    return [_sku_row(s, i) for i, s in enumerate(top)]
+
+
+# SKU2 (round-3 review): bottom-N by cash, excluding Components. No
+# dedicated config.py constant for "Components" exists -- filtered by
+# literal type_ match, the same convention contract.py's own DEPARTMENTS/
+# _DEAD_DEPARTMENTS tuples already use for department names (e.g. Door).
+# Same row shape as compute_skus (SKU1's name/SKU4's exact units are
+# template-side, so this table gets them automatically), just the
+# opposite end of the sort with one department excluded. gross>0 excludes
+# SKUs with no revenue this period, same floor compute_skus's own top-N
+# sort effectively has (a 0-revenue SKU would never rank in a top-50 by
+# revenue, but WOULD rank in a bottom-20 by revenue without this guard --
+# that's a materially different, less useful list: "sold nothing" instead
+# of "sold the least of what did sell").
+def compute_bottom_skus(skus_all, top_n=20, exclude_department="Components"):
+    candidates = [s for s in skus_all if s.get('type_') != exclude_department and (s.get('gross') or 0) > 0]
+    bottom = sorted(candidates, key=lambda s: s['gross'])[:top_n]
+    return [_sku_row(s, i) for i, s in enumerate(bottom)]
 
 
 # ── NEWNESS_SKUS (top 50 Newness SKUs) ───────────────────────────────────────
@@ -972,7 +991,7 @@ def js_block_matrix(matrix):
     )
 
 
-def js_block_skus(skus):
+def _sku_rows_js(skus):
     rows = []
     for s in skus:
         vs_ly = _js_val(s.get('vs_ly'))
@@ -987,7 +1006,15 @@ def js_block_skus(skus):
             f'd2c:{s["d2c"]},b2b:{s["b2b"]},'
             f'lq:{s["lq"]},ly:{s["ly"]}}}'
         )
-    return 'const SKUS = [\n' + ',\n'.join(rows) + '\n];'
+    return ',\n'.join(rows)
+
+
+def js_block_skus(skus):
+    return 'const SKUS = [\n' + _sku_rows_js(skus) + '\n];'
+
+
+def js_block_bottom_skus(skus):
+    return 'const BOTTOM_SKUS = [\n' + _sku_rows_js(skus) + '\n];'
 
 
 def js_block_finish_data(finish_data):
