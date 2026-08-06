@@ -554,8 +554,6 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
             <button class="active" onclick="setCatView('overview')">Overview</button>
             <button onclick="setCatView('channel')">Channel</button>
             <button onclick="setCatView('country')">Country</button>
-            <button onclick="setCatView('vs_lq')">vs LM</button>
-            <button onclick="setCatView('vs_ly')">vs LY</button>
           </div>
           <div class="tg metric" id="subcat-tg">
             <button class="active" onclick="setSubcatDrill(false)">Bars</button>
@@ -1555,15 +1553,14 @@ function renderTrend() {
 }
 
 // ================================================================
-// CATEGORY BARS -- Overview (current + LY/LQ ghost markers, directional
-// cue), Channel (D2C/B2B split), Country (UK/US split), vs LM / vs LY
-// (sorted by that movement, restoring the pre-redesign 5-view toggle --
-// trading review round 1, T2b). BRIEF #4 step 4 item 2's "absolute values
-// only on the bar itself, direction-only colour cue" rule still applies to
-// Overview; vs LM/vs LY intentionally print the % since that's the whole
-// point of those two views.
+// CATEGORY BARS -- Overview (current + LY/LQ ghost markers + vs-LM
+// movement, per CB2), Channel (D2C/B2B split), Country (UK/US split).
+// CB1 (round-3 review): the standalone vs LM / vs LY sorted-movement views
+// are removed; CB2 folds their arrow+signed-%+£ display into Overview
+// instead (driven by the LM comparator, not LY -- see the row build below)
+// so that display survives the removal rather than being lost with it.
 // ================================================================
-const CAT_VIEWS = ['overview','channel','country','vs_lq','vs_ly'];
+const CAT_VIEWS = ['overview','channel','country'];
 let catView = 'overview';
 function setCatView(v) {
   catView = v;
@@ -1581,31 +1578,7 @@ function renderCatBars() {
   const box = document.getElementById('cat-bars');
   let rows;
 
-  if (catView === 'vs_lq' || catView === 'vs_ly') {
-    const key = catView;
-    const sorted = PROD_TYPES.slice().sort((a,b) => (b[key] ?? -Infinity) - (a[key] ?? -Infinity));
-    const maxAbs = Math.max(...sorted.map(t => Math.abs(t[key] || 0)), 0.01);
-    rows = sorted.map((t, i) => {
-      const v = t[key];
-      const dir = badgeClass(v);
-      const w = (Math.abs(v || 0) / maxAbs * 100).toFixed(1);
-      return `
-        <div class="cat-bar-row">
-          <div class="cat-bar-hdr" onclick="toggleSubcat(${i})">
-            <span class="cat-bar-name">${t.t}</span>
-            <span class="cat-bar-vals"><span class="cat-dir ${dir}">${dirArrow(dir)}</span>${fmtPct(v)} · ${fmtGBP(t.sales)}</span>
-          </div>
-          <div class="cat-bar-track">
-            <div class="cat-bar-fill" style="width:${w}%;background:${dir==='dn'?'var(--red)':'var(--green)'};opacity:.75"></div>
-          </div>
-          <div class="subcat-drill" id="subcat-${i}">${subcatsHTML(t)}</div>
-        </div>`;
-    });
-    const lyCaveat = (catView === 'vs_ly' && typeof LY_DEPT_UNCLASSIFIED_PCT === 'number')
-      ? ` · LY baseline: ${(LY_DEPT_UNCLASSIFIED_PCT*100).toFixed(0)}% of revenue unclassified by department (legacy SKU naming) -- a department's LY figure may be understated, so its vs-LY growth may read higher than real`
-      : '';
-    legend.innerHTML = `<span>Sorted by ${catView==='vs_lq'?'vs LM':'vs LY'} movement -- bar length is the % magnitude, not £${lyCaveat}</span>`;
-  } else if (catView === 'channel' || catView === 'country') {
+  if (catView === 'channel' || catView === 'country') {
     const [kA, kB, labA, labB, colA, colB] = catView === 'channel'
       ? ['d2c','b2b','D2C','B2B','var(--d2c)','var(--b2b)']
       : ['uk','us','UK','US','var(--uk)','var(--us)'];
@@ -1639,11 +1612,15 @@ function renderCatBars() {
       const lqW = t.lq_sales != null ? (t.lq_sales / maxVal * 100).toFixed(1) : null;
       const lqLbl = t.lq_sales != null ? ' · ' + fmtGBP(t.lq_sales) + ' LM' : '';
       const lyLbl = t.ly_sales != null ? ' · ' + fmtGBP(t.ly_sales) + ' LY' : '';
+      // CB2 (round-3 review): the removed vs-LM view's own arrow + signed %
+      // display, folded into Overview -- driven by vs_lq (the LM
+      // comparator), not yoy_dir (vs_ly), per CB2's explicit instruction.
+      const dir = badgeClass(t.vs_lq);
       return `
         <div class="cat-bar-row">
           <div class="cat-bar-hdr" onclick="toggleSubcat(${i})">
             <span class="cat-bar-name">${t.t}</span>
-            <span class="cat-bar-vals"><span class="cat-dir ${t.yoy_dir}">${dirArrow(t.yoy_dir)}</span>${fmtGBP(t.sales)}${lqLbl}${lyLbl}</span>
+            <span class="cat-bar-vals"><span class="cat-dir ${dir}">${dirArrow(dir)}</span>${fmtPct(t.vs_lq)} · ${fmtGBP(t.sales)}${lqLbl}${lyLbl}</span>
           </div>
           <div class="cat-bar-track">
             <div class="cat-bar-fill" style="width:${barW}%;background:${col};opacity:.75"></div>
