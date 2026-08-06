@@ -12,8 +12,8 @@
     "country_gaps_vs_oracle": null,
     "lq_ly_source": "oracle_bootstrap",
     "ly_dept_unclassified_share": 0.3304,
-    "built_at": "2026-08-06T11:45:43.880813+00:00",
-    "commit": "56416c09b48fc45f9d593d8ec0408a02ba8502f5"
+    "built_at": "2026-08-06T11:52:20.930068+00:00",
+    "commit": "ebdc876dc38ccf3058a5a011a1daea5c3da77076"
   },
   "mode": "month",
   "period_model": {
@@ -132,6 +132,8 @@
       "b2b": 105638.7993694641,
       "uk": 137160.51999999944,
       "us": 163495.14337186608,
+      "uk_vs_lq": null,
+      "us_vs_lq": null,
       "lq_sales": 396534.49,
       "subcats": [
         {
@@ -177,6 +179,8 @@
       "b2b": 16877.147069509072,
       "uk": 70956.23000000004,
       "us": 14446.899864885141,
+      "uk_vs_lq": null,
+      "us_vs_lq": null,
       "lq_sales": 69746.5,
       "subcats": [
         {
@@ -222,6 +226,8 @@
       "b2b": 6955.35867737577,
       "uk": 14040.26000000002,
       "us": 12361.38717910223,
+      "uk_vs_lq": null,
+      "us_vs_lq": null,
       "lq_sales": 41013.55,
       "subcats": [
         {
@@ -273,6 +279,8 @@
       "b2b": 4672.323892808888,
       "uk": 14497.809999999998,
       "us": 1484.1390181654406,
+      "uk_vs_lq": null,
+      "us_vs_lq": null,
       "lq_sales": 25411.1,
       "subcats": [
         {
@@ -300,6 +308,8 @@
       "b2b": 3596.8545954060946,
       "uk": 6675.62,
       "us": 5989.010659060202,
+      "uk_vs_lq": null,
+      "us_vs_lq": null,
       "lq_sales": null,
       "subcats": [
         {
@@ -321,6 +331,8 @@
       "b2b": 769.2741975679328,
       "uk": 181.2900000000001,
       "us": 837.3892808887555,
+      "uk_vs_lq": null,
+      "us_vs_lq": null,
       "lq_sales": 3458.25,
       "subcats": [
         {

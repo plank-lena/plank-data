@@ -802,11 +802,21 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     # no prior month's contract is available, e.g. the earliest month this
     # repo has Matrixify exports for.
     current["trend_3mo"] = None
+    # CA2 (round-3 review): per-department UK/US vs-LM, keyed off the same
+    # prior_month_contract T1 already threads through for trend_3mo -- its
+    # own prod_types carry real absolute uk/us per department (computed
+    # fresh from line-level data every month, not a reconstructed ratio),
+    # so this is a genuine month-over-month comparison, not a guess. None
+    # per department when prior_month_contract is absent (April, the first
+    # month with no prior contract at all) or that department didn't exist
+    # last month -- never fabricated.
+    pmc_dept_uk_us = {}
     if prior_month_contract is not None:
         pmc = prior_month_contract if isinstance(prior_month_contract, dict) else load_contract(prior_month_contract)
         mm2_total = pmc.get("lm", {}).get("total")
         if mm2_total is not None:
             current["trend_3mo"] = [round(mm2_total, 2), round(lm["total"], 2), round(current["total_sales"], 2)]
+        pmc_dept_uk_us = {t["t"]: (t.get("uk"), t.get("us")) for t in pmc.get("prod_types", [])}
 
     statuses = [{
         "s": b, "sales": v["sales"], "units": v["units"], "vs_lq": None, "vs_ly": None,
@@ -816,6 +826,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     prod_types = []
     for dept, v in dept_totals.items():
         lq_sales = oracle_prod_type_lq.get(dept)
+        pmc_uk, pmc_us = pmc_dept_uk_us.get(dept, (None, None))
         prod_types.append({
             "t": dept, "sales": v["sales"], "units": v["units"],
             "vs_lq": _vs(v["sales"], lq_sales) if lq_sales is not None else None,
@@ -827,6 +838,9 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             # there, same "genuinely unavailable at this grain" limitation
             # as T2b's LQ note below.
             "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "us": v["us"],
+            # CA2: per-market vs-LM, see pmc_dept_uk_us above.
+            "uk_vs_lq": _vs(v["uk"], pmc_uk) if pmc_uk is not None else None,
+            "us_vs_lq": _vs(v["us"], pmc_us) if pmc_us is not None else None,
             # T2b: LQ ghost-bar value -- real once oracle_prod_type_lq has
             # this department (reconstructed from the oracle bootstrap's own
             # vs_lq ratio, see above); None otherwise, never fabricated.

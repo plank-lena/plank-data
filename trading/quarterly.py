@@ -245,6 +245,12 @@ def _aggregate_prod_types(months, lq=None):
         # same "None until a real prior period exists" convention as
         # _aggregate_collections' lq_total -- never reconstructed here.
         lq_sales = prior['sales'] if prior else None
+        # CA2 (round-3 review): per-market vs-LQ, same "real once a prior
+        # quarter's own contract exists" convention as vs_lq above -- prior
+        # quarter's own uk/us are already real absolute sums (aggregated the
+        # same way this quarter's own uk/us are, a few lines up).
+        uk_vs_lq = _vs(uk, prior['uk']) if prior and prior.get('uk') is not None else None
+        us_vs_lq = _vs(us, prior['us']) if prior and prior.get('us') is not None else None
 
         lq_subcats = {sc['name']: sc for sc in prior.get('subcats', [])} if prior else {}
         subcat_names = _union_ordered([r.get('subcats', []) if r else [] for r in rows], 'name')
@@ -261,7 +267,8 @@ def _aggregate_prod_types(months, lq=None):
 
         out.append({'t': name, 'sales': sales, 'units': units, 'vs_lq': vs_lq,
                     'vs_ly': vs_ly, 'gm': gm, 'subcats': subcats,
-                    'd2c': d2c, 'b2b': b2b, 'uk': uk, 'us': us, 'lq_sales': lq_sales})
+                    'd2c': d2c, 'b2b': b2b, 'uk': uk, 'us': us, 'lq_sales': lq_sales,
+                    'uk_vs_lq': uk_vs_lq, 'us_vs_lq': us_vs_lq})
     return out
 
 

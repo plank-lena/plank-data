@@ -146,6 +146,11 @@ def compute_prod_types(types_raw):
             'vs_ly':      vs_ly,
             'yoy_dir':    badge_class(vs_ly),
             'gm':         _r4(t.get('gm')),
+            # CA2 (round-3 review): per-market vs-LM -- real once a prior
+            # month's own contract exists to chain from (contract.py's
+            # pmc_dept_uk_us), None otherwise, never fabricated.
+            'uk_vs_lq':   _r4(t.get('uk_vs_lq')),
+            'us_vs_lq':   _r4(t.get('us_vs_lq')),
             'color':      color,
             'textColor':  text_color,
             'subcats': [{
@@ -876,6 +881,7 @@ def js_block_prod_types(prod_types):
             f'uk:{t.get("uk",0)},us:{t.get("us",0)},units:{t["units"]},'
             f'vs_lq:{_js_val(t["vs_lq"])},vs_ly:{_js_val(t.get("vs_ly"))},yoy_dir:{_js_val(t.get("yoy_dir"))},'
             f"gm:{_js_val(t['gm'])},color:{_js_val(t['color'])},textColor:{_js_val(t['textColor'])},"
+            f'uk_vs_lq:{_js_val(t.get("uk_vs_lq"))},us_vs_lq:{_js_val(t.get("us_vs_lq"))},'
             f'subcats:{subcats}}}'
         )
     return 'const PROD_TYPES = [\n' + ',\n'.join(rows) + '\n];'

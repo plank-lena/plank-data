@@ -17,8 +17,8 @@
       "2026-05_Monthly_Trading_Report.xlsx",
       "2026-06_Monthly_Trading_Report.xlsx"
     ],
-    "built_at": "2026-08-05T13:08:14.179705+00:00",
-    "commit": "bc509516f1b8bb04c7e621eb623b631750a69077"
+    "built_at": "2026-08-06T11:54:17.410526+00:00",
+    "commit": "ebdc876dc38ccf3058a5a011a1daea5c3da77076"
   },
   "mode": "quarter",
   "period_model": {
@@ -189,7 +189,9 @@
       "b2b": 0,
       "uk": 0,
       "us": 0,
-      "lq_sales": 996919.6858542655
+      "lq_sales": 996919.6858542655,
+      "uk_vs_lq": null,
+      "us_vs_lq": null
     },
     {
       "t": "Taps",
@@ -211,7 +213,9 @@
       "b2b": 0,
       "uk": 0,
       "us": 0,
-      "lq_sales": 0
+      "lq_sales": 0,
+      "uk_vs_lq": null,
+      "us_vs_lq": null
     },
     {
       "t": "Accessories",
@@ -282,7 +286,9 @@
       "b2b": 0,
       "uk": 0,
       "us": 0,
-      "lq_sales": 103510.16522163607
+      "lq_sales": 103510.16522163607,
+      "uk_vs_lq": null,
+      "us_vs_lq": null
     },
     {
       "t": "Electric",
@@ -332,7 +338,9 @@
       "b2b": 0,
       "uk": 0,
       "us": 0,
-      "lq_sales": 174351.41040452203
+      "lq_sales": 174351.41040452203,
+      "uk_vs_lq": null,
+      "us_vs_lq": null
     },
     {
       "t": "Lighting",
@@ -368,7 +376,9 @@
       "b2b": 0,
       "uk": 0,
       "us": 0,
-      "lq_sales": 57105.69920296549
+      "lq_sales": 57105.69920296549,
+      "uk_vs_lq": null,
+      "us_vs_lq": null
     },
     {
       "t": "Components",
@@ -382,7 +392,9 @@
       "b2b": 0,
       "uk": 0,
       "us": 0,
-      "lq_sales": 4950.9596218799725
+      "lq_sales": 4950.9596218799725,
+      "uk_vs_lq": null,
+      "us_vs_lq": null
     }
   ],
   "finishes": {

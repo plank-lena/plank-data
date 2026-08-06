@@ -1115,8 +1115,8 @@ function renderCatBody() {
       <div class="fs-row"><span class="fs-row-lbl">vs LM</span><span class="fs-row-val">${fmtPct(pt.vs_lq)}</span></div>
       <div class="fs-row"><span class="fs-row-lbl">vs LY</span><span class="fs-row-val">${fmtPct(pt.vs_ly)}</span></div>
       <div class="fs-row"><span class="fs-row-lbl">D2C share</span><span class="fs-row-val">${d2cShare!=null?(d2cShare*100).toFixed(0)+'%':'—'}</span></div>
-      <div class="fs-row"><span class="fs-row-lbl">UK</span><span class="fs-row-val">${fmtGBP(pt.uk)}</span></div>
-      <div class="fs-row"><span class="fs-row-lbl">US</span><span class="fs-row-val">${fmtGBP(pt.us)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">UK</span><span class="fs-row-val">${fmtGBP(pt.uk)} <span class="cat-dir ${badgeClass(pt.uk_vs_lq)}" style="font-size:9px">${dirArrow(badgeClass(pt.uk_vs_lq))}${fmtPct(pt.uk_vs_lq)}</span></span></div>
+      <div class="fs-row"><span class="fs-row-lbl">US</span><span class="fs-row-val">${fmtGBP(pt.us)} <span class="cat-dir ${badgeClass(pt.us_vs_lq)}" style="font-size:9px">${dirArrow(badgeClass(pt.us_vs_lq))}${fmtPct(pt.us_vs_lq)}</span></span></div>
       <div class="fs-row"><span class="fs-row-lbl">LM value</span><span class="fs-row-val">${pt.lq_sales!=null?fmtGBP(pt.lq_sales):'—'}</span></div>
       <div class="fs-row"><span class="fs-row-lbl">Top collections</span><span class="fs-row-val">${rows.length}</span></div>
     </div>
