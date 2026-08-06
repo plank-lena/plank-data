@@ -40,12 +40,6 @@ def _default_period_label(month_nums, year, months):
     return f"{months[month_nums[0]]}–{months[month_nums[-1]]} {year}"
 
 
-def _names(s):
-    """sku -> display name (product title), for the SKU-row label."""
-    d = s.dropna(subset=["name"]).drop_duplicates("sku")
-    return dict(zip(d["sku"], d["name"]))
-
-
 def build_cube(s, ret, shopv):
     """One row per (month, country, seg, category, subcategory, family, sku):
     units_sold, gross_sales, orders (sales side, from s) joined to units_returned /
@@ -162,7 +156,7 @@ def render(sales_df, ld_std, returns_df, month_nums=None, year=build.DEFAULT_YEA
         "reasons": build_reasons(zap),
         "valueRows": build_value_rows(shopv),
         "gross": build_gross(shopv),
-        "names": _names(s),
+        "names": build.load_line_detail_names(),
         "catColors": build_category_colors(s),
         "months": list(months.values()),
         "periodLabel": period_label,
