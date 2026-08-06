@@ -1323,6 +1323,16 @@ function catTagStyle(t) {
 // ================================================================
 // HELPERS
 // ================================================================
+// SKU5 (round-3 review): display-only relabel, "Unknown" -> "not on LD"
+// (LD = Line Detail) in Category Breakdown/Category Analysis. The
+// underlying department name stays the literal string "Unknown"
+// everywhere it's used for onclick handlers, catColor(), PROD_TYPES.find,
+// CAT_TOP_COLLECTIONS[...] lookups etc. -- only call this at the point of
+// building visible text, never anywhere the value is compared or looked
+// up, so membership/figures/sort position are all untouched.
+function deptLabel(name) {
+  return name === 'Unknown' ? 'not on LD' : name;
+}
 function fmtGBP(n) {
   if (n == null) return '—';
   if (Math.abs(n) >= 1e6) return '£' + (n/1e6).toFixed(2) + 'M';
@@ -1606,7 +1616,7 @@ function renderCatBars() {
       return `
         <div class="cat-bar-row">
           <div class="cat-bar-hdr" onclick="toggleSubcat(${i})">
-            <span class="cat-bar-name">${t.t}</span>
+            <span class="cat-bar-name">${deptLabel(t.t)}</span>
             <span class="cat-bar-vals">${fmtGBP(t[kA])} ${labA} · ${fmtGBP(t[kB])} ${labB}</span>
           </div>
           <div class="cat-bar-track">
@@ -1634,7 +1644,7 @@ function renderCatBars() {
       return `
         <div class="cat-bar-row">
           <div class="cat-bar-hdr" onclick="toggleSubcat(${i})">
-            <span class="cat-bar-name">${t.t}</span>
+            <span class="cat-bar-name">${deptLabel(t.t)}</span>
             <span class="cat-bar-vals"><span class="cat-dir ${dir}">${dirArrow(dir)}</span>${fmtPct(t.vs_lq)} · ${fmtGBP(t.sales)}${lqLbl}${lyLbl}</span>
           </div>
           <div class="cat-bar-track">
@@ -1671,7 +1681,7 @@ function initCatTabs() {
   document.getElementById('cat-tabs').innerHTML = cats.map(c => {
     const active = c === selectedCatTab;
     return `<button class="ft-btn${active?' active':''}" onclick="setCatTab('${c.replace(/'/g,"\\'")}')"
-      style="${active?'background:'+catColor(c)+';color:#fff':''}">${c || 'Unknown'}</button>`;
+      style="${active?'background:'+catColor(c)+';color:#fff':''}">${deptLabel(c) || 'not on LD'}</button>`;
   }).join('');
   renderCatBody();
 }
@@ -1723,7 +1733,7 @@ function renderCatBody() {
   document.getElementById('cat-body').innerHTML = `
     <div class="finish-stats">
       <div class="fs-main" style="border-color:${col}">
-        <div class="fs-lbl">${selectedCatTab || 'Unknown'} · ${CM_LABEL}</div>
+        <div class="fs-lbl">${deptLabel(selectedCatTab) || 'not on LD'} · ${CM_LABEL}</div>
         <div class="fs-val" style="color:${col}">${fmtGBP(pt.sales != null ? pt.sales : total)}</div>
       </div>
       <div class="fs-row"><span class="fs-row-lbl">GM%</span><span class="fs-row-val">${fmtPct(pt.gm, false)}</span></div>
@@ -1737,7 +1747,7 @@ function renderCatBody() {
     </div>
     <div class="cat-donut-wrap">
       <canvas id="cat-donut" height="220" style="display:block;width:100%"></canvas>
-      <div class="cat-donut-caption">Collection share of ${selectedCatTab || 'Unknown'} · ${CM_LABEL}</div>
+      <div class="cat-donut-caption">Collection share of ${deptLabel(selectedCatTab) || 'not on LD'} · ${CM_LABEL}</div>
     </div>
     <div class="top-coll-list">${listHTML}${totalRowHTML}</div>`;
   renderCatDonut(rows, col);
