@@ -1596,7 +1596,14 @@ function renderScatter() {
     return 5 + t * 17;
   };
 
-  MATRIX.points.slice(0, 20).forEach(p => {
+  // M1 (round-2 review): floating labels OUTSIDE each bubble (previously
+  // drawn inside, truncated to 7 chars, illegible against the fill) for
+  // the top 10 by revenue only -- MATRIX.points is already revenue-sorted
+  // descending by compute_matrix, so the first 10 of this slice ARE that
+  // top 10; no separate re-rank needed. Full collection name now that it
+  // isn't fighting for space inside the circle.
+  const LABEL_TOP_N = 10;
+  MATRIX.points.slice(0, 20).forEach((p, i) => {
     if (p.gm == null) return;
     const clampedGM = Math.max(p.gm, minGM);
     const x = padL + ((clampedGM - minGM) / ((maxGM - minGM) || 1)) * cW;
@@ -1606,10 +1613,13 @@ function renderScatter() {
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = col.replace(/[\d.]+\)$/, '0.25)'); ctx.fill();
     ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = 'rgba(24,24,28,0.85)';
-    ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
-    ctx.fillText(p.c.substring(0,7), x, y + 3);
+    if (i < LABEL_TOP_N) {
+      ctx.fillStyle = 'rgba(24,24,28,0.9)';
+      ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(p.c, x, y - r - 4);
+    }
   });
+  ctx.textBaseline = 'alphabetic'; // reset -- the axis-label code above relies on the canvas default
 
   const sk = document.getElementById('size-key');
   if (sk) {
