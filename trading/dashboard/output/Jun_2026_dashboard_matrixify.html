@@ -1324,6 +1324,12 @@ function fmtU(n) {
   if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(1) + 'K';
   return Math.round(n).toLocaleString();
 }
+// SKU4 (round-3 review): exact unit counts, no K-rounding/truncation, for
+// SKU/collection/category TABLES specifically -- card/KPI/matrix displays
+// keep fmtU's compact K-format, unaffected.
+function fmtUExact(n) {
+  return n == null ? '—' : Math.round(n).toLocaleString();
+}
 function fmtPct(v, forceSign=true) {
   if (v == null || isNaN(v)) return '—';
   const s = (v >= 0 && forceSign ? '+' : '') + (v*100).toFixed(1) + '%';
@@ -2020,8 +2026,8 @@ function renderCollDrill() {
     </div>
     <div class="csku-row hdr"><span>#</span><span>SKU</span><span class="csku-r">UK</span><span class="csku-r">US</span><span class="csku-r">% Coll.</span><span class="csku-r">% Total</span><span class="csku-r">Move</span></div>
     ${d.skus.map((s,i) => {
-      const mainUk = m ? fmtGBP(s.cash.uk) : fmtU(s.units.uk);
-      const mainUs = m ? fmtGBP(s.cash.us) : fmtU(s.units.us);
+      const mainUk = m ? fmtGBP(s.cash.uk) : fmtUExact(s.units.uk);
+      const mainUs = m ? fmtGBP(s.cash.us) : fmtUExact(s.units.us);
       return `<div class="csku-row">
         <span>${i+1}</span>
         <span class="csku-name" title="${s.d}">${s.d} · ${s.sku}</span>
@@ -2285,10 +2291,12 @@ function renderTable() {
   const statusColors = {Continuity:'var(--muted)',Newness:'rgba(0,188,212,0.9)',Discontinued:'var(--amber)',Dead:'var(--red)',New:'rgba(0,188,212,0.9)'};
 
   document.getElementById('sku-tbody').innerHTML = pg.map((s, i) => {
+    // SKU4: exact unit counts in this table, no K-rounding -- fmtUExact,
+    // not fmtU, throughout this row (cash formatting via fmtGBP unchanged).
     const mainVal = m ? (skuGeo==='uk' ? fmtGBP(s.uk_s2) : skuGeo==='us' ? fmtGBP(s.us_s2) : fmtGBP(s.total_sales))
-                      : (skuGeo==='uk' ? fmtU(s.uk_u)   : skuGeo==='us' ? fmtU(s.us_u)   : fmtU(s.total_units));
-    const ukDisplay = m ? (s.uk_s2 > 0 ? fmtGBP(s.uk_s2) : '—') : (s.uk_u > 0 ? fmtU(s.uk_u) : '—');
-    const usDisplay = m ? (s.us_s2 > 0 ? fmtGBP(s.us_s2) : '—') : (s.us_u > 0 ? fmtU(s.us_u) : '—');
+                      : (skuGeo==='uk' ? fmtUExact(s.uk_u)   : skuGeo==='us' ? fmtUExact(s.us_u)   : fmtUExact(s.total_units));
+    const ukDisplay = m ? (s.uk_s2 > 0 ? fmtGBP(s.uk_s2) : '—') : (s.uk_u > 0 ? fmtUExact(s.uk_u) : '—');
+    const usDisplay = m ? (s.us_s2 > 0 ? fmtGBP(s.us_s2) : '—') : (s.us_u > 0 ? fmtUExact(s.us_u) : '—');
     const vsLYStr = s.vs_ly != null ? fmtPct(s.vs_ly) : '—';
     const gmStr = s.gm != null ? (s.gm*100).toFixed(0)+'%' : '—';
     const ukPill = s.uk_s2 > 0 ? `<span class="geo-pill geo-uk">${ukDisplay}</span>` : `<span style="color:var(--muted);font-size:8px">—</span>`;
@@ -2301,7 +2309,7 @@ function renderTable() {
       <td><span class="status-dot" style="background:${sCol}"></span>${s.c}</td>
       <td><span class="ttag" style="${catTagStyle(s.t)}">${s.t.substring(0,4)}</span></td>
       <td class="td-r"><strong>${mainVal}</strong></td>
-      <td class="td-r" style="color:var(--muted)">${m ? fmtU(s.total_units) : fmtGBP(s.total_sales)}</td>
+      <td class="td-r" style="color:var(--muted)">${m ? fmtUExact(s.total_units) : fmtGBP(s.total_sales)}</td>
       <td class="td-r">${ukPill}</td>
       <td class="td-r">${usPill}</td>
       <td class="td-r ${pClass(s.vs_lq)}">${fmtPct(s.vs_lq)}</td>
@@ -2344,7 +2352,7 @@ function renderNewness() {
       <td>${s.coll}</td>
       <td>${s.finish||'—'}</td>
       <td class="td-r"><strong>${fmtGBP(s.sales)}</strong></td>
-      <td class="td-r">${fmtU(s.units)}</td>
+      <td class="td-r">${fmtUExact(s.units)}</td>
       <td class="td-r">${fmtGBP(s.uk)}</td>
       <td class="td-r">${fmtGBP(s.us)}</td>
       <td class="td-r">${fmtGBP(s.d2c)}</td>
