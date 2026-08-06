@@ -12,8 +12,8 @@
     "country_gaps_vs_oracle": null,
     "lq_ly_source": "oracle_bootstrap",
     "ly_dept_unclassified_share": 0.3304,
-    "built_at": "2026-08-06T11:21:20.729709+00:00",
-    "commit": "e796d7421ee20ff1f96151633cbccf3b7c72cbf5"
+    "built_at": "2026-08-06T11:25:41.125075+00:00",
+    "commit": "ccc269b625f110173e3feed6f6c8260d5a7aadf6"
   },
   "mode": "month",
   "period_model": {

@@ -1743,7 +1743,7 @@ function renderCatBody() {
 // total column -- matches what the collection row above it already shows.
 function catCollSkusHTML(skus) {
   return (skus && skus.length) ? skus
-    .map(s => `<div class="subcat-row"><span>${s.desc}</span><span class="n">${fmtGBP(s.cash.total)} · ${fmtU(s.unitsByGeo.total)}u</span></div>`)
+    .map(s => `<div class="subcat-row"><span>${s.desc} <span style="color:var(--muted)">(${s.sku})</span></span><span class="n">${fmtGBP(s.cash.total)} · ${fmtU(s.unitsByGeo.total)}u</span></div>`)
     .join('')
     : '<div class="subcat-row"><span class="n">No SKU data</span></div>';
 }
@@ -1877,7 +1877,7 @@ function finCollSkusHTML(skus) {
     .map(s => {
       const sales = toggleVal(s.cash, finishGeo);
       const units = toggleVal(s.unitsByGeo, finishGeo);
-      return `<div class="subcat-row"><span>${s.desc}</span><span class="n">${fmtGBP(sales)} · ${fmtU(units)}u</span></div>`;
+      return `<div class="subcat-row"><span>${s.desc} <span style="color:var(--muted)">(${s.sku})</span></span><span class="n">${fmtGBP(sales)} · ${fmtU(units)}u</span></div>`;
     }).join('')
     : '<div class="subcat-row"><span class="n">No SKU data</span></div>';
 }
@@ -2024,7 +2024,7 @@ function renderCollDrill() {
       const mainUs = m ? fmtGBP(s.cash.us) : fmtU(s.units.us);
       return `<div class="csku-row">
         <span>${i+1}</span>
-        <span class="csku-name" title="${s.d}">${s.sku}</span>
+        <span class="csku-name" title="${s.d}">${s.d} · ${s.sku}</span>
         <span class="csku-r">${mainUk}</span>
         <span class="csku-r">${mainUs}</span>
         <span class="csku-r">${s.share!=null?(s.share*100).toFixed(0)+'%':'—'}</span>
@@ -2044,8 +2044,8 @@ function renderMovers() {
   const mkItem = (m, cls) => `
     <div class="mover-item">
       <div>
-        <div class="mi-name">${m.sku}</div>
-        <div class="mi-sub">${m.coll} · ${fmtGBP(m.sales)}</div>
+        <div class="mi-name">${m.desc}</div>
+        <div class="mi-sub">${m.sku} · ${m.coll} · ${fmtGBP(m.sales)}</div>
       </div>
       <div style="text-align:right">
         <div class="mi-pct ${cls}">${fmtPct(m.vs_lq)}</div>
