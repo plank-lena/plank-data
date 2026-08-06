@@ -170,7 +170,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .coll-drill-title{font-family:var(--font-m);font-size:11px;font-weight:700}
 .coll-drill-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-family:var(--font-m);font-size:9.5px;color:var(--muted)}
 .coll-drill-stats b{color:var(--text)}
-.csku-row{display:grid;grid-template-columns:26px 1fr 70px 70px 60px 50px;align-items:center;gap:6px;padding:5px 6px;border-radius:3px;font-family:var(--font-m);font-size:9.5px}
+.csku-row{display:grid;grid-template-columns:26px 1fr 70px 70px 55px 55px 50px;align-items:center;gap:6px;padding:5px 6px;border-radius:3px;font-family:var(--font-m);font-size:9.5px}
 .csku-row:hover{background:var(--surface3)}
 .csku-row.hdr{color:var(--muted);font-size:8.5px;text-transform:uppercase;letter-spacing:.5px}
 .csku-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1421,8 +1421,10 @@ function renderCollDrill() {
       <span>🇬🇧 UK <b>${fmtGBP(d.uk)}</b></span>
       <span>🇺🇸 US <b>${fmtGBP(d.us)}</b></span>
       <span>B2B <b>${fmtGBP(d.b2b)}</b></span>
+      <span>SKUs <b>${d.sku_count}</b></span>
+      <span>£/SKU <b>${d.sales_per_sku!=null?fmtGBP(d.sales_per_sku):'—'}</b></span>
     </div>
-    <div class="csku-row hdr"><span>#</span><span>SKU</span><span class="csku-r">UK</span><span class="csku-r">US</span><span class="csku-r">Share</span><span class="csku-r">Move</span></div>
+    <div class="csku-row hdr"><span>#</span><span>SKU</span><span class="csku-r">UK</span><span class="csku-r">US</span><span class="csku-r">% Coll.</span><span class="csku-r">% Total</span><span class="csku-r">Move</span></div>
     ${d.skus.map((s,i) => {
       const mainUk = m ? fmtGBP(s.cash.uk) : fmtU(s.units.uk);
       const mainUs = m ? fmtGBP(s.cash.us) : fmtU(s.units.us);
@@ -1432,6 +1434,7 @@ function renderCollDrill() {
         <span class="csku-r">${mainUk}</span>
         <span class="csku-r">${mainUs}</span>
         <span class="csku-r">${s.share!=null?(s.share*100).toFixed(0)+'%':'—'}</span>
+        <span class="csku-r">${s.share_of_total!=null?(s.share_of_total*100).toFixed(1)+'%':'—'}</span>
         <span class="csku-r cat-dir ${s.yoy_dir}">${dirArrow(s.yoy_dir)}</span>
       </div>`;
     }).join('')}`;

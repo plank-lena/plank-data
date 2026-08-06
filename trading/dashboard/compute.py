@@ -436,7 +436,7 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
 #    The drill-down responds to the same cash/units + UK/US/Total toggles
 #    as its parent bar chart -- all pre-computed here, no client-side math.
 
-def compute_coll_analysis(collections_raw, skus_all, top_n_skus=10):
+def compute_coll_analysis(collections_raw, skus_all, total_sales, top_n_skus=10):
     top10 = sorted(collections_raw, key=lambda c: -c['ts'])[:10]
 
     # Build (type, coll) → sorted sku objects from full By SKU sheet
@@ -456,7 +456,14 @@ def compute_coll_analysis(collections_raw, skus_all, top_n_skus=10):
         seen_names[name] = t
 
         coll_total = c['ts'] or 0
-        top_skus = sku_by_coll.get((t, name), [])[:top_n_skus]
+        all_skus = sku_by_coll.get((t, name), [])
+        top_skus = all_skus[:top_n_skus]
+        # CP1/CP2 (round-3 review): distinct SKU count and the derived
+        # sales-per-SKU rate -- count is the FULL collection's SKU set
+        # (sku_by_coll, single-counted per SKU already, not raw line rows),
+        # not just the top_n_skus shown in the drill below.
+        sku_count = len(all_skus)
+        sales_per_sku = round(coll_total / sku_count, 2) if sku_count else None
         skus_list = []
         for s in top_skus:
             skus_list.append({
@@ -465,6 +472,11 @@ def compute_coll_analysis(collections_raw, skus_all, top_n_skus=10):
                 'cash':       {'uk': round(s.get('uk') or 0, 2), 'us': round(s.get('us') or 0, 2), 'total': round(s['gross'], 2)},
                 'units':      {'uk': s.get('uk_u') or 0, 'us': s.get('us_u') or 0, 'total': s.get('units') or 0},
                 'share':      round(s['gross'] / coll_total, 4) if coll_total else None,
+                # CP3 (round-3 review): this SKU's share of the PERIOD total
+                # (total_sales, the same grand total the reconciliation gate
+                # checks against) -- a view on an already-reconciled figure,
+                # not a new total of its own.
+                'share_of_total': round(s['gross'] / total_sales, 4) if total_sales else None,
                 'vs_lq':      _r4(s.get('vslq')),
                 'yoy_dir':    badge_class(s.get('vslq')),
                 'gm':         _r4(s.get('gm')),
@@ -487,6 +499,8 @@ def compute_coll_analysis(collections_raw, skus_all, top_n_skus=10):
             'uk':       round(c['uk_s']),
             'us':       round(c['us_s']),
             'row':      round(c.get('row_s', 0)),
+            'sku_count':      sku_count,
+            'sales_per_sku':  sales_per_sku,
             'skus':     skus_list,
         }
     return result
@@ -1018,7 +1032,8 @@ def js_block_coll_analysis(coll_analysis):
             f"{{sku:'{_esc(s['sku'])}',d:'{_esc(s['d'])}',"
             f"cash:{{uk:{s['cash']['uk']},us:{s['cash']['us']},total:{s['cash']['total']}}},"
             f"units:{{uk:{s['units']['uk']},us:{s['units']['us']},total:{s['units']['total']}}},"
-            f"share:{_js_val(s['share'])},vs_lq:{_js_val(s['vs_lq'])},yoy_dir:{_js_val(s['yoy_dir'])},"
+            f"share:{_js_val(s['share'])},share_of_total:{_js_val(s['share_of_total'])},"
+            f"vs_lq:{_js_val(s['vs_lq'])},yoy_dir:{_js_val(s['yoy_dir'])},"
             f"gm:{_js_val(s['gm'])}}}"
             for s in ca['skus']
         ) + ']'
@@ -1028,7 +1043,8 @@ def js_block_coll_analysis(coll_analysis):
             f" units:{ca['units']}, gm:{_js_val(ca['gm'])},"
             f" vs_lq:{_js_val(ca['vs_lq'])}, yoy_dir:{_js_val(ca['yoy_dir'])},"
             f" d2c:{ca['d2c']}, b2b:{ca['b2b']},"
-            f" uk:{ca['uk']}, us:{ca['us']}, row:{ca['row']}, skus:{skus_str}}},"
+            f" uk:{ca['uk']}, us:{ca['us']}, row:{ca['row']},"
+            f" sku_count:{ca['sku_count']}, sales_per_sku:{_js_val(ca['sales_per_sku'])}, skus:{skus_str}}},"
         )
     parts[-1] = parts[-1].rstrip(',')
     parts.append('};')
