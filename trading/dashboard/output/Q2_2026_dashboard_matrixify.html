@@ -511,7 +511,7 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
         </div>
         <div class="tg metric" id="trend-seg-tg">
           <button class="active" onclick="setTrendSeg('total')">Total</button>
-          <button onclick="setTrendSeg('geo')">Geo</button>
+          <button onclick="setTrendSeg('geo')">Country</button>
           <button onclick="setTrendSeg('channel')">Channel</button>
         </div>
       </div>
@@ -645,7 +645,7 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
 
     <div class="sec">
       <div class="sec-hdr">
-        <div class="sec-title">Geography</div>
+        <div class="sec-title">Country</div>
         <div class="sec-meta">LY → LQ → Current</div>
       </div>
       <div class="region-grid" id="geo-cards"></div>
@@ -666,7 +666,7 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
   <div class="sec-hdr" style="margin-bottom:14px">
     <div>
       <div class="sec-title">Top SKU Performance</div>
-      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px" id="tbl-meta">Q2 2026 · all geographies · click headers to sort</div>
+      <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px" id="tbl-meta">Q2 2026 · all countries · click headers to sort</div>
     </div>
     <div style="display:flex;gap:8px">
       <div class="tg metric" id="sku-metric-tg">
@@ -2296,7 +2296,7 @@ function renderTable() {
   document.getElementById('tbl-info').textContent = `Showing ${tPage*PAGE+1}–${Math.min((tPage+1)*PAGE, total)} of ${total}`;
   document.getElementById('btn-prev').disabled = tPage === 0;
   document.getElementById('btn-next').disabled = tPage >= max;
-  document.getElementById('tbl-meta').textContent = `${CM_LABEL} · sorted by ${tSortKey.replace(/_/g,' ')} ${tSortDir==='desc'?'↓':'↑'} · geo: ${skuGeo.toUpperCase()} · click headers to sort`;
+  document.getElementById('tbl-meta').textContent = `${CM_LABEL} · sorted by ${tSortKey.replace(/_/g,' ')} ${tSortDir==='desc'?'↓':'↑'} · country: ${skuGeo.toUpperCase()} · click headers to sort`;
 }
 
 // ================================================================
