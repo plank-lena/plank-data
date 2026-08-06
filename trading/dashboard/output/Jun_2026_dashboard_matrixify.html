@@ -1831,6 +1831,7 @@ function renderFinishBody() {
       <div class="fs-main" style="border-color:${d.color}">
         <div class="fs-lbl">${selectedFinishTab} · ${CM_LABEL}${finishGeo!=='total'?' · '+finishGeo.toUpperCase():''}</div>
         <div class="fs-val" style="color:${d.color}">${fmtFn(headlineVal)}</div>
+        <div class="cat-dir ${badgeClass(d.vsLQ)}" style="font-size:10px;margin-top:2px">${dirArrow(badgeClass(d.vsLQ))}${fmtPct(d.vsLQ)} vs LM</div>
         <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px">${finishMetric==='sales'?d.units.toLocaleString()+' units':fmtGBP(d.total)}</div>
       </div>
       <div class="fs-row"><span class="fs-row-lbl">B2B share</span><span class="fs-row-val">${d.b2b_share!=null?(d.b2b_share*100).toFixed(0)+'%':'—'}</span></div>
