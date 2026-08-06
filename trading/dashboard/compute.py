@@ -336,9 +336,17 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
     result = {}
     for rank, (name, raw) in enumerate(ranked):
         total = raw.get('total') or 0
-        vsLQ  = raw.get('vsLQ') or 0
-        denom = 1 + vsLQ
-        lq    = total / denom if abs(denom) > 1e-9 else 0
+        # FA1/FA2 (round-3 review) surfaced a real silent-zero bug: `or 0`
+        # here collapsed vsLQ=None (genuinely unavailable -- the Matrixify
+        # path's contract.py always sets finishes' vsLQ to None, unlike
+        # departments' real oracle-bootstrapped one) into a fabricated 0,
+        # which then read as a confident "+0.0% vs LM" once anything
+        # actually displayed it. None now stays None all the way through.
+        vsLQ = raw.get('vsLQ')
+        lq = None
+        if vsLQ is not None:
+            denom = 1 + vsLQ
+            lq = total / denom if abs(denom) > 1e-9 else None
 
         finish_skus = [
             s for s in skus_all
@@ -400,7 +408,7 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
             'color':           color,
             'textColor':       text_color,
             'total':           round(total),
-            'lq':              round(lq),
+            'lq':              round(lq) if lq is not None else None,
             'ly':              0,
             'units':           int(raw.get('units') or 0),
             'vsLQ':            _r4(vsLQ),
@@ -973,6 +981,8 @@ def js_block_finish_data(finish_data):
     for name, fd in finish_data.items():
         vsLY = 'null' if fd['vsLY'] is None else str(fd['vsLY'])
         ly   = 'null' if fd['ly'] == 0 else str(fd['ly'])
+        vsLQ = 'null' if fd['vsLQ'] is None else str(fd['vsLQ'])
+        lq   = 'null' if fd['lq'] is None else str(fd['lq'])
         def _geo_dict(d):
             return f'{{uk:{_js_val(d["uk"])},us:{_js_val(d["us"])},total:{_js_val(d["total"])}}}'
         top_collections_str = '[' + ','.join(
@@ -988,8 +998,8 @@ def js_block_finish_data(finish_data):
         parts.append(
             f"  '{name}': {{\n"
             f"    color:'{fd['color']}', textColor:'{fd['textColor']}',\n"
-            f"    total:{fd['total']}, lq:{fd['lq']}, ly:{ly},"
-            f" units:{fd['units']}, vsLQ:{fd['vsLQ']}, vsLY:{vsLY},\n"
+            f"    total:{fd['total']}, lq:{lq}, ly:{ly},"
+            f" units:{fd['units']}, vsLQ:{vsLQ}, vsLY:{vsLY},\n"
             f"    d2c:{fd['d2c']}, b2b:{fd['b2b']}, b2b_share:{_js_val(fd.get('b2b_share'))},"
             f" uk:{fd['uk']}, us:{fd['us']}, uk_u:{fd['uk_u']}, us_u:{fd['us_u']},"
             f" lq_uk:{fd['lq_uk']}, lq_us:{fd['lq_us']},\n"
