@@ -24,7 +24,8 @@ RULED (Q1 2026 review meeting, see BRIEF_returns_dashboard_v2.md §1-§7):
 9. Exchange = return? DUAL definition (§5.1, LOCKED by Lena): quality/product
    aggregates (order counts, flagged units) INCLUDE exchanges (is_exchange=True rows) --
    a fit/quality signal is still a fit/quality signal. Value aggregates (value_split,
-   the tracker's return-value column, the hero) EXCLUDE exchange-attributable value --
+   the tracker's return-value column, the stock-value figure alongside the hero)
+   EXCLUDE exchange-attributable value --
    an exchange retains revenue, it isn't lost. Every aggregate below states which
    convention it uses.
 10. Trade un-blended (§5.3, LOCKED): headline defaults to RETAIL; trade is computed and
@@ -174,6 +175,26 @@ def load_line_detail_file(xlsx_path):
         "category": df["Product Category"].astype(str).str.strip(),
         "subcategory": df["Sub Category"].astype(str).str.strip(),
     })
+
+
+DEFAULT_LINE_DETAIL_NAMES_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "trading", "source", "line_detail.xlsx"
+)
+
+
+def load_line_detail_names(xlsx_path=DEFAULT_LINE_DETAIL_NAMES_PATH):
+    """sku -> Product Description, from the same canonical Line Detail catalog
+    file trading/line_detail.py's COLUMN_MAP treats as authoritative -- not the
+    Q1 workbook's own embedded "Line Detail" tab, which has no description
+    column at all. Period-independent (same catalog for Q1, Q2, ...), so this
+    is called once by render.render() regardless of which period is building.
+    """
+    df = pd.read_excel(xlsx_path)
+    d = df[["SKU", "Product Description"]].dropna(subset=["SKU", "Product Description"]).copy()
+    d["SKU"] = d["SKU"].astype(str).str.strip()
+    d["Product Description"] = d["Product Description"].astype(str).str.strip()
+    d = d[(d["SKU"] != "") & (d["Product Description"] != "")].drop_duplicates("SKU")
+    return dict(zip(d["SKU"], d["Product Description"]))
 
 
 def load_matrixify_sales(sources):

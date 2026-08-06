@@ -33,7 +33,8 @@ header.mast{border-bottom:1px solid var(--border);background:var(--bg)}
 .seg button:last-child{border-right:0}
 .seg button:hover{color:var(--text);background:var(--surface)}
 .seg button[aria-pressed="true"]{background:var(--text);color:#fff;font-weight:700}
-#fSeg button:nth-child(2)[aria-pressed="true"]{background:var(--amber)}
+#fSeg button:nth-child(1)[aria-pressed="true"]{background:var(--d2c)}
+#fSeg button:nth-child(2)[aria-pressed="true"]{background:var(--b2b)}
 .seg button:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
 .reset{font-family:var(--font-m);font-size:11px;color:var(--muted);background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .reset:hover{color:var(--red)}
@@ -46,7 +47,8 @@ section{padding:44px 0;border-bottom:1px solid var(--border)}
 
 /* hero */
 .hero-fig{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap;margin:8px 0 26px}
-.bignum{font-family:var(--font-d);font-size:clamp(46px,7vw,76px);font-weight:900;line-height:.9;letter-spacing:-.02em;color:var(--red)}
+.bignum{font-family:var(--font-d);font-size:clamp(46px,7vw,76px);font-weight:900;line-height:.9;letter-spacing:-.02em;color:var(--text)}
+.bignum.alert{color:var(--red)}
 .bignum-lab{font-family:var(--font-m);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .tip-label{cursor:help;border-bottom:1px dotted var(--muted)}
 .hero-side{font-size:13.5px;color:var(--muted);max-width:34ch;padding-bottom:6px}
@@ -201,7 +203,7 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
 
   <div class="hero-fig">
     <div>
-      <div class="bignum-lab tip-label" title="RRP-ex-VAT list value of the units actually returned, exchange value netted out (ruling 5). Excludes shipping refunds, partial credits/goodwill, and any refund with no unit attached — those are real refunded money too, just reported separately in the footnotes below rather than blended into this figure.">Value returned (stock only)</div>
+      <div class="bignum-lab tip-label" title="Returned orders ÷ distinct orders in this slice (ruling 2 — never a unit-based rate). D2C-default; B2B is reported separately, never blended in. Reads lower than the Q1 2026 review deck — see the correction note in §7 for why.">Return rate (orders-based)</div>
       <div class="bignum" id="heroVal">—</div>
     </div>
     <div class="hero-side" id="heroSide"></div>
@@ -325,7 +327,7 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
 </main>
 
 <footer><div class="wrap">
-  Static review build from <code>{{SOURCE_FILENAME}}</code>. Sources: the sales export (value, units, trade flag) and the returns app export (reasons, stage), joined to Line Detail for category/subcategory via <code>common/sku_taxonomy.py</code>, plus <code>review_feedback.py</code>'s Yotpo scan for the reviews section.<br>
+  Static review build from <code>{{SOURCE_FILENAME}}</code>. Sources: the sales export (value, units, B2B flag) and the returns app export (reasons, stage), joined to Line Detail for category/subcategory via <code>common/sku_taxonomy.py</code>, plus <code>review_feedback.py</code>'s Yotpo scan for the reviews section.<br>
   Build-on-demand static file (Option A) — there is no live/daily-refreshing version of this page; a colleague or a schedule triggers a fresh build and drops the result in Slack/Drive.
 </div></footer>
 
@@ -391,7 +393,7 @@ function buildSeg(id,key,opts){
 }
 function buildFilters(){
   buildSeg('fRegion','region',[{v:'All',label:'All'},{v:'UK',label:'UK'},{v:'US',label:'US'}]);
-  buildSeg('fSeg','seg',[{v:'Retail',label:'Retail'},{v:'Trade',label:'Trade'}]);
+  buildSeg('fSeg','seg',[{v:'Retail',label:'D2C'},{v:'Trade',label:'B2B'}]);
   buildSeg('fMonth','month',[{v:'All',label:'Quarter'}].concat(MONTHS.map(m=>({v:m,label:m}))));
 }
 // Sort toggle for category/subcategory rows (R2) -- a visible shortcut onto the
@@ -518,10 +520,15 @@ function orderStats(s){
 
 /* ---------- section 1: value ---------- */
 function renderValue(A,VA,OA){
-  document.getElementById('heroVal').textContent=gbp(VA.stock);
+  const rate=rateOf(OA.t.orders,OA.t.rord);
+  const unitRate=A.t.us>0?A.t.ur/A.t.us:0;
+
+  const heroEl=document.getElementById('heroVal');
+  heroEl.textContent=pc(rate);
+  heroEl.classList.toggle('alert',rate>0.09);
   const share=VA.gross>0?VA.stock/VA.gross:0;
   document.getElementById('heroSide').innerHTML=
-    `<b>${pc(share)}</b> of ${gbp(VA.gross)} gross sales in this slice, stock-value only.`;
+    `<b>${gbp(VA.stock)}</b> stock-value returned — ${pc(share)} of ${gbp(VA.gross)} gross sales in this slice.`;
   const lostPct=Math.max(share*100,0);
   document.getElementById('leakKeep').style.flex='1 1 '+(100-lostPct)+'%';
   const ll=document.getElementById('leakLost');
@@ -529,10 +536,8 @@ function renderValue(A,VA,OA){
   document.getElementById('leakKeepLab').textContent='Kept  '+gbp(VA.gross-VA.stock);
   document.getElementById('leakLostLab').textContent='Returned  '+gbp(VA.stock)+'  ·  '+pc(share);
 
-  const rate=rateOf(OA.t.orders,OA.t.rord);
-  const unitRate=A.t.us>0?A.t.ur/A.t.us:0;
   const kp=[
-    {l:'Return rate — orders-based',v:pc(rate),d:'returned orders ÷ orders',alert:rate>0.09},
+    {l:'Value returned (stock only)',v:gbp(VA.stock),d:pc(share)+' of gross sales'},
     {l:'Orders returned',v:OA.t.rord.toLocaleString('en-GB'),d:'of '+OA.t.orders.toLocaleString('en-GB')+' orders'},
     {l:'Unit return rate',v:pc(unitRate),d:'secondary detail — units, not orders'},
     {l:'Units returned',v:A.t.ur.toLocaleString('en-GB'),d:'of '+A.t.us.toLocaleString('en-GB')+' sold'},
@@ -725,7 +730,7 @@ function renderReviews(RA){
     `${flagged.toLocaleString('en-GB')} carried a usable signal. Two streams: complaints stated outright, and caveats buried inside otherwise positive reviews — `+
     `necessary because the large majority of reviews are five stars, so the rating filters almost nothing.`;
   document.getElementById('revWarn').innerHTML=
-    `<b>Scope differs from the rest of this page.</b> Reviews follow the region filter but not customer type — Yotpo carries no trade flag — and not the month filter: the review window (2025-09→2026-06 in the full scan) is its own and does not align to the trading quarter. This is "what reviews say about this product/family," not a time-aligned figure. Deleted reviews are kept deliberately (they carry the moderation flag, not a reason to exclude) — filtering them out would remove effectively all explicit product criticism.`;
+    `<b>Scope differs from the rest of this page.</b> Reviews follow the region filter but not customer type — Yotpo carries no B2B flag — and not the month filter: the review window (2025-09→2026-06 in the full scan) is its own and does not align to the trading quarter. This is "what reviews say about this product/family," not a time-aligned figure. Deleted reviews are kept deliberately (they carry the moderation flag, not a reason to exclude) — filtering them out would remove effectively all explicit product criticism.`;
 
   const box=document.getElementById('revThemeBars');box.innerHTML='';
   const tot=th.reduce((s,x)=>s+x.explicit+x.latent,0);
@@ -973,7 +978,7 @@ function renderOutliers(A,RA,VA){
   const totalUnits=A.t.ur, rzUnits=RA.total;
   if(totalUnits>0&&rzUnits>0){
     out.push({t:'The two sources are never divided',
-      b:`Shopify reports ${totalUnits.toLocaleString('en-GB')} returned units (value side) in this slice; the returns app reports ${rzUnits.toLocaleString('en-GB')} (reason side). The gap is expected, not a bug: Shopify counts everything the warehouse processed including manual/trade credits, the returns app only sees what customers raised through the portal. Value comes from Shopify, reasons from the app — the two are never divided against each other.`});
+      b:`Shopify reports ${totalUnits.toLocaleString('en-GB')} returned units (value side) in this slice; the returns app reports ${rzUnits.toLocaleString('en-GB')} (reason side). The gap is expected, not a bug: Shopify counts everything the warehouse processed including manual/B2B credits, the returns app only sees what customers raised through the portal. Value comes from Shopify, reasons from the app — the two are never divided against each other.`});
   }
   const skus=[...RA.bySku.values()];
   const conc=[...(A.byCat.size?[].concat(...[...A.byCat.values()].map(c=>[...c.subs.values()].flatMap(sc=>[...sc.skus.values()]))):[])]
@@ -997,13 +1002,13 @@ function renderOutliers(A,RA,VA){
 function renderNotes(){
   const n=[
     '<b>Single-count, order-month, orders-based — LOCKED (Lena + Daisy, Aug 2026).</b> Each return is counted once (de-duplicated SKU+order join); every row is bucketed by the order\'s sale month, never the refund month; the headline rate is always returned orders ÷ orders, never a unit-based rate.',
-    '<b>Numbers here will not match any earlier draft or deck.</b> The five Q1-2026-review rulings (timing, rate basis, SKU ranking, initiation stage, stock-value-only refund) change the headline figures by design — the old pre-meeting build is a reference for what changed, not a reconciliation target.',
-    '<b>Exchange = return? Dual definition, LOCKED.</b> Quality views (order counts, the tracker\'s flagged-unit columns) include exchanges — a fit/size swap is still a fit/size signal. Value views (the hero, the tracker\'s return-value column) exclude exchange-attributable value — an exchange retains revenue, it isn\'t lost. Every number states which convention it uses.',
-    '<b>Trade is never blended into the headline.</b> The Customer filter defaults to Retail; Trade is a separate, equally-real view, never averaged into one blended rate.',
+    '<b>Numbers here will not match any earlier draft or deck.</b> The five Q1-2026-review rulings (timing, rate basis, SKU ranking, initiation stage, stock-value-only refund) change the headline figures by design — the old pre-meeting build is a reference for what changed, not a reconciliation target. Concretely, for Q1 2026: the D2C return rate now reads ~8.4% (~£104k stock-value returned), down from the ~10% (~£129k) shown at that review — the single-count SKU+order join fix removed the ~22% SUMIF inflation and ~1.8× Orders-pivot double-count that were in the pre-fix numbers.',
+    '<b>Exchange = return? Dual definition, LOCKED.</b> Quality views (order counts, the tracker\'s flagged-unit columns) include exchanges — a fit/size swap is still a fit/size signal. Value views (the stock-value figure alongside the hero, the tracker\'s return-value column) exclude exchange-attributable value — an exchange retains revenue, it isn\'t lost. Every number states which convention it uses.',
+    '<b>B2B is never blended into the headline.</b> The Customer filter defaults to D2C; B2B is a separate, equally-real view, never averaged into one blended rate.',
     '<b>Return initiation = when the customer flags it</b> (the Stage the returns app logs a Label Created event) — a recorded decision, not a metric change; all four stages were already counted correctly.',
     '<b>Category / subcategory come from <code>common/sku_taxonomy.py</code>,</b> the shared classifier the review scanner also uses, so a SKU lands in the same tree on both halves of this page. Family is a display label only (v1; no separate family axis) — approximate by construction, built by stripping the SKU\'s type code, size, and finish tokens.',
     '<b>Reason data is weak by construction.</b> The first dropdown option absorbs indecision. The free-text follow-up is only collected on that one reason, and roughly six in ten customers fill it in. Treat reason mix as a hypothesis generator, not evidence.',
-    '<b>Review themes are a separate corpus with separate limits.</b> They come from <code>review_feedback.py</code>, mining Yotpo text for product themes on its own window, with no trade flag. The join to a SKU is exact-match and sparse; where no exact match exists this page falls back to the SKU\'s family, then to a dash — never to a guess. Deleted/escalated reviews are kept deliberately (filtering them out removes effectively all explicit product criticism), and syndicated copies of one review across a product group are counted once, not once per SKU.',
+    '<b>Review themes are a separate corpus with separate limits.</b> They come from <code>review_feedback.py</code>, mining Yotpo text for product themes on its own window, with no B2B flag. The join to a SKU is exact-match and sparse; where no exact match exists this page falls back to the SKU\'s family, then to a dash — never to a guess. Deleted/escalated reviews are kept deliberately (filtering them out removes effectively all explicit product criticism), and syndicated copies of one review across a product group are counted once, not once per SKU.',
     '<b>"Stock only" means exactly that (ruling 5).</b> Every value figure on this page is the RRP-ex-VAT list value of returned units, exchange value netted out — never a blended total. Shipping refunds, partial credits/goodwill, and any refund with no unit attached are pulled OUT and reported separately in §1’s footnotes; a no-SKU refund is its own footnoted bucket too, never absorbed into the headline. See the number for what it excludes, not just what it counts.',
     '<b>Value is stock refund value, not margin.</b> The cost of a return — inbound freight, inspection, refinishing, write-off on anything not resaleable — is not in this file. The real number is higher than every figure shown here.',
     '<b>No live tracker.</b> This is a build-on-demand static file (Option A) — a colleague or a schedule triggers a fresh build; there is no daily-refreshing version of this page, and none should be promised.'
