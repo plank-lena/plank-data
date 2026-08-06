@@ -965,9 +965,12 @@ function setCatView(v) {
   renderCatBars();
 }
 function subcatsHTML(t) {
+  // CB3 (round-3 review, D3): % share is of the PARENT category's own
+  // sales (t.sales), not of the period total -- sums to ~100% within the
+  // category, per rounding.
   return t.subcats.length ? t.subcats
     .slice().sort((a,b) => b.sales - a.sales)
-    .map(sc => `<div class="subcat-row"><span>${sc.name}</span><span class="n">${fmtGBP(sc.sales)} · ${fmtU(sc.units)}u</span></div>`).join('')
+    .map(sc => `<div class="subcat-row"><span>${sc.name}</span><span class="n">${fmtGBP(sc.sales)} · ${fmtU(sc.units)}u · ${t.sales?((sc.sales/t.sales)*100).toFixed(0)+'%':'—'}</span></div>`).join('')
     : '<div class="subcat-row"><span class="n">No subcategory data</span></div>';
 }
 function renderCatBars() {
