@@ -77,11 +77,12 @@ body::before{content:'';position:fixed;inset:0;background:
 .cat-bar-fill{height:100%;border-radius:3px;transition:width .4s cubic-bezier(.4,0,.2,1)}
 .cat-bar-fill-split{height:100%;position:absolute;top:0}
 .cat-bar-fill-ly{position:absolute;top:0;bottom:0;border-right:2px dashed rgba(0,0,0,.35)}
-.cat-bar-fill-lq{position:absolute;top:0;bottom:0;border-right:2px dashed var(--amber)}
+/* CO1 (round-2 review): LM/LQ ghost marker recoloured to black, matching
+   the LY marker above -- was var(--amber), inconsistent with LY's black. */
+.cat-bar-fill-lq{position:absolute;top:0;bottom:0;border-right:2px dashed rgba(0,0,0,.35)}
 .cat-bars-legend{display:flex;gap:16px;margin-top:12px;padding-left:4px;flex-wrap:wrap;font-family:var(--font-m);font-size:10px;color:var(--muted)}
 .cat-bars-legend i{display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:2px;vertical-align:-1px}
 .cat-bars-legend .lq-mark, .cat-bars-legend .ly-mark{display:inline-block;width:0;height:10px;border-right:2px dashed rgba(0,0,0,.35);margin-right:5px;vertical-align:-1px}
-.cat-bars-legend .lq-mark{border-right-color:var(--amber)}
 .cat-dir{font-weight:700}
 .cat-dir.up{color:var(--green)}
 .cat-dir.dn{color:var(--red)}
@@ -149,7 +150,9 @@ body::before{content:'';position:fixed;inset:0;background:
 .dc-bar-wrap{display:flex;align-items:center;gap:4px}
 .dc-track{flex:1;height:10px;background:var(--surface2);border-radius:2px;overflow:hidden;position:relative}
 .dc-fill{height:100%;border-radius:2px;transition:width .4s cubic-bezier(.4,0,.2,1)}
-.dc-fill-lq{position:absolute;top:0;bottom:0;border-right:2px dashed var(--amber)}
+/* CO1 (round-2 review): Collection Performance's own LM/LQ ghost marker,
+   same recolour as .cat-bar-fill-lq above -- was var(--amber). */
+.dc-fill-lq{position:absolute;top:0;bottom:0;border-right:2px dashed rgba(0,0,0,.35)}
 .dc-vals{text-align:right}
 .dc-val-main{font-family:var(--font-m);font-size:10.5px;font-weight:600}
 .dc-val-vs{font-family:var(--font-m);font-size:8.5px;margin-top:2px}
