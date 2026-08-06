@@ -165,26 +165,49 @@ def compute_prod_types(types_raw):
 # (cash/units x UK/US/Total) is pre-computed here so the template's JS does
 # no arithmetic, only show/hide.
 
-def compute_category_top_collections(collections_computed, top_n=8):
-    """{category: [{c, cash:{uk,us,total}, units:{uk,us,total}, b2b_share}]}
-    top_n collections per category by total cash, from the already-computed
-    COLLECTIONS array (compute_collections' output).
+def compute_category_top_collections(collections_computed, skus_all=None, top_n=8, sku_top_n=10):
+    """{category: [{c, cash:{uk,us,total}, units:{uk,us,total}, b2b_share,
+    skus}]} top_n collections per category by total cash, from the
+    already-computed COLLECTIONS array (compute_collections' output).
+
+    skus_all (C2, round-2 review): when given, each collection row also
+    carries its own top sku_top_n SKUs by revenue -- same click-to-expand
+    drill compute_finish_data's top_collections already has (T3a), filtered
+    to SKUs matching both this category (s['type_']) and this collection
+    (s['coll']). None (the default) keeps the prior shape exactly -- every
+    existing caller that doesn't pass skus_all sees skus: [] on every row,
+    never a KeyError.
     """
     by_cat = {}
     for c in collections_computed:
         by_cat.setdefault(c['t'], []).append(c)
 
+    skus_all = skus_all or []
     result = {}
     for cat, rows in by_cat.items():
         top = sorted(rows, key=lambda c: -c['ts'])[:top_n]
         result[cat] = []
         for c in top:
             channel_total = c['d2c'] + c['b2b']
+            coll_skus = sorted(
+                (s for s in skus_all if s['type_'] == cat and s['coll'] == c['c'] and (s.get('gross') or 0) > 0),
+                key=lambda s: -(s.get('gross') or 0),
+            )[:sku_top_n]
             result[cat].append({
                 'c': c['c'],
                 'cash': {'uk': c['uk_s'], 'us': c['us_s'], 'total': c['ts']},
                 'units': {'uk': None, 'us': None, 'total': c['tu']},  # per-country units not tracked at collection grain
                 'b2b_share': round(c['b2b'] / channel_total, 4) if channel_total else None,
+                'skus': [
+                    {
+                        'sku':   s['sku'],
+                        'desc':  s.get('desc') or s['sku'],
+                        'sales': round(s.get('gross') or 0),
+                        'units': int(s.get('units') or 0),
+                        'cash':  {'uk': round(s.get('uk') or 0), 'us': round(s.get('us') or 0), 'total': round(s.get('gross') or 0)},
+                        'unitsByGeo': {'uk': int(s.get('uk_u') or 0), 'us': int(s.get('us_u') or 0), 'total': int(s.get('units') or 0)},
+                    } for s in coll_skus
+                ],
             })
     return result
 
@@ -859,13 +882,23 @@ def js_block_prod_types(prod_types):
 
 
 def js_block_cat_top_collections(cat_top_collections):
+    def _geo_dict(d):
+        return f'{{uk:{_js_val(d["uk"])},us:{_js_val(d["us"])},total:{_js_val(d["total"])}}}'
     parts = ['const CAT_TOP_COLLECTIONS = {']
     for cat, rows in cat_top_collections.items():
         rows_str = '[' + ','.join(
             f'{{c:{_js_val(r["c"])},'
             f'cash:{{uk:{_js_val(r["cash"]["uk"])},us:{_js_val(r["cash"]["us"])},total:{_js_val(r["cash"]["total"])}}},'
             f'units:{{uk:{_js_val(r["units"]["uk"])},us:{_js_val(r["units"]["us"])},total:{_js_val(r["units"]["total"])}}},'
-            f'b2b_share:{_js_val(r["b2b_share"])}}}'
+            f'b2b_share:{_js_val(r["b2b_share"])},'
+            # C2 (round-2 review): same click-to-expand collection -> top-SKUs
+            # drill compute_finish_data's top_collections already carries
+            # (T3a) -- see js_block_finish_data's identical skus serialization.
+            f'skus:[' + ','.join(
+                f'{{sku:{_js_val(s["sku"])},desc:{_js_val(s["desc"])},sales:{s["sales"]},units:{s["units"]},'
+                f'cash:{_geo_dict(s["cash"])},unitsByGeo:{_geo_dict(s["unitsByGeo"])}}}'
+                for s in r.get('skus', [])
+            ) + ']}'
             for r in rows
         ) + ']'
         parts.append(f'  {_js_key(cat)}:{rows_str},')

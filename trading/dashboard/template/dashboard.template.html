@@ -120,6 +120,10 @@ body::before{content:'';position:fixed;inset:0;background:
 .top-coll-row{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:4px}
 .twist{font-size:9px;color:var(--muted);flex-shrink:0}
 .top-coll-name{font-family:var(--font-m);font-size:10px;color:var(--amber);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* C2 (round-2 review): Category Analysis's own collection names read in
+   full -- no ellipsis truncation -- unlike Finish Analysis's, which keeps
+   the default single-line truncation above. */
+#cat-body .top-coll-name{overflow:visible;white-space:normal;text-overflow:unset}
 .top-coll-track{width:80px;height:5px;background:var(--surface);border-radius:2px;overflow:hidden;flex-shrink:0}
 .top-coll-fill{height:100%;border-radius:2px}
 .top-coll-val{font-family:var(--font-m);font-size:9.5px;font-weight:600;width:58px;text-align:right;flex-shrink:0}
@@ -1068,13 +1072,19 @@ function renderCatBody() {
   const chanTotal = (pt.d2c||0) + (pt.b2b||0);
   const d2cShare = chanTotal > 0 ? pt.d2c / chanTotal : null;
 
-  const listHTML = rows.length ? rows.map(r => `
-      <div class="top-coll-row">
+  // C2 (round-2 review): click-to-expand collection -> top-10 SKUs drill,
+  // same pattern Finish Analysis's toggleFinishCollDrill/finCollSkusHTML
+  // already established (T3a) -- separate id/toggle namespace (cat-coll-
+  // drill-*) since both sections render concurrently on the page.
+  const listHTML = rows.length ? rows.map((r,i) => `
+      <div class="top-coll-row" onclick="toggleCatCollDrill(${i})" style="cursor:pointer">
+        <span class="twist">▸</span>
         <span class="top-coll-name">${r.c}</span>
         <div class="top-coll-track"><div class="top-coll-fill" style="width:${(r.cash.total/maxVal*100).toFixed(0)}%;background:${col}"></div></div>
         <span class="top-coll-val">${fmtGBP(r.cash.total)}</span>
         <span class="top-coll-b2b">${r.b2b_share!=null?(r.b2b_share*100).toFixed(0)+'% B2B':'—'}</span>
-      </div>`).join('')
+      </div>
+      <div class="subcat-drill" id="cat-coll-drill-${i}">${catCollSkusHTML(r.skus)}</div>`).join('')
     : `<div style="font-family:var(--font-m);font-size:10px;color:var(--muted);padding:8px">No collections with revenue this period</div>`;
 
   document.getElementById('cat-body').innerHTML = `
@@ -1098,6 +1108,18 @@ function renderCatBody() {
     </div>
     <div class="top-coll-list">${listHTML}</div>`;
   renderCatDonut(rows, col);
+}
+// C2 (round-2 review): Category Analysis has no per-section geo toggle of
+// its own (unlike Finish Analysis's finishGeo), so this always shows the
+// total column -- matches what the collection row above it already shows.
+function catCollSkusHTML(skus) {
+  return (skus && skus.length) ? skus
+    .map(s => `<div class="subcat-row"><span>${s.desc}</span><span class="n">${fmtGBP(s.cash.total)} · ${fmtU(s.unitsByGeo.total)}u</span></div>`)
+    .join('')
+    : '<div class="subcat-row"><span class="n">No SKU data</span></div>';
+}
+function toggleCatCollDrill(i) {
+  document.getElementById('cat-coll-drill-' + i).classList.toggle('open');
 }
 
 function shadeColor(base, i, n) {

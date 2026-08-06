@@ -322,7 +322,7 @@ def render_contract(contract, template_html):
     coll_analysis = compute_coll_analysis(raw["collections"], raw["skus_all"])
     kpi_tokens = compute_kpi_tokens(raw["current"], raw["lm"], pm, mode=mode)
     ribbon_tokens = compute_ribbon_tokens(raw["current"], raw["lm"], raw["ly"], pm, mode=mode)
-    cat_top_collections = compute_category_top_collections(coll_data)
+    cat_top_collections = compute_category_top_collections(coll_data, skus_all=raw["skus_all"])
     movers = compute_movers(raw["skus_all"])
     matrix = compute_matrix(raw["collections"])
 
