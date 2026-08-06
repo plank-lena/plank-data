@@ -1663,6 +1663,11 @@ function setCatTab(c) { selectedCatTab = c; initCatTabs(); }
 function renderCatBody() {
   const rows = CAT_TOP_COLLECTIONS[selectedCatTab] || [];
   const total = rows.reduce((s,r) => s + (r.cash.total||0), 0);
+  // CA1 (round-3 review): totals across the collections actually shown in
+  // this sidebar list -- Σ of the same rows the list itself renders, so
+  // this always foots to what's on screen even if CAT_TOP_COLLECTIONS is
+  // ever capped below the category's full collection count.
+  const totalUnits = rows.reduce((s,r) => s + (r.units.total||0), 0);
   const maxVal = Math.max(...rows.map(r => r.cash.total||0), 1);
   const col = catColor(selectedCatTab);
   const pt = PROD_TYPES.find(t => t.t === selectedCatTab) || {};
@@ -1683,6 +1688,15 @@ function renderCatBody() {
       </div>
       <div class="subcat-drill" id="cat-coll-drill-${i}">${catCollSkusHTML(r.skus)}</div>`).join('')
     : `<div style="font-family:var(--font-m);font-size:10px;color:var(--muted);padding:8px">No collections with revenue this period</div>`;
+  // CA1: total row, Σ of the same collections listHTML renders above.
+  const totalRowHTML = rows.length ? `
+      <div class="top-coll-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px;font-weight:600">
+        <span class="twist" style="visibility:hidden">▸</span>
+        <span class="top-coll-name">Total (${rows.length} shown)</span>
+        <div class="top-coll-track"></div>
+        <span class="top-coll-val">${fmtGBP(total)}</span>
+        <span class="top-coll-b2b">${fmtU(totalUnits)}u</span>
+      </div>` : '';
 
   document.getElementById('cat-body').innerHTML = `
     <div class="finish-stats">
@@ -1703,7 +1717,7 @@ function renderCatBody() {
       <canvas id="cat-donut" height="220" style="display:block;width:100%"></canvas>
       <div class="cat-donut-caption">Collection share of ${selectedCatTab || 'Unknown'} · ${CM_LABEL}</div>
     </div>
-    <div class="top-coll-list">${listHTML}</div>`;
+    <div class="top-coll-list">${listHTML}${totalRowHTML}</div>`;
   renderCatDonut(rows, col);
 }
 // C2 (round-2 review): Category Analysis has no per-section geo toggle of

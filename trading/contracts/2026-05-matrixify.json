@@ -17,8 +17,8 @@
     },
     "lq_ly_source": "oracle_bootstrap",
     "ly_dept_unclassified_share": 0.2737,
-    "built_at": "2026-08-06T11:39:35.406240+00:00",
-    "commit": "36f4d78d940364394f86a70c196addf69eb1bd87"
+    "built_at": "2026-08-06T11:45:46.778239+00:00",
+    "commit": "56416c09b48fc45f9d593d8ec0408a02ba8502f5"
   },
   "mode": "month",
   "period_model": {
