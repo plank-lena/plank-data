@@ -220,6 +220,11 @@ body::before{content:'';position:fixed;inset:0;background:
 .fin-leg-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 .fin-leg-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fin-leg-val{color:var(--muted);flex-shrink:0}
+/* FA2 (round-3 review): LM/LY delta per finish in the sidebar legend. */
+.fin-leg-delta{width:64px;text-align:right;flex-shrink:0;font-size:9px}
+.fin-leg-delta.up{color:var(--green)}
+.fin-leg-delta.dn{color:var(--red)}
+.fin-leg-delta.flat{color:var(--muted)}
 .finish-stats{display:flex;flex-direction:column;gap:8px}
 .fs-main{padding:12px;background:var(--surface2);border-radius:5px;border:1px solid var(--border)}
 .fs-val{font-family:var(--font-m);font-size:22px;font-weight:600;margin-bottom:2px}
@@ -1880,16 +1885,25 @@ function renderFinishOverview() {
   const names = Object.keys(FINISH_DATA);
   const top = names.slice(0, TOP_N);
   const otherTotal = names.slice(TOP_N).reduce((s,n) => s + (FINISH_DATA[n].total||0), 0);
-  const slices = top.map(n => ({ name: n, value: FINISH_DATA[n].total||0, color: FINISH_DATA[n].color }));
+  const slices = top.map(n => ({ name: n, value: FINISH_DATA[n].total||0, color: FINISH_DATA[n].color,
+    vsLQ: FINISH_DATA[n].vsLQ, vsLY: FINISH_DATA[n].vsLY }));
   const hasOther = otherTotal > 0;
-  if (hasOther) slices.push({ name: 'Other', value: otherTotal, color: 'rgba(140,140,150,0.5)' });
+  if (hasOther) slices.push({ name: 'Other', value: otherTotal, color: 'rgba(140,140,150,0.5)', vsLQ: null, vsLY: null });
   const total = slices.reduce((s,d) => s + d.value, 0);
 
+  // FA2 (round-3 review): LM/LY change per finish -- LM is real (vsLQ,
+  // same oracle-bootstrapped figure FA1 shows on the per-finish headline);
+  // LY is genuinely unavailable at finish grain today (compute_finish_data
+  // never populates vsLY, unlike department grain's real B3 backfill), so
+  // it honestly reads "--" rather than a fabricated figure. "Other" (the
+  // Top-8-and-beyond bucket) has no single finish to compare, also "--".
   const legendHTML = slices.map(s => `
     <div class="fin-leg-row">
       <span class="fin-leg-swatch" style="background:${s.color}"></span>
       <span class="fin-leg-name">${s.name}</span>
       <span class="fin-leg-val">${fmtGBP(s.value)} · ${total?((s.value/total)*100).toFixed(0):0}%</span>
+      <span class="fin-leg-delta ${badgeClass(s.vsLQ)}">LM ${fmtPct(s.vsLQ)}</span>
+      <span class="fin-leg-delta ${badgeClass(s.vsLY)}">LY ${fmtPct(s.vsLY)}</span>
     </div>`).join('');
 
   document.getElementById('finish-body').innerHTML = total ? `
