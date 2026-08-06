@@ -545,7 +545,7 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
 
 def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, lq_contract=None,
                                           oracle_bootstrap_path=None, out_path=None,
-                                          ly_month_contracts=None):
+                                          ly_month_contracts=None, month_oracle_bootstrap_paths=None):
     """The Matrixify-sourced quarterly contract. month_specs: 3
     (period, uk_csv, us_csv) tuples in chronological order. lq_contract:
     same meaning as emit_contract_from_oracle_quarter's -- a previously-
@@ -594,10 +594,33 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     _recompute_yoy -- no separate quarterly aggregation logic needed here,
     just feeding real monthly vs_ly in. None (the default) reproduces the
     prior all-None behaviour exactly.
+
+    month_oracle_bootstrap_paths (2026-08-06, QQ1 -- round-3 review): 3
+    real MONTHLY-mode oracle workbooks (path/None), one per month_specs
+    entry -- forwarded as each constituent month's own oracle_bootstrap_
+    path when building that month's contract internally. This was the
+    real gap behind "quarterly has no YoY": each inner monthly contract
+    was built with NO oracle_bootstrap_path at all (see the module
+    docstring above), so every month's own lm/ly fell to the all-zero
+    "none_available" branch, and _aggregate_ly's sum of 3 zeros was
+    naturally zero too -- not a quarterly-aggregation bug, a missing
+    per-month bootstrap one level down. Once each month has its own real
+    oracle-bootstrapped headline ly (the same fixture build_matrixify_
+    dashboard.py's standalone monthly build already uses), _aggregate_ly's
+    sum is real and current['vs_ly'] follows. Composes with
+    ly_month_contracts above unchanged: oracle_bootstrap_path never
+    populates per-department ly_dept_sales (the oracle sheet has no
+    per-department LY column, only vs_lq -- the whole reason B3 needed a
+    separate real-2025-data source), so ly_month_contracts' backfill still
+    applies on top. None per month (the default) reproduces the prior
+    all-zero quarterly LY exactly.
     """
     if ly_month_contracts is not None and len(ly_month_contracts) != 3:
         raise ValueError(f"emit_contract_from_matrixify_quarter: ly_month_contracts must have "
                           f"3 entries (one per month_specs), got {len(ly_month_contracts)}")
+    if month_oracle_bootstrap_paths is not None and len(month_oracle_bootstrap_paths) != 3:
+        raise ValueError(f"emit_contract_from_matrixify_quarter: month_oracle_bootstrap_paths must "
+                          f"have 3 entries (one per month_specs), got {len(month_oracle_bootstrap_paths)}")
     if len(month_specs) != 3:
         raise ValueError(f"emit_contract_from_matrixify_quarter needs exactly 3 months, got {len(month_specs)}")
 
@@ -610,10 +633,13 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
                 )
 
     ly_month_contracts = ly_month_contracts or [None, None, None]
+    month_oracle_bootstrap_paths = month_oracle_bootstrap_paths or [None, None, None]
     month_contracts = [
         emit_contract_from_matrixify(period=period, uk_csv=uk_csv, us_csv=us_csv,
-                                      oracle_gaps=oracle_quarter_gaps, ly_month_contract=ly_mc)
-        for (period, uk_csv, us_csv), ly_mc in zip(month_specs, ly_month_contracts)
+                                      oracle_gaps=oracle_quarter_gaps, ly_month_contract=ly_mc,
+                                      oracle_bootstrap_path=month_ob_path)
+        for (period, uk_csv, us_csv), ly_mc, month_ob_path
+        in zip(month_specs, ly_month_contracts, month_oracle_bootstrap_paths)
     ]
     months = [load_contract(c) for c in month_contracts]
     all_reconciled = all(c['provenance']['reconciled'] for c in month_contracts)
