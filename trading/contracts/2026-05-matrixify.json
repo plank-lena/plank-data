@@ -16,8 +16,8 @@
       "total": -0.0562
     },
     "lq_ly_source": "oracle_bootstrap",
-    "built_at": "2026-08-05T12:28:15.388536+00:00",
-    "commit": "5362a4c5a147f45f89c7baa88ccb67c26fe285d0"
+    "built_at": "2026-08-06T06:55:11.260344+00:00",
+    "commit": "6eda0125ace829e28285af136098614236efae00"
   },
   "mode": "month",
   "period_model": {
