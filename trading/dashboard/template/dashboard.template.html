@@ -141,7 +141,10 @@ body::before{content:'';position:fixed;inset:0;background:
 .tl-label{font-family:var(--font-m);font-size:9.5px;color:var(--muted)}
 
 /* ── MERGED COLLECTION VIEW ── */
-.dual-chart{display:flex;flex-direction:column;gap:6px}
+/* CO2 (round-2 review): fixed-height scroll container -- up to 25 rows
+   (renderCollections' own top_n) no longer push the whole section (and
+   page) tall; it scrolls within its own bordered block instead. */
+.dual-chart{display:flex;flex-direction:column;gap:6px;max-height:480px;overflow-y:auto;padding:4px;border:1px solid var(--border);border-radius:6px}
 .dc-row{display:grid;grid-template-columns:100px 1fr 90px;align-items:center;gap:8px;cursor:pointer;padding:3px 4px;border-radius:3px;transition:background .12s}
 .dc-row:hover{background:var(--surface2)}
 .dc-row.sel{background:var(--surface2)}
