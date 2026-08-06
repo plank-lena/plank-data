@@ -603,6 +603,9 @@ def compute_matrix(collections_raw, top_n=40):
     points = [{
         'c': c['c'], 't': c['t'],
         'revenue': round(c['ts'], 2), 'gm': _r4(c.get('gm')), 'size': c.get('tu') or 0,
+        # MX4 (round-3 review): vs-LM, same real per-collection figure the
+        # Collection Performance ghost marker already reads (c['vs_lq']).
+        'vs_lq': _r4(c.get('vs_lq')),
     } for c in top]
     sizes = [p['size'] for p in points if p['size']]
     size_key = {
@@ -979,7 +982,8 @@ def js_block_movers(movers):
 
 def js_block_matrix(matrix):
     points = ',\n'.join(
-        f'  {{c:{_js_val(p["c"])},t:{_js_val(p["t"])},revenue:{p["revenue"]},gm:{_js_val(p["gm"])},size:{p["size"]}}}'
+        f'  {{c:{_js_val(p["c"])},t:{_js_val(p["t"])},revenue:{p["revenue"]},gm:{_js_val(p["gm"])},size:{p["size"]},'
+        f'vs_lq:{_js_val(p.get("vs_lq"))}}}'
         for p in matrix['points']
     )
     sk = matrix['size_key']

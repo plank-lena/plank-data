@@ -1640,13 +1640,14 @@ function renderScatter() {
 
   const padL = 55, padR = 20, padT = 15, padB = 40;
   const cW = W - padL - padR, cH = H - padT - padB;
-  const gms = MATRIX.points.map(p => p.gm).filter(v => v != null);
-  // T5 (trading review round 1): clip the x-axis at 0% GM -- a collection
-  // sold at a genuine loss shouldn't push the axis into negative-% territory
-  // (confusing to read); it renders pinned to the 0% edge instead, via the
-  // clampedGM below, rather than disappearing or drawing off-canvas.
-  const minGM = Math.max(0, gms.length ? Math.min(...gms, 0.6) : 0.6);
-  const maxGM = gms.length ? Math.max(...gms, 0.85) : 0.85;
+  // MX2 (round-3 review, D2): fixed 50-85% floor -- the previous dynamic
+  // floor started at 0%, bunching every bubble against the right edge.
+  // Any collection genuinely below 50% GM (none expected at collection
+  // grain) clamps to the axis min via clampedGM below rather than
+  // disappearing or drawing off-canvas, same T5 principle as before, just
+  // a higher floor.
+  const minGM = 0.50;
+  const maxGM = 0.85;
   const maxS = Math.max(...MATRIX.points.map(p => p.revenue), 1);
 
   ctx.strokeStyle = 'rgba(0,0,0,0.08)';
@@ -1679,14 +1680,14 @@ function renderScatter() {
     return 5 + t * 17;
   };
 
-  // M1 (round-2 review): floating labels OUTSIDE each bubble (previously
-  // drawn inside, truncated to 7 chars, illegible against the fill) for
-  // the top 10 by revenue only -- MATRIX.points is already revenue-sorted
-  // descending by compute_matrix, so the first 10 of this slice ARE that
-  // top 10; no separate re-rank needed. Full collection name now that it
-  // isn't fighting for space inside the circle.
-  const LABEL_TOP_N = 10;
-  MATRIX.points.slice(0, 20).forEach((p, i) => {
+  // MX1 (round-3 review): reverts round-2's M1 -- label centred back
+  // INSIDE the bubble, not floating outside. MX3: top 10 by revenue only
+  // (was 20); MATRIX.points is already revenue-sorted descending by
+  // compute_matrix, so this slice IS that top 10, no re-rank needed.
+  // Widened from M1's 7-char cutoff to 10 now that a smaller point count
+  // gives each bubble more room, but still truncated -- an unbounded name
+  // inside a 5-22px-radius circle is illegible regardless of point count.
+  MATRIX.points.slice(0, 10).forEach((p) => {
     if (p.gm == null) return;
     const clampedGM = Math.max(p.gm, minGM);
     const x = padL + ((clampedGM - minGM) / ((maxGM - minGM) || 1)) * cW;
@@ -1696,11 +1697,21 @@ function renderScatter() {
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = col.replace(/[\d.]+\)$/, '0.25)'); ctx.fill();
     ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
-    if (i < LABEL_TOP_N) {
-      ctx.fillStyle = 'rgba(24,24,28,0.9)';
-      ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillText(p.c, x, y - r - 4);
-    }
+    ctx.fillStyle = 'rgba(24,24,28,0.85)';
+    ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center';
+    ctx.fillText(p.c.substring(0,10), x, y + 3);
+
+    // MX4: vs-LM arrow, colour-coded per D6, signed % beside it only when
+    // the bubble is big enough (r>=12, roughly the top half of the size
+    // range) for that not to overlap its neighbours -- below the bubble,
+    // opposite side from the name above. Smaller bubbles get the arrow
+    // alone; the % would clutter a tight cluster of small points, and the
+    // arrow's own colour already carries the direction.
+    const dir = badgeClass(p.vs_lq);
+    ctx.font = `bold 9px 'IBM Plex Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillStyle = dir === 'up' ? '#26c47a' : dir === 'dn' ? '#cc2a38' : 'rgba(24,24,28,0.5)';
+    const arrowLbl = r >= 12 ? `${dirArrow(dir)}${fmtPct(p.vs_lq)}` : dirArrow(dir);
+    ctx.fillText(arrowLbl, x, y + r + 3);
   });
   ctx.textBaseline = 'alphabetic'; // reset -- the axis-label code above relies on the canvas default
 
