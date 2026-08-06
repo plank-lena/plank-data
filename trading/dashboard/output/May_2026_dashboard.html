@@ -863,6 +863,7 @@ const PROD_TYPES = [
   {t:"Lighting",sales:20429,ly_sales:7157,lq_sales:18286,d2c:0,b2b:0,uk:0,us:0,units:229,vs_lq:0.1172,vs_ly:1.8546,yoy_dir:'up',gm:0.7751,color:'rgba(138,180,0,0.9)',textColor:'rgba(110,145,0,1)',subcats:[{name:'Fixed Lighting',sales:20204,units:205,vs_ly:1.8232},{name:'Lamps',sales:6908,units:0,vs_ly:0.4587},{name:'Lighting Accessory',sales:7133,units:24,vs_ly:0.5063}]},
   {t:"Components",sales:3032,ly_sales:508,lq_sales:1614,d2c:0,b2b:0,uk:0,us:0,units:416,vs_lq:0.8784,vs_ly:4.9686,yoy_dir:'up',gm:-0.7238,color:'rgba(166,48,48,0.9)',textColor:'rgba(119,34,34,1.0)',subcats:[]}
 ];
+const LY_DEPT_UNCLASSIFIED_PCT = null;
 
 const SKUS = [
   {r:0,sku:"KH-BECKER-170-AB",d:"BECKER 170mm D Bar Handle - Antique",c:"BECKER",t:"Cabinetry",uk_s:"Cont",us_s:"Cont",total_sales:14430.45,total_units:531,vs_lq:0.3723,vs_ly:0.137,gm:0.7671,is_el:false,uk_s2:2668.94,uk_u:129,us_s2:10926.47,us_u:379,d2c:4473.33,b2b:9957.12,lq:10515.63,ly:12693.79},
@@ -1592,7 +1593,10 @@ function renderCatBars() {
           <div class="subcat-drill" id="subcat-${i}">${subcatsHTML(t)}</div>
         </div>`;
     });
-    legend.innerHTML = `<span>Sorted by ${catView==='vs_lq'?'vs LM':'vs LY'} movement -- bar length is the % magnitude, not £</span>`;
+    const lyCaveat = (catView === 'vs_ly' && typeof LY_DEPT_UNCLASSIFIED_PCT === 'number')
+      ? ` · LY baseline: ${(LY_DEPT_UNCLASSIFIED_PCT*100).toFixed(0)}% of revenue unclassified by department (legacy SKU naming) -- a department's LY figure may be understated, so its vs-LY growth may read higher than real`
+      : '';
+    legend.innerHTML = `<span>Sorted by ${catView==='vs_lq'?'vs LM':'vs LY'} movement -- bar length is the % magnitude, not £${lyCaveat}</span>`;
   } else if (catView === 'channel' || catView === 'country') {
     const [kA, kB, labA, labB, colA, colB] = catView === 'channel'
       ? ['d2c','b2b','D2C','B2B','var(--d2c)','var(--b2b)']

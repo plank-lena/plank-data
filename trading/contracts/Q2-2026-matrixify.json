@@ -20,13 +20,14 @@
       null
     ],
     "lq_ly_source": "ly_from_monthly_matrixify_blocks__lq_unavailable__sku_vslq_from_oracle_bootstrap",
+    "ly_dept_unclassified_share": 0.3304,
     "aggregated_from": [
       "2026-04",
       "2026-05",
       "2026-06"
     ],
-    "built_at": "2026-08-06T06:55:19.154110+00:00",
-    "commit": "6eda0125ace829e28285af136098614236efae00"
+    "built_at": "2026-08-06T06:57:20.241007+00:00",
+    "commit": "e585a1a579b19fe906f9c8c0af54133ff5532fc4"
   },
   "mode": "quarter",
   "period_model": {
@@ -138,7 +139,7 @@
       "sales": 995225.3404555658,
       "units": 61990.0,
       "vs_lq": null,
-      "vs_ly": null,
+      "vs_ly": 1.1552377028485692,
       "gm": 0.7425099438503653,
       "subcats": [
         {
@@ -188,7 +189,7 @@
       "sales": 236043.48357240425,
       "units": 9163.0,
       "vs_lq": null,
-      "vs_ly": null,
+      "vs_ly": 0.732013172706506,
       "gm": 0.7444589537588395,
       "subcats": [
         {
@@ -238,7 +239,7 @@
       "sales": 84096.45709850003,
       "units": 5592.0,
       "vs_lq": null,
-      "vs_ly": null,
+      "vs_ly": 1.1582360265054796,
       "gm": 0.7278019762463652,
       "subcats": [
         {
@@ -302,7 +303,7 @@
       "sales": 47375.04566810437,
       "units": 637.0,
       "vs_lq": null,
-      "vs_ly": null,
+      "vs_ly": 0.5681706617746987,
       "gm": 0.7876428007781247,
       "subcats": [
         {
@@ -331,7 +332,7 @@
       "sales": 20726.15182513706,
       "units": 1577.0,
       "vs_lq": null,
-      "vs_ly": null,
+      "vs_ly": -0.9264621952779216,
       "gm": null,
       "subcats": [
         {
@@ -353,7 +354,7 @@
       "sales": 5967.093867599759,
       "units": 540.0,
       "vs_lq": null,
-      "vs_ly": null,
+      "vs_ly": 5.608616171869101,
       "gm": -0.3115884929841584,
       "subcats": [
         {

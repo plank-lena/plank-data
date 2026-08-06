@@ -64,6 +64,16 @@ _PRIOR_PERIOD = {
     "2026-06": "2026-05",
 }
 
+# B3 (round-2 review): real prior-year same-month Matrixify contracts,
+# committed once the 2025 UK/US exports were pulled (see contract.py's
+# ly_month_contract docstring for what this does and doesn't fix -- it
+# backfills prod_types' vs_ly only, disclosed via ly_dept_unclassified_share).
+_LY_MONTH_CONTRACTS = {
+    "2026-04": "2025-04-matrixify.json",
+    "2026-05": "2025-05-matrixify.json",
+    "2026-06": "2025-06-matrixify.json",
+}
+
 
 def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
     # emit_contract_from_matrixify only chains when BOTH are given -- passing
@@ -96,11 +106,19 @@ def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
         if os.path.exists(candidate):
             prior_month_contract = candidate
 
+    ly_month_contract = None
+    ly_fixture = _LY_MONTH_CONTRACTS.get(period)
+    if ly_fixture:
+        candidate = os.path.join(CONTRACTS_DIR, ly_fixture)
+        if os.path.exists(candidate):
+            ly_month_contract = candidate
+
     contract = emit_contract_from_matrixify(
         period=period, uk_csv=uk_csv, us_csv=us_csv,
         lm_contract=lm_contract, ly_contract=ly_contract,
         oracle_bootstrap_path=oracle_bootstrap_path,
         prior_month_contract=prior_month_contract,
+        ly_month_contract=ly_month_contract,
     )
 
     os.makedirs(CONTRACTS_DIR, exist_ok=True)

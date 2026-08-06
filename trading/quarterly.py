@@ -537,7 +537,8 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
 # ── Matrixify front-end ──────────────────────────────────────────────────────
 
 def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, lq_contract=None,
-                                          oracle_bootstrap_path=None, out_path=None):
+                                          oracle_bootstrap_path=None, out_path=None,
+                                          ly_month_contracts=None):
     """The Matrixify-sourced quarterly contract. month_specs: 3
     (period, uk_csv, us_csv) tuples in chronological order. lq_contract:
     same meaning as emit_contract_from_oracle_quarter's -- a previously-
@@ -575,7 +576,21 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     on their existing lq_contract-only mechanism) -- scoped precisely to
     the one field this bug report is about, not a general quarterly-oracle-
     bootstrap facility.
+
+    ly_month_contracts (2026-08-06, B3 -- round-2 review): 3 real prior-year
+    same-month Matrixify contracts (dict/path/None), one per month_specs
+    entry, in the same chronological order -- forwarded as each constituent
+    month's own ly_month_contract (see emit_contract_from_matrixify's
+    docstring for what that backfills and its disclosed classification-
+    coverage caveat). _aggregate_prod_types already reconstructs a
+    quarter-level vs_ly from each month's own vs_ly ratio via
+    _recompute_yoy -- no separate quarterly aggregation logic needed here,
+    just feeding real monthly vs_ly in. None (the default) reproduces the
+    prior all-None behaviour exactly.
     """
+    if ly_month_contracts is not None and len(ly_month_contracts) != 3:
+        raise ValueError(f"emit_contract_from_matrixify_quarter: ly_month_contracts must have "
+                          f"3 entries (one per month_specs), got {len(ly_month_contracts)}")
     if len(month_specs) != 3:
         raise ValueError(f"emit_contract_from_matrixify_quarter needs exactly 3 months, got {len(month_specs)}")
 
@@ -587,9 +602,11 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
                     "-- only May 2026's UK/US exports are committed today (see module docstring)."
                 )
 
+    ly_month_contracts = ly_month_contracts or [None, None, None]
     month_contracts = [
-        emit_contract_from_matrixify(period=period, uk_csv=uk_csv, us_csv=us_csv, oracle_gaps=oracle_quarter_gaps)
-        for period, uk_csv, us_csv in month_specs
+        emit_contract_from_matrixify(period=period, uk_csv=uk_csv, us_csv=us_csv,
+                                      oracle_gaps=oracle_quarter_gaps, ly_month_contract=ly_mc)
+        for (period, uk_csv, us_csv), ly_mc in zip(month_specs, ly_month_contracts)
     ]
     months = [load_contract(c) for c in month_contracts]
     all_reconciled = all(c['provenance']['reconciled'] for c in month_contracts)
@@ -655,6 +672,15 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
         'lq_ly_source': ('ly_from_monthly_matrixify_blocks__lq_unavailable__sku_vslq_from_oracle_bootstrap'
                           if oracle_bootstrap_path
                           else 'ly_from_monthly_matrixify_blocks__lq_unavailable'),
+        # B3: worst-case (max) of the 3 constituent months' own
+        # ly_dept_unclassified_share -- same disclosure the monthly template
+        # caveat reads, carried through so the quarterly Category Analysis
+        # view caveats too. None if no constituent month had one.
+        'ly_dept_unclassified_share': max(
+            (s for c in month_contracts
+             if (s := c['provenance'].get('ly_dept_unclassified_share')) is not None),
+            default=None,
+        ),
         'aggregated_from': [p for p, _, _ in month_specs],
         'built_at': datetime.now(timezone.utc).isoformat(),
         'commit': _git_commit(),

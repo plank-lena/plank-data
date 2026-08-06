@@ -55,6 +55,17 @@ _QUARTER_ORACLE_FIXTURES = {
     ("2026-04", "2026-05", "2026-06"): "2026-Q2_Quarterly_Trading_Report.xlsx",
 }
 
+# B3 (round-2 review): real prior-year same-month Matrixify contracts, one
+# per constituent month -- same mapping as build_matrixify_dashboard.py's
+# _LY_MONTH_CONTRACTS, forwarded per-month via ly_month_contracts. See
+# emit_contract_from_matrixify's ly_month_contract docstring for what this
+# does and doesn't fix (department-grain vs_ly only, disclosed caveat).
+_LY_MONTH_CONTRACTS = {
+    "2026-04": "2025-04-matrixify.json",
+    "2026-05": "2025-05-matrixify.json",
+    "2026-06": "2025-06-matrixify.json",
+}
+
 
 def build(periods, lq_contract=None, out_suffix="_matrixify"):
     if len(periods) != 3:
@@ -67,8 +78,14 @@ def build(periods, lq_contract=None, out_suffix="_matrixify"):
     fixture = _QUARTER_ORACLE_FIXTURES.get(tuple(periods))
     if fixture:
         oracle_bootstrap_path = os.path.join(ORACLE_FIXTURE_DIR, fixture)
+    ly_month_contracts = []
+    for p in periods:
+        ly_fixture = _LY_MONTH_CONTRACTS.get(p)
+        candidate = os.path.join(CONTRACTS_DIR, ly_fixture) if ly_fixture else None
+        ly_month_contracts.append(candidate if candidate and os.path.exists(candidate) else None)
     contract = emit_contract_from_matrixify_quarter(
         month_specs, lq_contract=lq_contract, oracle_bootstrap_path=oracle_bootstrap_path,
+        ly_month_contracts=ly_month_contracts,
     )
 
     q_label = contract["period_model"]["cm"]["label"]  # e.g. "Q2 2026"

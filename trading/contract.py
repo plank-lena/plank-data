@@ -335,6 +335,15 @@ def render_contract(contract, template_html):
         js_block_cat_top_collections(cat_top_collections), js_block_movers(movers), js_block_matrix(matrix),
     )
     tokens["PROVISIONAL_BANNER"] = "" if can_publish(contract) else PROVISIONAL_BANNER_HTML
+    # B3 (round-2 review): department-level vs-LY caveat -- see
+    # emit_contract_from_matrixify's ly_month_contract docstring. None for
+    # the oracle path and for any Matrixify build without ly_month_contract,
+    # which the template must treat as "no caveat needed", not a zero.
+    # Read off `contract` (the original dict), not `raw` -- load_contract()
+    # deliberately strips provenance down to PAYLOAD_KEYS (it reconstructs
+    # extract_all()'s raw shape), so raw["provenance"] never exists.
+    ly_dept_unclassified_pct = contract.get("provenance", {}).get("ly_dept_unclassified_share")
+    tokens["BLOCK_PROD_TYPES"] += f"\nconst LY_DEPT_UNCLASSIFIED_PCT = {json.dumps(ly_dept_unclassified_pct)};"
     # Shared design tokens (2026-08-05 CSS-overhaul brief §2) -- see
     # trading/dashboard/pipeline.py's identical fill for the full rationale.
     with open(os.path.join(_HERE, "..", "common", "dashboard_tokens.css"), encoding="utf-8") as _fh:
@@ -423,7 +432,8 @@ def _vs(curr, prev):
 
 def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, as_of=None,
                                   lm_contract=None, ly_contract=None, oracle_bootstrap_path=None,
-                                  oracle_gaps=None, out_path=None, prior_month_contract=None):
+                                  oracle_gaps=None, out_path=None, prior_month_contract=None,
+                                  ly_month_contract=None):
     """The real builder: BRIEF #5's ship-to reconcile + BRIEF #2's Line
     Detail enrichment, rolled up into extract_all()'s exact payload shape.
 
@@ -491,6 +501,29 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     pass this in addition to oracle_bootstrap_path, not instead of it. None
     (current['trend_3mo'] stays None, not fabricated) when no prior month's
     contract exists yet.
+
+    ly_month_contract (2026-08-06, round-2 review B3): a real prior-year
+    SAME-MONTH Matrixify contract (dict or path) -- e.g. 2025-04's own
+    contract when building 2026-04 -- used ONLY to backfill prod_types'
+    per-department vs_ly (ly_dept_sales), independent of lm_contract/
+    ly_contract. Headline vs_ly was never the gap: oracle_bootstrap_path
+    already gives that real (the oracle sheet carries a genuine LY column
+    at headline grain). The gap is one grain finer -- the oracle sheet has
+    no per-department LY column, only vs_lq, so prod_types' vs_ly stayed
+    None on this path even after oracle_bootstrap_path. Applied whenever
+    ly_dept_sales is still empty after the branch above, so it composes
+    with oracle_bootstrap_path (real LM+LY headline) rather than requiring
+    the stricter both-or-neither lm_contract/ly_contract chain.
+    Disclosed, not silently trusted: a same-month-last-year Matrixify pull
+    classifies department by the CURRENT sku_taxonomy.py seed, and a real
+    chunk of a year-ago revenue used SKU-naming conventions (e.g. legacy
+    "KH-"/"KTH-KH-" prefixes) that seed doesn't recognise, landing in
+    "Unknown" instead of their real department -- 27-33% of Apr-Jun 2025
+    revenue, vs ~3% for the equivalent 2026 months. provenance.
+    ly_dept_unclassified_share carries that fraction through so the
+    template can caveat the vs-LY view rather than present department YoY
+    growth as more precise than it is (some of it is a classification
+    artifact, not real movement). None when ly_month_contract isn't given.
     """
     line_detail_path = line_detail_path or os.path.join(_HERE, "source", "line_detail.xlsx")
     as_of_year, as_of_month = (int(x) for x in period.split("-"))
@@ -721,6 +754,21 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         period_model = {"cm": _period_label(period), "lm": _period_label(period), "ly": _period_label(period)}
         lq_ly_source = "none_available"
 
+    # B3 (round-2 review): independent department-level LY backfill from a
+    # real prior-year same-month Matrixify contract -- composes with
+    # oracle_bootstrap_path above (which gives headline LY but not
+    # department-grain LY) rather than requiring it. Only applied if the
+    # branch above left ly_dept_sales empty, so an explicit contract_chain
+    # (which already carries real ly_dept_sales) is never overridden.
+    ly_dept_unclassified_share = None
+    if ly_month_contract is not None and not ly_dept_sales:
+        ly_month_c = ly_month_contract if isinstance(ly_month_contract, dict) else load_contract(ly_month_contract)
+        ly_dept_sales = {t["t"]: t["sales"] for t in ly_month_c.get("prod_types", [])}
+        ly_month_total = ly_month_c.get("current", {}).get("total_sales")
+        ly_month_unknown = ly_dept_sales.get("Unknown")
+        if ly_month_total:
+            ly_dept_unclassified_share = round((ly_month_unknown or 0) / ly_month_total, 4)
+
     current = {
         "total_sales": grand_total,
         "units": sum(units_totals.values()),
@@ -885,6 +933,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "unmatched_sku_revenue_share": round(1 - enrichment_coverage, 4),
         "country_gaps_vs_oracle": country_gaps_vs_oracle,
         "lq_ly_source": lq_ly_source,
+        "ly_dept_unclassified_share": ly_dept_unclassified_share,
         "built_at": datetime.now(timezone.utc).isoformat(),
         "commit": _git_commit(),
     }

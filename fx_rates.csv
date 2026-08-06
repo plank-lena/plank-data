@@ -1,4 +1,7 @@
 date,gbp_usd,source
+2025-04-01,1.2894,frankfurter.app (ECB reference rate)
+2025-05-01,1.3352,"frankfurter.app (ECB reference rate), nearest available: 2025-04-30"
+2025-06-01,1.3480,"frankfurter.app (ECB reference rate), nearest available: 2025-05-30"
 2026-04-01,1.3322,frankfurter.app (ECB reference rate)
 2026-05-01,1.3509,"frankfurter.app (ECB reference rate), nearest available: 2026-04-30"
 2026-06-01,1.3465,frankfurter.app (ECB reference rate)

@@ -970,7 +970,10 @@ function renderCatBars() {
           <div class="subcat-drill" id="subcat-${i}">${subcatsHTML(t)}</div>
         </div>`;
     });
-    legend.innerHTML = `<span>Sorted by ${catView==='vs_lq'?'vs LM':'vs LY'} movement -- bar length is the % magnitude, not £</span>`;
+    const lyCaveat = (catView === 'vs_ly' && typeof LY_DEPT_UNCLASSIFIED_PCT === 'number')
+      ? ` · LY baseline: ${(LY_DEPT_UNCLASSIFIED_PCT*100).toFixed(0)}% of revenue unclassified by department (legacy SKU naming) -- a department's LY figure may be understated, so its vs-LY growth may read higher than real`
+      : '';
+    legend.innerHTML = `<span>Sorted by ${catView==='vs_lq'?'vs LM':'vs LY'} movement -- bar length is the % magnitude, not £${lyCaveat}</span>`;
   } else if (catView === 'channel' || catView === 'country') {
     const [kA, kB, labA, labB, colA, colB] = catView === 'channel'
       ? ['d2c','b2b','D2C','B2B','var(--d2c)','var(--b2b)']
