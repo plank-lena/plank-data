@@ -1,10 +1,27 @@
-# Dropped feeds — raw source files, never committed
-/source/
+# Dropped feeds — raw source files, never committed.
+# NOTE: unanchored (no leading slash) so this matches source/ at ANY depth,
+# e.g. trading/source/, returns/source/ — not just a top-level ./source/.
+# The old anchored "/source/" pattern silently let trading/source/*.csv
+# (raw Matrixify order exports, with customer PII) get committed for months.
+# See docs/2026-08-12_pii_remediation.md for the incident + remediation record.
+source/
+
+# Raw customer/order exports and one-off manual pulls — never committed,
+# regardless of where they land. If a real feed needs a fixture for tests,
+# hand-build a synthetic one (see returns/tests/fixtures/2026Q1/*.csv for
+# the pattern: aggregated, no raw PII) rather than dropping a live export.
+**/*_export_sample.csv
+**/orders_20*.csv
 
 # Credentials
 .env
 .env.*
 !.env.example
+
+# Claude Code local settings — .claude/settings.local.json has held live
+# Matrixify export access tokens in plaintext (permissions allowlist entries
+# with embedded access_token= query strings). Never committed.
+.claude/
 
 # Python
 __pycache__/
