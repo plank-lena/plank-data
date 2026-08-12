@@ -1006,9 +1006,19 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     # branch above left ly_dept_sales empty, so an explicit contract_chain
     # (which already carries real ly_dept_sales) is never overridden.
     ly_dept_unclassified_share = None
+    # (department, subcat name) -> LY sales -- audit finding (2026-08-12,
+    # item 9): subcats[].vs_ly was hardcoded None unconditionally even
+    # though a real ly_month_contract (populated a few lines below) already
+    # carries each subcat's own real absolute sales, the exact same source
+    # ly_dept_sales already uses one grain up -- never wired at this grain.
+    ly_subcat_sales = {}
     if ly_month_contract is not None and not ly_dept_sales:
         ly_month_c = ly_month_contract if isinstance(ly_month_contract, dict) else load_contract(ly_month_contract)
         ly_dept_sales = {t["t"]: t["sales"] for t in ly_month_c.get("prod_types", [])}
+        ly_subcat_sales = {
+            (t["t"], sc["name"]): sc["sales"]
+            for t in ly_month_c.get("prod_types", []) for sc in t.get("subcats", [])
+        }
         ly_month_total = ly_month_c.get("current", {}).get("total_sales")
         ly_month_unknown = ly_dept_sales.get("Unknown")
         if ly_month_total:
@@ -1110,7 +1120,9 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             # vs_lq ratio, see above); None otherwise, never fabricated.
             "lq_sales": round(lq_sales, 2) if lq_sales is not None else None,
             "subcats": [
-                {"name": name, "sales": sc["sales"], "units": sc["units"], "vs_ly": None}
+                {"name": name, "sales": sc["sales"], "units": sc["units"],
+                 "vs_ly": _vs(sc["sales"], ly_subcat_sales.get((dept, name)))
+                          if ly_subcat_sales.get((dept, name)) else None}
                 for name, sc in v["subcats"].items()
             ],
         })
