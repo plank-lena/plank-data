@@ -44,7 +44,7 @@ import argparse, csv, json, os, re, sys
 from collections import defaultdict, Counter
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from common.sku_taxonomy import SKUTaxonomy
+from common.sku_taxonomy import SKUTaxonomy, DEAD_DEPARTMENTS
 
 # ---------------------------------------------------------------------------
 # 1. THEME LEXICON
@@ -357,11 +357,13 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
 
         month = month_of(str(res["created"]))
         t = tax.classify(res["sku"])
-        cat, subcat = t.item_type, t.style  # style may be "" until Line Detail lands
+        # department added (item 7, 2026-08-12): third shared taxonomy level,
+        # same tax.classify() result category/subcategory already came from.
+        dept, cat, subcat = t.department, t.item_type, t.style  # style may be "" until Line Detail lands
         for th in res["themes"]:
             if first_time:
                 by_month[(month, res["market"], th)][res["stream"]] += 1
-            key = (res["sku"], res["product"], cat, subcat, th)
+            key = (res["sku"], res["product"], dept, cat, subcat, th)
             by_product[key][res["stream"]] += 1
             if not first_time:
                 by_product[key]["SYNDICATED"] += 1
@@ -373,7 +375,7 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
             market=res["market"], score=res["score"], stream=res["stream"],
             escalated=res["escalated"], deleted=res["deleted"],
             duplicate_of=("" if first_time else seen[dedupe_key]),
-            sku=res["sku"], product=res["product"], category=cat, subcategory=subcat,
+            sku=res["sku"], product=res["product"], department=dept, category=cat, subcategory=subcat,
             themes="; ".join(res["themes"]), owner="; ".join(res["owners"]),
             evidence=res["evidence"],
         ))
@@ -409,23 +411,23 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
                    explicit=c["EXPLICIT"], latent=c["LATENT"], total=c["EXPLICIT"] + c["LATENT"])
               for (m, mk, th), c in sorted(by_month.items())]
     p_rows = []
-    for (sku, prod, cat, subcat, th), c in by_product.items():
-        p_rows.append(dict(sku=sku, product=prod, category=cat, subcategory=subcat, theme=th,
+    for (sku, prod, dept, cat, subcat, th), c in by_product.items():
+        p_rows.append(dict(sku=sku, product=prod, department=dept, category=cat, subcategory=subcat, theme=th,
                            owner=OWNER.get(th, "PRODUCT"),
                            explicit=c["EXPLICIT"], latent=c["LATENT"],
                            total=c["EXPLICIT"] + c["LATENT"],
                            syndicated_copies=c["SYNDICATED"],
-                           examples=" || ".join(examples[(sku, prod, cat, subcat, th)])))
+                           examples=" || ".join(examples[(sku, prod, dept, cat, subcat, th)])))
     p_rows.sort(key=lambda r: (-r["explicit"], -r["total"]))
 
     paths = [
         write("themes_by_month.csv", ["month", "market", "theme", "owner", "explicit", "latent", "total"], m_rows),
-        write("themes_by_product.csv", ["sku", "product", "category", "subcategory", "theme", "owner",
+        write("themes_by_product.csv", ["sku", "product", "department", "category", "subcategory", "theme", "owner",
                                         "explicit", "latent", "total", "syndicated_copies",
                                         "examples"], p_rows),
         write("review_flags.csv", ["review_id", "created", "month", "market", "score", "stream",
                                    "escalated", "deleted", "duplicate_of", "sku", "product",
-                                   "category", "subcategory", "themes", "owner", "evidence"], flagged_rows),
+                                   "department", "category", "subcategory", "themes", "owner", "evidence"], flagged_rows),
         write("data_quality.csv", ["review_id", "issue", "score", "sentiment", "product", "evidence"], dq_rows),
     ]
 
@@ -440,9 +442,13 @@ def scan_reviews(path, outdir="review_out", line_detail=None,
         for r in p_rows:
             if r["owner"] != "PRODUCT" or r["theme"] == "Unclassified":
                 continue
+            # Door excluded (item 7, 2026-08-12): dead category, same
+            # DEAD_DEPARTMENTS cut returns/build.py's tracker() now applies.
+            if r["department"] in DEAD_DEPARTMENTS:
+                continue
             cat_tot[r["category"] or "Unmapped"][r["theme"]] += r["total"]
             s = sku_tot.setdefault(r["sku"], dict(
-                product=r["product"], category=r["category"], subcategory=r["subcategory"],
+                product=r["product"], department=r["department"], category=r["category"], subcategory=r["subcategory"],
                 family=tax.family_of(r["sku"]), themes={}, quote=""))
             s["themes"][r["theme"]] = s["themes"].get(r["theme"], 0) + r["total"]
             if not s["quote"] and r["examples"]:
