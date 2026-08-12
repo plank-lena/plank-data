@@ -400,7 +400,7 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
     <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">click to drill: department → category → subcategory → SKU</span></div>
   <div class="fg" style="margin-bottom:16px"><span class="eyebrow">Sort department/category/subcategory rows by</span><div class="seg" id="fSort"></div></div>
   <p class="sec-note">The single investigation surface (the old separate quality watchlist is folded in here). Department, category, and subcategory rows sort by value returned by default — toggle above to sort by return rate instead; any column header can also be clicked directly. SKUs within a subcategory always rank by a <b>combined rank</b> of % orders returned and return value together (ruling 3) — a high rate on a cheap, low-volume SKU is a small problem, a high value on a low rate is a volume effect, and neither alone tells you where to look first. <b>SKUs need at least 20 orders sold in the period to appear</b> — below that a rate moves too much on a handful of orders to act on. Family is shown on each SKU row (e.g. KEPLER 160/220/280 read as one product in three sizes) — v1 doesn't add a separate family axis, just the label.</p>
-  <p class="sec-note" style="margin-top:-14px">On SKU rows, ◆ next to the return value marks a SKU where a single order holds half or more of its returned units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter. Units/orders returned are raw counts at every drill level, alongside the £ value and % rate above them.</p>
+  <p class="sec-note" style="margin-top:-14px">On SKU rows, ◆ next to the return value marks a SKU where a single order holds half or more of its returned units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter. Units returned, total orders, and orders returned are raw counts at every drill level, alongside the £ value and % rate above them — total orders is the denominator the return rate is computed against.</p>
   <div class="legend" id="catLegend" style="margin-bottom:14px"></div>
   <div class="tscroll"><table id="catTable"><thead><tr>
     <th class="sortable" data-k="name">Department / Category / Subcategory / SKU</th>
@@ -409,6 +409,7 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
     <th class="sortable" data-k="pct">% of sales</th>
     <th class="sortable" data-k="us">Units sold</th>
     <th class="sortable" data-k="ur">Units returned</th>
+    <th class="sortable" data-k="orders">Total orders</th>
     <th class="sortable" data-k="rord">Orders returned</th>
     <th class="sortable" data-k="rate">Return rate</th>
     <th>Reason</th>
@@ -981,6 +982,7 @@ function renderTracker(A,RA){
       <td>${gbp(d.lost)}</td><td class="thin">${gbp(d.gs)}</td><td>${pc(d.pct)}</td>
       <td class="thin">${d.us.toLocaleString('en-GB')}</td>
       <td class="thin">${d.ur.toLocaleString('en-GB')}</td>
+      <td class="thin">${d.orders.toLocaleString('en-GB')}</td>
       <td class="thin">${d.rord.toLocaleString('en-GB')}</td>
       <td class="rate-cell"><div class="rate-bg" style="width:${d.rate/maxRate*70}px"></div><span>${pc(d.rate)}</span></td>
       <td></td><td></td><td></td>`;
@@ -999,6 +1001,7 @@ function renderTracker(A,RA){
         <td>${gbp(c.lost)}</td><td class="thin">${gbp(c.gs)}</td><td>${pc(c.pct)}</td>
         <td class="thin">${c.us.toLocaleString('en-GB')}</td>
         <td class="thin">${c.ur.toLocaleString('en-GB')}</td>
+        <td class="thin">${c.orders.toLocaleString('en-GB')}</td>
         <td class="thin">${c.rord.toLocaleString('en-GB')}</td>
         <td class="rate-cell"><div class="rate-bg" style="width:${c.rate/maxRate*70}px"></div><span>${pc(c.rate)}</span></td>
         <td></td><td></td><td></td>`;
@@ -1018,6 +1021,7 @@ function renderTracker(A,RA){
           <td>${gbp(sc.lost)}</td><td class="thin">${gbp(sc.gs)}</td><td>${pc(sc.pct)}</td>
           <td class="thin">${sc.us.toLocaleString('en-GB')}</td>
           <td class="thin">${sc.ur.toLocaleString('en-GB')}</td>
+          <td class="thin">${sc.orders.toLocaleString('en-GB')}</td>
           <td class="thin">${sc.rord.toLocaleString('en-GB')}</td>
           <td class="rate-cell"><div class="rate-bg" style="width:${sc.rate/maxRate*70}px"></div><span>${pc(sc.rate)}</span></td>
           <td></td><td></td><td></td>`;
@@ -1028,7 +1032,7 @@ function renderTracker(A,RA){
         if(!subOpen)return;
 
         const skus=combinedRank([...sc.skus.values()]);
-        if(!skus.length){const r=el('tr','sku-row');r.innerHTML='<td colspan="11" class="thin">No SKU clears the 20-order floor in this slice.</td>';tb.appendChild(r);return;}
+        if(!skus.length){const r=el('tr','sku-row');r.innerHTML='<td colspan="12" class="thin">No SKU clears the 20-order floor in this slice.</td>';tb.appendChild(r);return;}
         skus.forEach(s=>{
           const rs=RA.bySku.get(s.sku);
           const ord=orderStats(rs);
@@ -1041,6 +1045,7 @@ function renderTracker(A,RA){
             <td>${s.gs>0?pc(s.vr/s.gs):'<span class="thin">—</span>'}</td>
             <td class="thin">${s.us.toLocaleString('en-GB')}</td>
             <td class="thin">${s.ur.toLocaleString('en-GB')}</td>
+            <td class="thin">${s.orders.toLocaleString('en-GB')}</td>
             <td class="thin">${s.rord.toLocaleString('en-GB')}</td>
             <td><span>${pc(s.pct)}</span></td>
             <td class="thin">${dominantReason(rs)||'—'}</td>
@@ -1069,7 +1074,13 @@ document.querySelectorAll('#catTable th.sortable').forEach(th=>{
    someone wrote this section by hand. */
 function topSkusByCombinedRank(A,n=3){
   const all=[];
-  A.byCat.forEach(c=>c.subs.forEach(sc=>sc.skus.forEach(s=>{if(s.sku)all.push({...s,cat:c.name,subcat:sc.name});})));
+  // dept added (2026-08-12, alongside the tracker's new drill level) so the
+  // "Open X -> Y" pointer below can name the FULL path a reader needs to
+  // click through -- previously named only cat/subcat, which stopped
+  // matching the tracker once department became the outermost level above
+  // them: following "open Handle -> Fixings" alone no longer finds the row
+  // (it's now nested a level deeper under its department).
+  A.byCat.forEach(c=>c.subs.forEach(sc=>sc.skus.forEach(s=>{if(s.sku)all.push({...s,dept:c.dept,cat:c.name,subcat:sc.name});})));
   return combinedRank(all).slice(0,n);
 }
 function biggestMovers(A,RA,n=2){
@@ -1089,13 +1100,13 @@ function renderStartHere(A,RA,VA){
 
   topSkusByCombinedRank(A,2).forEach(s=>{
     items.push({t:'Highest combined rank (rate × value)',
-      b:`<b>${label(s.sku)}</b> (${s.cat} → ${s.subcat}) — ${pc(s.pct)} of orders returned and ${gbp(s.vr)} in stock value, the worst joint rate×value position in this slice (ruling 3). Open ${s.cat} → ${s.subcat} in the tracker below to see it in context.`});
+      b:`<b>${label(s.sku)}</b> (${s.dept} → ${s.cat} → ${s.subcat}) — ${pc(s.pct)} of orders returned and ${gbp(s.vr)} in stock value, the worst joint rate×value position in this slice (ruling 3). Open ${s.dept} → ${s.cat} → ${s.subcat} in the tracker below to see it in context.`});
   });
 
   const sub=notableSubcategories(A)[0];
   if(sub){
     items.push({t:'Subcategory drifting from the pack',
-      b:`<b>${sub.name}</b> (${sub.cat}) returns at ${pc(sub.rate)} vs an average of ${pc(sub.avg)} across subcategories in this slice — ${sub.orders.toLocaleString('en-GB')} orders, ${sub.skus} SKUs. Full outlier list in §06.`});
+      b:`<b>${sub.name}</b> (${sub.dept} → ${sub.cat}) returns at ${pc(sub.rate)} vs an average of ${pc(sub.avg)} across subcategories in this slice — ${sub.orders.toLocaleString('en-GB')} orders, ${sub.skus} SKUs. Full outlier list in §06.`});
   }
 
   biggestMovers(A,RA,1).forEach(s=>{
@@ -1129,7 +1140,7 @@ function notableSubcategories(A){
   const subs=[];
   A.byCat.forEach(c=>c.subs.forEach(sc=>{
     if(sc.orders<50)return; // needs enough volume to be a finding, not noise
-    subs.push({cat:c.name,name:sc.name,rate:rateOf(sc.orders,sc.rord),orders:sc.orders,skus:sc.skus.size});
+    subs.push({dept:c.dept,cat:c.name,name:sc.name,rate:rateOf(sc.orders,sc.rord),orders:sc.orders,skus:sc.skus.size});
   }));
   if(subs.length<2)return[];
   const avg=subs.reduce((s,x)=>s+x.rate,0)/subs.length;
@@ -1141,7 +1152,7 @@ function renderOutliers(A,RA,VA){
   const out=[];
   notableSubcategories(A).forEach(x=>{
     out.push({t:'Subcategory the flat category view hides',
-      b:`<b>${x.name}</b> (${x.cat}) returns at ${pc(x.rate)} of orders vs an average of ${pc(x.avg)} across subcategories in this slice — ${x.skus} SKUs, ${x.orders.toLocaleString('en-GB')} orders. Small against the whole book, but consistent enough to be worth a look at the SKU level (drill in above).`});
+      b:`<b>${x.name}</b> (${x.dept} → ${x.cat}) returns at ${pc(x.rate)} of orders vs an average of ${pc(x.avg)} across subcategories in this slice — ${x.skus} SKUs, ${x.orders.toLocaleString('en-GB')} orders. Small against the whole book, but consistent enough to be worth a look at the SKU level (drill in above).`});
   });
   const nosku=VA.noSkuTotal;
   if(nosku>0){
