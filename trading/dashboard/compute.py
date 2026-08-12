@@ -367,6 +367,17 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
             denom = 1 + vsLQ
             lq = total / denom if abs(denom) > 1e-9 else None
 
+        # Feedback row (Lena/Tom, Finish Analysis, 2026-08-10): vsLY is now
+        # sometimes real (oracle-bootstrapped, see contract.py's
+        # oracle_finish_ly) instead of always None -- same lq-style
+        # absolute-value reconstruction for the "LY value" row, mirroring
+        # how `lq` above is reconstructed from vsLQ.
+        vsLY = raw.get('vsLY')
+        ly = None
+        if vsLY is not None:
+            denom_ly = 1 + vsLY
+            ly = total / denom_ly if abs(denom_ly) > 1e-9 else None
+
         finish_skus = [
             s for s in skus_all
             if s['finish'] == name and s['gross'] > 0
@@ -428,13 +439,14 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
             'textColor':       text_color,
             'total':           round(total),
             'lq':              round(lq) if lq is not None else None,
-            'ly':              0,
+            'ly':              round(ly) if ly is not None else None,
             'units':           int(raw.get('units') or 0),
             'vsLQ':            _r4(vsLQ),
-            'vsLY':            None,
+            'vsLY':            _r4(vsLY),
             'd2c':             round(raw.get('d2c') or 0),
             'b2b':             round(raw.get('b2b') or 0),
             'b2b_share':       round((raw.get('b2b') or 0) / channel_total, 4) if channel_total else None,
+            'd2c_share':       round((raw.get('d2c') or 0) / channel_total, 4) if channel_total else None,
             'uk':              round(raw.get('uk') or 0),
             'us':              round(raw.get('us') or 0),
             # T3b: units-by-country -- 0 on the oracle path (no such column
@@ -443,6 +455,12 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
             'us_u':            int(raw.get('us_u') or 0),
             'lq_uk':           0,
             'lq_us':           0,
+            # Feedback row (Lena, Finish Analysis, 2026-08-10): GM% + per-
+            # market vs-LM, mirroring Category Analysis's sidebar (pt.gm/
+            # pt.uk_vs_lq/pt.us_vs_lq) -- see contract.py for the source.
+            'gm':              _r4(raw.get('gm')),
+            'uk_vs_lq':        _r4(raw.get('uk_vs_lq')),
+            'us_vs_lq':        _r4(raw.get('us_vs_lq')),
             'top_collections': top_collections,
         }
     return result

@@ -1326,6 +1326,13 @@ function renderFinishBody() {
   const rowVal = r => toggleVal(finishMetric === 'sales' ? r.cash : r.unitsByGeo, finishGeo);
   const maxVal = Math.max(...d.top_collections.map(r => rowVal(r) || 0), 1);
 
+  // Feedback rows (Lena/Tom, Finish Analysis, 2026-08-10): sidebar mirrors
+  // Category Analysis's format (renderCatBody above) -- GM%, vs LM, vs LY,
+  // D2C share, UK/US with trend arrows, LM value -- all real once an
+  // oracle bootstrap / prior-month contract is available (contract.py's
+  // oracle_finish_lq/oracle_finish_ly/pmc_finish_uk_us), honestly "—"
+  // otherwise, never fabricated. B2B share (already existed) kept alongside
+  // the new D2C share rather than replaced, so both channels are visible.
   document.getElementById('finish-body').innerHTML = `
     <div class="finish-stats">
       <div class="fs-main" style="border-color:${d.color}">
@@ -1334,9 +1341,14 @@ function renderFinishBody() {
         <div class="cat-dir ${badgeClass(d.vsLQ)}" style="font-size:10px;margin-top:2px">${dirArrow(badgeClass(d.vsLQ))}${fmtPct(d.vsLQ)} vs LM</div>
         <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px">${finishMetric==='sales'?d.units.toLocaleString()+' units':fmtGBP(d.total)}</div>
       </div>
+      <div class="fs-row"><span class="fs-row-lbl">GM%</span><span class="fs-row-val">${fmtPct(d.gm, false)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">vs LM</span><span class="fs-row-val">${fmtPct(d.vsLQ)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">vs LY</span><span class="fs-row-val">${fmtPct(d.vsLY)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">D2C share</span><span class="fs-row-val">${d.d2c_share!=null?(d.d2c_share*100).toFixed(0)+'%':'—'}</span></div>
       <div class="fs-row"><span class="fs-row-lbl">B2B share</span><span class="fs-row-val">${d.b2b_share!=null?(d.b2b_share*100).toFixed(0)+'%':'—'}</span></div>
-      <div class="fs-row"><span class="fs-row-lbl">🇬🇧 UK</span><span class="fs-row-val" style="color:var(--uk)">${finishMetric==='sales'?fmtGBP(d.uk):fmtU(d.uk_u)}</span></div>
-      <div class="fs-row"><span class="fs-row-lbl">🇺🇸 US</span><span class="fs-row-val" style="color:var(--us)">${finishMetric==='sales'?fmtGBP(d.us):fmtU(d.us_u)}</span></div>
+      <div class="fs-row"><span class="fs-row-lbl">🇬🇧 UK</span><span class="fs-row-val" style="color:var(--uk)">${finishMetric==='sales'?fmtGBP(d.uk):fmtU(d.uk_u)} <span class="cat-dir ${badgeClass(d.uk_vs_lq)}" style="font-size:9px">${dirArrow(badgeClass(d.uk_vs_lq))}${fmtPct(d.uk_vs_lq)}</span></span></div>
+      <div class="fs-row"><span class="fs-row-lbl">🇺🇸 US</span><span class="fs-row-val" style="color:var(--us)">${finishMetric==='sales'?fmtGBP(d.us):fmtU(d.us_u)} <span class="cat-dir ${badgeClass(d.us_vs_lq)}" style="font-size:9px">${dirArrow(badgeClass(d.us_vs_lq))}${fmtPct(d.us_vs_lq)}</span></span></div>
+      <div class="fs-row"><span class="fs-row-lbl">LM value</span><span class="fs-row-val">${d.lq!=null?fmtGBP(d.lq):'—'}</span></div>
     </div>
     <div class="top-coll-list">${d.top_collections.map((r,i) => `
       <div class="top-coll-row" onclick="toggleFinishCollDrill(${i})" style="cursor:pointer">
@@ -1386,12 +1398,14 @@ function renderFinishOverview() {
   if (hasOther) slices.push({ name: 'Other', value: otherTotal, color: 'rgba(140,140,150,0.5)', vsLQ: null, vsLY: null });
   const total = slices.reduce((s,d) => s + d.value, 0);
 
-  // FA2 (round-3 review): LM/LY change per finish -- LM is real (vsLQ,
-  // same oracle-bootstrapped figure FA1 shows on the per-finish headline);
-  // LY is genuinely unavailable at finish grain today (compute_finish_data
-  // never populates vsLY, unlike department grain's real B3 backfill), so
-  // it honestly reads "--" rather than a fabricated figure. "Other" (the
-  // Top-8-and-beyond bucket) has no single finish to compare, also "--".
+  // FA2 (round-3 review), updated 2026-08-12 (Finish Analysis mirrors
+  // Category Analysis): LM and LY are both now real when an oracle
+  // bootstrap is available (contract.py's oracle_finish_lq/oracle_finish_ly
+  // -- previously LY was hardcoded None unconditionally, not just
+  // "unavailable"; nothing had ever tried to source it). Still honestly
+  // "--" without a bootstrap, same never-fabricate rule as everywhere else.
+  // "Other" (the Top-8-and-beyond bucket) has no single finish to compare,
+  // also "--".
   const legendHTML = slices.map(s => `
     <div class="fin-leg-row">
       <span class="fin-leg-swatch" style="background:${s.color}"></span>

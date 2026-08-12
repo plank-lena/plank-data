@@ -752,6 +752,7 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             f = finish_totals.setdefault(line["finish"], {
                 "total": 0.0, "units": 0, "d2c": 0.0, "b2b": 0.0,
                 "uk": 0.0, "us": 0.0, "uk_u": 0, "us_u": 0,
+                "gm_num": 0.0, "gm_den": 0.0,
             })
             f["total"] += ab
             f["units"] += line["units"]
@@ -762,6 +763,12 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             elif bucket == "US":
                 f["us"] += ab
                 f["us_u"] += line["units"]
+            # Feedback row (Lena, Finish Analysis, 2026-08-10): GM% for the
+            # sidebar -- same revenue-weighted-average pattern as dept/coll/
+            # channel/market GM above.
+            if line["gm_pct"] is not None:
+                f["gm_num"] += ab * line["gm_pct"]
+                f["gm_den"] += ab
 
         ck = (line["department"], line["collection"])
         c = coll_totals.setdefault(ck, {
@@ -889,6 +896,15 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     # than either of those since a SKU code is an exact identifier, not a
     # display name that can drift between the two sources.
     oracle_sku_lq = {}
+    # Finish name -> reconstructed LQ/LY sales (2026-08-12, Finish Analysis
+    # mirrors Category Analysis): same sales/(1+ratio) reconstruction, from
+    # the oracle sheet's own Finish table, which carries BOTH a vsLQ (col G)
+    # and a vsLY (col I) -- unlike departments, which only ever got a real
+    # vs_lq from here; finishes' vs_ly here is genuinely new, not previously
+    # attempted at all (contract.py's own finishes dict used to hardcode
+    # vsLQ/vsLY to None unconditionally on this path).
+    oracle_finish_lq = {}
+    oracle_finish_ly = {}
     if lm_contract is not None and ly_contract is not None:
         lm_c = lm_contract if isinstance(lm_contract, dict) else load_contract(lm_contract)
         ly_c = ly_contract if isinstance(ly_contract, dict) else load_contract(ly_contract)
@@ -940,6 +956,14 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             vslq = sk.get("vslq")
             if isinstance(vslq, (int, float)) and abs(1 + vslq) > 1e-9 and sk.get("gross"):
                 oracle_sku_lq[sk["sku"]] = sk["gross"] / (1 + vslq)
+        for f_name, f_raw in oracle_headline.get("finishes", {}).items():
+            f_total = f_raw.get("total")
+            vs_lq = f_raw.get("vsLQ")
+            if isinstance(vs_lq, (int, float)) and abs(1 + vs_lq) > 1e-9 and f_total:
+                oracle_finish_lq[f_name] = f_total / (1 + vs_lq)
+            vs_ly = f_raw.get("vsLY")
+            if isinstance(vs_ly, (int, float)) and abs(1 + vs_ly) > 1e-9 and f_total:
+                oracle_finish_ly[f_name] = f_total / (1 + vs_ly)
     else:
         lm = ly = _current_to_lm_shape({
             "total_sales": 0, "d2c_gbp": 0, "b2b_gbp": 0, "uk_gbp": 0, "us_gbp": 0, "row_gbp": 0,
@@ -1011,12 +1035,20 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     # month with no prior contract at all) or that department didn't exist
     # last month -- never fabricated.
     pmc_dept_uk_us = {}
+    # Finish name -> (prior month's own uk, us) -- same CA2 mechanism as
+    # pmc_dept_uk_us above, just reading pmc's own `finishes` dict (already
+    # a {name: {...uk, us...}} dict in every committed contract, since
+    # per-finish uk/us have always been emitted -- only vsLQ/vsLY were ever
+    # missing) instead of the prod_types list. Real once a prior month's
+    # own contract exists to chain from; None otherwise, never fabricated.
+    pmc_finish_uk_us = {}
     if prior_month_contract is not None:
         pmc = prior_month_contract if isinstance(prior_month_contract, dict) else load_contract(prior_month_contract)
         mm2_total = pmc.get("lm", {}).get("total")
         if mm2_total is not None:
             current["trend_3mo"] = [round(mm2_total, 2), round(lm["total"], 2), round(current["total_sales"], 2)]
         pmc_dept_uk_us = {t["t"]: (t.get("uk"), t.get("us")) for t in pmc.get("prod_types", [])}
+        pmc_finish_uk_us = {name: (f.get("uk"), f.get("us")) for name, f in pmc.get("finishes", {}).items()}
 
     statuses = [{
         "s": b, "sales": v["sales"], "units": v["units"], "vs_lq": None, "vs_ly": None,
@@ -1058,15 +1090,38 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     # §5/§10 retires the previous curated-8 (config.FINISH_COLORS) filter;
     # colour assignment is now by rank (config.finish_color), not by a fixed
     # name lookup, so an arbitrary-length finish list always gets a colour.
-    finishes = {
-        name: {
-            "total": v["total"], "units": v["units"], "vsLQ": None, "vsLY": None,
+    finishes = {}
+    for name, v in finish_totals.items():
+        pmc_f_uk, pmc_f_us = pmc_finish_uk_us.get(name, (None, None))
+        finishes[name] = {
+            "total": v["total"], "units": v["units"],
+            # Feedback row (Lena/Tom, Finish Analysis, 2026-08-10): vs-LM/
+            # vs-LY reconstructed from the oracle bootstrap's own Finish
+            # table (oracle_finish_lq/oracle_finish_ly above) -- previously
+            # hardcoded None unconditionally, the exact silent-zero-shaped
+            # gap FA1/FA2 already found and fixed for vsLQ's *display*
+            # (never fabricate 0 for None) without ever fixing the missing
+            # *source*. None when no oracle bootstrap is available, same
+            # never-fabricate rule every other LQ/LY field here follows.
+            "vsLQ": _vs(v["total"], oracle_finish_lq.get(name)) if name in oracle_finish_lq else None,
+            "vsLY": _vs(v["total"], oracle_finish_ly.get(name)) if name in oracle_finish_ly else None,
             "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "us": v["us"],
             # T3b: units-by-country, needed for a genuine Units x UK/US
             # toggle at finish grain (cash-by-country already existed).
             "uk_u": v["uk_u"], "us_u": v["us_u"],
-        } for name, v in finish_totals.items()
-    }
+            # GM% -- same revenue-weighted-average pattern as department/
+            # collection/channel/market GM.
+            "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
+            # Per-market vs-LM, same CA2 mechanism as departments'
+            # uk_vs_lq/us_vs_lq (pmc_finish_uk_us above).
+            "uk_vs_lq": _vs(v["uk"], pmc_f_uk) if pmc_f_uk is not None else None,
+            "us_vs_lq": _vs(v["us"], pmc_f_us) if pmc_f_us is not None else None,
+        }
+    if oracle_finish_lq or oracle_finish_ly:
+        matched = sum(1 for f in finishes.values() if f["vsLQ"] is not None)
+        print(f"contract: {matched}/{len(finishes)} finishes matched the oracle bootstrap's own "
+              f"Finish table by exact name -- unmatched ones get vsLQ=None/vsLY=None (a new/"
+              f"renamed finish this period, or a name mismatch), never fabricated.", file=sys.stderr)
 
     collections_sorted = sorted(coll_totals.items(), key=lambda kv: -kv[1]["ts"])
     collections = []
