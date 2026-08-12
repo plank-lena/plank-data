@@ -133,7 +133,12 @@ SOURCES = {
             "ReturnZap pull via the getReturns Apps Script function, key in "
             "Script Properties (Yotpo-style secret boundary). ONE tab holds "
             "BOTH stores (US + UK) -- Country is ship-to (UK/US/ROW), Value "
-            "is the line refund value. WHEN THIS SOURCE MOVES: only the "
+            "is the line refund value. Tab is named 'API: Returns' in the "
+            "Sheets UI, but CONFIRMED 2026-08-12: the colon is stripped on "
+            "xlsx export (same quirk as shopify_product_data below) -- the "
+            "literal tab name after download is 'API Returns', which is "
+            "what normalize_returns_zap_xlsx actually looks for. WHEN THIS "
+            "SOURCE MOVES: only the "
             "file_id line above changes -- tab/expected_columns stay pinned "
             "here too, so a rename elsewhere is caught by preflight, not "
             "silently followed. KNOWN BUGS, not fixed here (no Apps Script "
@@ -273,6 +278,25 @@ def matrixify_orders_snapshot_covers(csv_path, period):
 # the matching *_SNAPSHOT path; none of them change any builder's parser.
 # ---------------------------------------------------------------------------
 
+def _clean_cell(v):
+    """openpyxl reads whole-number cells back as Python floats (12021886714236.0),
+    even though the underlying Shopify/Matrixify value is a true integer (an
+    order ID, a line ID, a quantity). Left as-is, that trailing '.0' becomes
+    part of the string when written to CSV -- harmless for matrixify_source.py
+    (which runs everything through float() anyway), but silently fatal for
+    returns/build.py's order-id JOIN: the sales side reads this CSV with plain
+    csv.DictReader (no numeric coercion, so "12021886714236.0" stays exactly
+    that), while the returns side casts ReturnZap's Order Id through pandas'
+    Int64 (which cleans "5654760980759.0" -> "5654760980759") -- two clean-
+    looking IDs that never actually match as strings. CONFIRMED 2026-08-12:
+    this was found by the returns builder's own overlap gate correctly
+    refusing to publish a 0%-overlap join rather than a subtler wrong number.
+    """
+    if isinstance(v, float) and v.is_integer():
+        return int(v)
+    return v
+
+
 def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
     """raw_xlsx_path: the 'Matrixify Orders (Auto-Refresh)' Drive sheet,
     downloaded as-is -- three tabs (Sheet1, 'Matrixify Orders UK',
@@ -284,6 +308,8 @@ def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
     reads this exactly like it read the old per-month exports, no parser
     change needed. Blank cells come back as None from openpyxl; written out
     as empty strings, matching how csv.DictReader expects a missing value.
+    Whole-number floats are cleaned to plain integers (_clean_cell) before
+    writing -- see its docstring for why this matters well beyond cosmetics.
     """
     import openpyxl
 
@@ -299,7 +325,38 @@ def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
         for row in rows:
             if row[0] is None:  # trailing blank row
                 continue
-            writer.writerow(["" if v is None else v for v in row])
+            writer.writerow(["" if v is None else _clean_cell(v) for v in row])
+    return out_path
+
+
+def normalize_returns_zap_xlsx(raw_xlsx_path, out_path=RETURNS_ZAP_SNAPSHOT):
+    """raw_xlsx_path: the ReturnZap Apps Script's sheet, downloaded as-is
+    (single relevant tab, 'API: Returns' in the Sheets UI -- populated by
+    the getReturns Apps Script function, see
+    claude/returnzap_setup_runbook.md in project knowledge). CONFIRMED
+    2026-08-12: the colon is stripped on xlsx export (same quirk already
+    documented for 'IN: Shopify Product Data' -> 'IN Shopify Product Data'
+    above) -- the literal tab name in a downloaded xlsx is 'API Returns',
+    not 'API: Returns'. Extracts that tab to a plain CSV at out_path in the
+    sheet's own native column names (Order Id, SKU, Quantity, Stage, ...)
+    -- load_returns_zap_snapshot()/load_returns_export_from_sheet() read
+    this directly, no parser change needed. Same blank-cell handling as
+    normalize_matrixify_orders_sheet: openpyxl's None becomes an empty
+    string, matching what pd.read_csv would see from a real CSV export.
+    """
+    import openpyxl
+
+    wb = openpyxl.load_workbook(raw_xlsx_path, read_only=True, data_only=True)
+    ws = wb["API Returns"]
+    rows = ws.iter_rows(values_only=True)
+    header = next(rows)
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for row in rows:
+            if row[0] is None and all(v is None for v in row):  # trailing blank row
+                continue
+            writer.writerow(["" if v is None else _clean_cell(v) for v in row])
     return out_path
 
 

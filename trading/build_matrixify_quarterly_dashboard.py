@@ -54,6 +54,7 @@ for _p in (_HERE, _DASHBOARD_DIR, _REPO_ROOT):
 from contract import render_contract, write_committed_file
 from quarterly import emit_contract_from_matrixify_quarter
 from common.period import parse_period, months_in_quarter, month_period_string
+from common.sources import matrixify_orders_snapshot, matrixify_orders_snapshot_covers
 from build_matrixify_dashboard import _period_model_for
 
 TEMPLATE = os.path.join(_DASHBOARD_DIR, "template", "dashboard.template.html")
@@ -96,10 +97,21 @@ def build(periods, lq_contract=None, out_suffix="_matrixify", force_oracle_boots
           force=False, contract_out_path=None, html_out_path=None):
     if len(periods) != 3:
         raise ValueError(f"emit_contract_from_matrixify_quarter needs exactly 3 consecutive months, got {periods}")
-    month_specs = [
-        (p, os.path.join(SOURCE_DIR, f"orders_{p}_UK.csv"), os.path.join(SOURCE_DIR, f"orders_{p}_US.csv"))
-        for p in periods
-    ]
+    # 2026-08-12 (PII incident follow-up, docs/2026-08-12_matrixify_sheet_bridge.md):
+    # ONE rolling ~400-day snapshot per store now, not a file per period --
+    # same fix as build_matrixify_dashboard.py's build(). Each constituent
+    # month still gets its own fail-loud coverage check below (a rolling
+    # file existing doesn't prove it covers a given month).
+    uk_csv, us_csv = matrixify_orders_snapshot("uk"), matrixify_orders_snapshot("us")
+    for p in periods:
+        if not (matrixify_orders_snapshot_covers(uk_csv, p) or matrixify_orders_snapshot_covers(us_csv, p)):
+            raise FileNotFoundError(
+                f"build_matrixify_quarterly_dashboard: {p} isn't inside the rolling Matrixify "
+                f"snapshot's window ({uk_csv} / {us_csv}). This month has never been built and "
+                f"falls outside the ~400-day rolling pull -- needs a one-off historical Matrixify "
+                f"export first (see docs/2026-08-12_matrixify_sheet_bridge.md 'backfill' note)."
+            )
+    month_specs = [(p, uk_csv, us_csv) for p in periods]
     oracle_bootstrap_path = None
     fixture = _QUARTER_ORACLE_FIXTURES.get(tuple(periods))
     if fixture:
@@ -120,11 +132,10 @@ def build(periods, lq_contract=None, out_suffix="_matrixify", force_oracle_boots
     for p in periods:
         _, month_pm = _period_model_for(p, as_of=as_of)
         lm_key, ly_key = month_pm["lm"]["key"], month_pm["ly"]["key"]
-        matrixify_windows = [
-            os.path.join(SOURCE_DIR, f"orders_{k}_{store}.csv")
-            for k in (lm_key, ly_key) for store in ("UK", "US")
-        ]
-        matrixify_bootstrap_available = all(os.path.exists(w) for w in matrixify_windows)
+        matrixify_bootstrap_available = (
+            (matrixify_orders_snapshot_covers(uk_csv, lm_key) or matrixify_orders_snapshot_covers(us_csv, lm_key))
+            and (matrixify_orders_snapshot_covers(uk_csv, ly_key) or matrixify_orders_snapshot_covers(us_csv, ly_key))
+        )
         mo_fixture = _MONTH_ORACLE_FIXTURES.get(p)
         mo_candidate = os.path.join(ORACLE_FIXTURE_DIR, mo_fixture) if mo_fixture else None
         mo_candidate = mo_candidate if mo_candidate and os.path.exists(mo_candidate) else None
