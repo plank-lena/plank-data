@@ -9,38 +9,63 @@ in this repo came from pipeline.py's ORACLE-sourced path (used to build
 and prove the template, per contract.py's own docstring), never the real
 Matrixify path this whole Phase-B rebuild was for.
 
-Bootstraps a month's LM/LY from its OWN oracle workbook (oracle_bootstrap_
-path) by default -- the same mechanism test_contract.py's
-check_reconciled_independent_of_oracle() already exercises for May, just
-applied to whichever month is being built. April/May/June 2026 were all
-built this way (2026-08-05): bootstrapping gives each month a REAL LM/LY
-(the oracle sheet's own embedded prior-period columns) with no dependency
-on the others, which is actually the better choice here, not just the
-simpler one -- there is no real prior-year (2025) Matrixify data to chain
-LY from regardless, and contract.py only chains when BOTH lm_contract and
-ly_contract are supplied together (see the guard in build() below).
+Period comes from the PROMPT (period-from-prompt, 2026-08-12) -- accepts
+either the existing "YYYY-MM" convention or a natural period string like
+"June 2026", via common/period.py. LM/LY bootstrap preference, connector-
+first:
+  1. --lm-contract + --ly-contract together (contract-chaining, LOCKED --
+     ROADMAP.md §5: always prefer this once a period has its own committed
+     contract; never re-derive an already-published month fresh).
+  2. Fresh Matrixify pulls for the LM/LY calendar windows (requested_
+     period_model bootstrap) -- the DEFAULT for a period with no committed
+     contract yet, so long as those windows' order CSVs are already landed.
+     No workbook touched.
+  3. The period's own oracle fixture (--oracle-bootstrap) -- kept only for
+     explicit oracle-comparison/regression-parity runs; no longer the
+     silent default (retired 2026-08-12, period-from-prompt build).
+  4. Honest all-zero placeholder, if none of the above have what they need.
+
 ROADMAP.md §5's contract-chaining discipline is about not re-deriving an
 ALREADY-PUBLISHED month's own figures from a fresh Matrixify recompute
 later (returns keep maturing) -- it doesn't apply to a period's first-ever
-build. Pass --lm-contract and --ly-contract together (never just one) once
-there's a real reason to chain instead of bootstrap.
+build, which is exactly when (2) or (3) apply. Pass --lm-contract and
+--ly-contract together (never just one) once there's a real reason to
+chain instead of bootstrap.
 
 Run:
+  python trading/build_matrixify_dashboard.py "June 2026"
   python trading/build_matrixify_dashboard.py 2026-06
   python trading/build_matrixify_dashboard.py 2026-06 \\
       --lm-contract trading/contracts/2026-05-matrixify.json
+  python trading/build_matrixify_dashboard.py 2026-06 --oracle-bootstrap
 """
 import json
 import os
+import re
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _DASHBOARD_DIR = os.path.join(_HERE, "dashboard")
-for _p in (_HERE, _DASHBOARD_DIR):
+_REPO_ROOT = os.path.dirname(_HERE)
+for _p in (_HERE, _DASHBOARD_DIR, _REPO_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from contract import emit_contract_from_matrixify, render_contract
+from contract import emit_contract_from_matrixify, render_contract, write_committed_file
+from common.period import parse_period, month_period_string
+
+_YYYY_MM_RE = re.compile(r"^(\d{4})-(\d{2})$")
+
+
+def _period_model_for(period_arg, as_of=None):
+    """Accept either the existing 'YYYY-MM' convention or a natural period
+    string ('June 2026') -- returns (period_key, PeriodModel). Fails loud
+    (via parse_period) on an unparseable or future period.
+    """
+    m = _YYYY_MM_RE.match(period_arg)
+    prompt_str = month_period_string(int(m.group(2)), int(m.group(1))) if m else period_arg
+    pm = parse_period(prompt_str, as_of=as_of)
+    return pm["cm"]["key"], pm
 
 TEMPLATE = os.path.join(_DASHBOARD_DIR, "template", "dashboard.template.html")
 SOURCE_DIR = os.path.join(_HERE, "source")
@@ -75,7 +100,9 @@ _LY_MONTH_CONTRACTS = {
 }
 
 
-def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
+def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify",
+          force_oracle_bootstrap=False, as_of=None, force=False, contract_out_path=None,
+          html_out_path=None):
     # emit_contract_from_matrixify only chains when BOTH are given -- passing
     # just one silently falls through to its zero/"none_available" branch
     # (a real bug hit building this script: April/May's first real builds
@@ -83,21 +110,46 @@ def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
     # zeroed LM *and* LY with no error). Fail loud instead.
     if (lm_contract is None) != (ly_contract is None):
         raise ValueError("build_matrixify_dashboard: pass --lm-contract and --ly-contract "
-                          "together, or neither (to bootstrap from this period's own oracle "
-                          "fixture) -- partial chaining silently zeros both in contract.py.")
+                          "together, or neither (to bootstrap LM/LY instead) -- partial "
+                          "chaining silently zeros both in contract.py.")
 
+    period, requested_pm = _period_model_for(period_arg, as_of=as_of)
     uk_csv = os.path.join(SOURCE_DIR, f"orders_{period}_UK.csv")
     us_csv = os.path.join(SOURCE_DIR, f"orders_{period}_US.csv")
 
     oracle_bootstrap_path = None
+    requested_period_model = None
     if lm_contract is None and ly_contract is None:
-        fixture = _ORACLE_FIXTURES.get(period)
-        if fixture:
+        lm_key, ly_key = requested_pm["lm"]["key"], requested_pm["ly"]["key"]
+        matrixify_windows = [
+            os.path.join(SOURCE_DIR, f"orders_{k}_{store}.csv")
+            for k in (lm_key, ly_key) for store in ("UK", "US")
+        ]
+        matrixify_bootstrap_available = all(os.path.exists(p) for p in matrixify_windows)
+
+        if force_oracle_bootstrap:
+            fixture = _ORACLE_FIXTURES.get(period)
+            if not fixture:
+                raise FileNotFoundError(f"build_matrixify_dashboard: --oracle-bootstrap requested "
+                                         f"but no oracle fixture exists for {period}")
             oracle_bootstrap_path = os.path.join(ORACLE_FIXTURE_DIR, fixture)
+        elif matrixify_bootstrap_available:
+            # Connector-first default (2026-08-12): real LM/LY from fresh
+            # Matrixify pulls, no workbook touched.
+            requested_period_model = requested_pm
         else:
-            print(f"build_matrixify_dashboard: no oracle fixture for {period} to bootstrap "
-                  f"LM/LY from, and no --lm-contract/--ly-contract given -- LM/LY will be zero.",
-                  file=sys.stderr)
+            fixture = _ORACLE_FIXTURES.get(period)
+            if fixture:
+                oracle_bootstrap_path = os.path.join(ORACLE_FIXTURE_DIR, fixture)
+                print(f"build_matrixify_dashboard: {lm_key}/{ly_key} Matrixify exports not both "
+                      f"landed yet -- falling back to {period}'s oracle fixture for LM/LY "
+                      f"(pass --lm-contract/--ly-contract once real prior contracts exist, or "
+                      f"land the missing exports to prefer the connector-only bootstrap).",
+                      file=sys.stderr)
+            else:
+                print(f"build_matrixify_dashboard: no oracle fixture for {period} and "
+                      f"{lm_key}/{ly_key} Matrixify exports aren't both landed -- LM/LY will be zero.",
+                      file=sys.stderr)
 
     prior_month_contract = None
     prior_period = _PRIOR_PERIOD.get(period)
@@ -119,22 +171,22 @@ def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
         oracle_bootstrap_path=oracle_bootstrap_path,
         prior_month_contract=prior_month_contract,
         ly_month_contract=ly_month_contract,
+        requested_period_model=requested_period_model,
     )
 
-    os.makedirs(CONTRACTS_DIR, exist_ok=True)
-    contract_path = os.path.join(CONTRACTS_DIR, f"{period}-matrixify.json")
-    with open(contract_path, "w") as f:
-        json.dump(contract, f, indent=2, default=str)
+    contract_path = contract_out_path or os.path.join(CONTRACTS_DIR, f"{period}-matrixify.json")
+    os.makedirs(os.path.dirname(contract_path), exist_ok=True)
+    write_committed_file(json.dumps(contract, indent=2, default=str), contract_path,
+                          force=force, label="contract")
 
     with open(TEMPLATE, encoding="utf-8") as f:
         template_html = f.read()
     html = render_contract(contract, template_html)
 
     label = contract["period_model"]["cm"]["label"].replace(" ", "_")
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    out_path = os.path.join(OUTPUT_DIR, f"{label}_dashboard{out_suffix}.html")
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(html)
+    out_path = html_out_path or os.path.join(OUTPUT_DIR, f"{label}_dashboard{out_suffix}.html")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    write_committed_file(html, out_path, force=force, label="dashboard output")
 
     reconciled = contract["provenance"]["reconciled"]
     print(f"contract:  {contract_path}")
@@ -147,8 +199,12 @@ def build(period, lm_contract=None, ly_contract=None, out_suffix="_matrixify"):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python trading/build_matrixify_dashboard.py <YYYY-MM> "
-              "[--lm-contract path] [--ly-contract path]", file=sys.stderr)
+        print("Usage: python trading/build_matrixify_dashboard.py <period> "
+              "[--lm-contract path] [--ly-contract path] [--oracle-bootstrap] [--force]\n"
+              "  <period>: \"June 2026\", \"2026-06\"\n"
+              "  --force: allow overwriting an existing committed contract/output "
+              "(refused by default -- see contract.py's write_committed_file)",
+              file=sys.stderr)
         sys.exit(1)
     period_arg = sys.argv[1]
     kwargs = {}
@@ -161,6 +217,12 @@ if __name__ == "__main__":
         elif args[i] == "--ly-contract":
             kwargs["ly_contract"] = args[i + 1]
             i += 2
+        elif args[i] == "--oracle-bootstrap":
+            kwargs["force_oracle_bootstrap"] = True
+            i += 1
+        elif args[i] == "--force":
+            kwargs["force"] = True
+            i += 1
         else:
             print(f"Unknown argument: {args[i]}", file=sys.stderr)
             sys.exit(1)

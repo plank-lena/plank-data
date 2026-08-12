@@ -48,6 +48,7 @@ from line_detail import build_line_detail_index, enrich_lines
 from build_matrixify import _fx_rate_for, channel_from_company, MAY_THREE_WAY
 from common.reconciliation_gate import assert_country_reconciles
 from common.fx import DEFAULT_PATH as FX_RATES_PATH
+from common.sources import matrixify_orders_snapshot
 
 CONTRACT_VERSION = "1.0"
 
@@ -74,13 +75,20 @@ DEPARTMENTS = ("Cabinetry", "Electric", "Accessories", "Lighting", "Components",
 # de-scoping a dead category, not a regression to chase.
 _DEAD_DEPARTMENTS = {"Door"}
 
-# BRIEF #4 step 4 §1/§6: st/wc/inv are vestigial as of the redesign -- the
-# Sell-Through/WC KPI is removed and trading drops the inventory feed
-# dependency entirely. Stripped from every nested block at emission time
-# (not just left unread) so a stale reference elsewhere fails loudly rather
-# than silently rendering an old number.
-_VESTIGIAL_HEADLINE_KEYS = ("sell_through", "weeks_cover", "inventory")
-_VESTIGIAL_ROW_KEYS = ("st", "wc", "inv")
+# REINSTATED 2026-08-11 (Lena): st/wc/inv were stripped entirely at BRIEF #4
+# step 4 (commit 7988d85, see ROADMAP.md §2 Step 4/§5) when trading dropped
+# its inventory-feed dependency. Reconnecting the data-source build now wires
+# real on-hand inventory (common/sources.py's shopify_product_data snapshot,
+# never the ship sheet -- that's inbound POs) back in, so these are real
+# again rather than fabricated/None. ROADMAP.md updated to match. Formula:
+# weeks_cover = inventory_units / monthly_sales_units * (52/12) -- the sheet
+# stores raw cover in MONTHS, per ROADMAP.md §5's "Weeks Cover is really
+# months" note; _MONTHS_TO_WEEKS below converts once. sell_through has no
+# code-defined formula anywhere in this repo (the old oracle path just
+# copied a raw sheet column) -- uses the standard
+# units_sold / (units_sold + inventory_on_hand); flagged as an assumption to
+# confirm, not a locked decision like the returns dedupe key.
+_MONTHS_TO_WEEKS = 52 / 12
 
 # Line Detail statuses (raw enum) vs. the oracle's own coarse SKU-level
 # bucket use different vocabularies for the same underlying concept -- see
@@ -95,24 +103,34 @@ _VESTIGIAL_ROW_KEYS = ("st", "wc", "inv")
 LIVE_STATUS_VALUES = {"Live", "Continuity", "Newness"}
 
 
-def _strip_vestigial(payload):
-    """Mutate payload in place, deleting st/wc/inv-family keys from every
-    nested block. Both front-ends call this right before wrapping so the
-    contract never carries these fields (BRIEF #4 step 4 §1/§6).
+def _convert_oracle_weeks_cover(payload):
+    """The oracle sheet's own st/wc/inv columns (extract.py's MS_ROW7 mapping)
+    are raw and unconverted -- wc is stored in MONTHS of cover, not weeks
+    (ROADMAP.md §5). Multiply by _MONTHS_TO_WEEKS once here so both front-
+    ends agree on real weeks; sell_through/inventory need no conversion
+    (already a ratio / an absolute unit count, not month-denominated).
+    Mirrors the pre-redesign trading/dashboard/compute.py's now-removed
+    _MONTHS_TO_WEEKS multiply -- reinstated here instead, so there is a
+    single conversion point for both emitters rather than duplicating it in
+    compute.py again.
     """
-    for k in _VESTIGIAL_HEADLINE_KEYS:
-        payload["current"].pop(k, None)
+    wc = payload["current"].get("weeks_cover")
+    if isinstance(wc, (int, float)):
+        payload["current"]["weeks_cover"] = wc * _MONTHS_TO_WEEKS
     for block_name in ("statuses", "collections", "skus_all"):
         for row in payload.get(block_name, []):
-            for k in _VESTIGIAL_ROW_KEYS:
-                row.pop(k, None)
+            wc = row.get("wc")
+            if isinstance(wc, (int, float)):
+                row["wc"] = wc * _MONTHS_TO_WEEKS
     return payload
 
 
 def _exclude_dead_categories(payload):
     """Mutate payload in place, dropping _DEAD_DEPARTMENTS from prod_types/
     collections/skus_all (T2a, Lena unilateral: Door is a dead category, cut
-    entirely). Both front-ends call this right after _strip_vestigial.
+    entirely). Called right after weeks-cover conversion/computation in both
+    front-ends (_convert_oracle_weeks_cover for the oracle path, inline in
+    emit_contract_from_matrixify for the Matrixify path).
 
     Does NOT adjust headline totals (current.total_sales/uk_gbp/etc) here --
     emit_contract_from_matrixify instead excludes dead departments at the
@@ -203,6 +221,32 @@ def _period_str_from_label(label):
     return f"{year}-{month:02d}"
 
 
+def write_committed_file(content_str, out_path, force=False, label="file"):
+    """Refuse to silently overwrite an existing committed file (a contract
+    JSON or a dashboard HTML output) -- fails loud unless the caller
+    explicitly passes force=True.
+
+    Step 0 (dashboard-format-fixes, 2026-08-12): the monthly/quarterly CLI
+    entry points write straight to committed contract/output paths and, no
+    guard existing before this, silently overwrote one during a prior
+    testing session (June 2026's committed contract + dashboard HTML,
+    caught only via `git status` afterward, not by any code). Every write
+    site that can touch a committed path must go through this function
+    from now on -- committed contracts/outputs are read-only unless the
+    caller deliberately opts in.
+    """
+    if os.path.exists(out_path) and not force:
+        raise FileExistsError(
+            f"refusing to overwrite existing committed {label} at {out_path} -- pass "
+            f"force=True (CLI: --force) to intentionally overwrite, or write to a "
+            f"different (temp/diff) path to check parity without touching the "
+            f"committed file."
+        )
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(content_str)
+    return out_path
+
+
 def _wrap_contract(payload, provenance):
     contract = {
         "contract_version": CONTRACT_VERSION,
@@ -225,7 +269,7 @@ def emit_contract_from_oracle(oracle_xlsx, out_path=None):
     _add_headline_kpis(payload["current"])
     for sku in payload["skus_all"]:
         sku["is_el_component"] = _is_el_component(sku.get("coll"))
-    _strip_vestigial(payload)
+    _convert_oracle_weeks_cover(payload)
     _exclude_dead_categories(payload)
     _normalize_oracle_prod_types(payload)
     provenance = {
@@ -432,10 +476,64 @@ def _vs(curr, prev):
     return (curr - prev) / prev if prev else None
 
 
-def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, as_of=None,
+def _matrixify_headline_totals(period, uk_csv, us_csv, line_detail_path=None, as_of=None):
+    """Real _current_to_lm_shape-compatible headline totals (total/d2c/b2b/
+    uk/us/row + their _u unit variants), computed directly from Matrixify
+    order CSVs for `period` -- the period-from-prompt bootstrap for LM/LY
+    when no committed contract or oracle workbook is available (2026-08-12).
+    Deliberately does NOT build statuses/prod_types/collections/skus_all --
+    only the headline grain a caller needs for vs_lm/vs_ly, since those
+    finer breakdowns aren't consumed by the LM/LY comparison anywhere. This
+    IS a fresh recompute of `period` -- callers must only use it for a
+    period with no committed contract yet, same caveat as
+    emit_contract_from_matrixify's own oracle_bootstrap_path branch.
+    """
+    line_detail_path = line_detail_path or os.path.join(_HERE, "source", "line_detail.xlsx")
+    as_of_year, as_of_month = (int(x) for x in period.split("-"))
+    from datetime import date as _date
+    as_of = as_of or _date(as_of_year, as_of_month + 1 if as_of_month < 12 else 1, 1)
+
+    ld_index = build_line_detail_index(line_detail_path, as_of=as_of)
+    all_lines = []
+    for csv_path, store_label in ((uk_csv, "uk"), (us_csv, "us")):
+        rows = load_rows(csv_path)
+        lines, _, _ = build_lines(rows, store_label)
+        fx_rate = _fx_rate_for(store_label, period)
+        for line in lines:
+            if line["order_month"] == period:
+                line["fx_rate"] = fx_rate
+                all_lines.append(line)
+    enriched = [l for l in enrich_lines(all_lines, ld_index) if l["department"] not in _DEAD_DEPARTMENTS]
+
+    country_totals = {"UK": 0.0, "US": 0.0, "ROW": 0.0}
+    units_totals = {"UK": 0, "US": 0, "ROW": 0}
+    channel_totals = {"D2C": 0.0, "B2B": 0.0}
+    channel_units = {"D2C": 0, "B2B": 0}
+    grand_total = 0.0
+    for line in enriched:
+        ab = line_ab(line["net_of_discount"], line["tax"], line["returns_inc_vat"],
+                     line["tax_returned"], line["fx_rate"])
+        grand_total += ab
+        bucket = country_bucket(line["ship_country_code"], line["store_label"])
+        country_totals[bucket] += ab
+        units_totals[bucket] += line["units"]
+        chan = channel_from_company(line["company"])
+        channel_totals[chan] += ab
+        channel_units[chan] += line["units"]
+
+    return {
+        "total": grand_total, "total_u": sum(units_totals.values()),
+        "d2c": channel_totals["D2C"], "b2b": channel_totals["B2B"],
+        "uk": country_totals["UK"], "us": country_totals["US"], "row": country_totals["ROW"],
+        "d2c_u": channel_units["D2C"], "b2b_u": channel_units["B2B"],
+        "uk_u": units_totals["UK"], "us_u": units_totals["US"], "row_u": units_totals["ROW"],
+    }
+
+
+def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_detail_path=None, as_of=None,
                                   lm_contract=None, ly_contract=None, oracle_bootstrap_path=None,
                                   oracle_gaps=None, out_path=None, prior_month_contract=None,
-                                  ly_month_contract=None):
+                                  ly_month_contract=None, inventory_index=None, requested_period_model=None):
     """The real builder: BRIEF #5's ship-to reconcile + BRIEF #2's Line
     Detail enrichment, rolled up into extract_all()'s exact payload shape.
 
@@ -467,9 +565,19 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     period == "2026-05", else None (gaps simply not computed -- this no
     longer affects reconciled/publishability either way).
 
-    Never fabricates: st/wc/inv are None throughout (no inventory feed
-    wired -- BRIEF #3 §6/§9); unmatched SKUs roll into department/
-    collection "Unknown", never dropped, so totals still tie.
+    inventory_index (reinstated 2026-08-11, Lena): {sku: on_hand_units},
+    from common.sources.load_shopify_inventory() -- the live Shopify
+    Product Data snapshot, never the ship sheet (that's inbound POs, not
+    on-hand). Drives weeks_cover/sell_through/inventory at current/status/
+    collection/SKU grain. A SKU with revenue but no match in this index gets
+    inv=0 (reported via provenance.inventory_coverage_skus, never dropped)
+    -- distinguishable from a genuinely out-of-stock SKU only by checking
+    that coverage figure, same caveat as Line Detail's own coverage report.
+    None (the historical behaviour) leaves these fields at their honest
+    zero/None rather than fabricating a number.
+
+    Unmatched SKUs (Line Detail) roll into department/collection "Unknown",
+    never dropped, so totals still tie.
 
     Per-collection LQ (2026-08-05, trading review round 1 T4a): when
     oracle_bootstrap_path is given, its own "collections" block already
@@ -526,7 +634,25 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     template can caveat the vs-LY view rather than present department YoY
     growth as more precise than it is (some of it is a classification
     artifact, not real movement). None when ly_month_contract isn't given.
+
+    requested_period_model (2026-08-12, period-from-prompt): a
+    common.period.parse_period(...) PeriodModel -- when given (and neither
+    lm_contract/ly_contract nor oracle_bootstrap_path are), this is the
+    period-from-prompt REPLACEMENT for oracle_bootstrap_path: LM/LY headline
+    totals are computed fresh from Matrixify order CSVs for the model's own
+    lm/ly calendar windows (via _matrixify_headline_totals, landed at
+    common.sources.matrixify_orders_snapshot's paths), never by reading a
+    hand-built workbook. Only correct for a period with NO committed
+    contract yet -- same one-time-bootstrap caveat as oracle_bootstrap_path;
+    ROADMAP.md §5's "always chain from a committed contract once one
+    exists" rule is enforced by the CALLER's branch selection (passing
+    lm_contract/ly_contract when they exist), not by this function. `period`
+    itself is taken from requested_period_model['cm']['key'] when `period`
+    isn't given explicitly, so a period-from-prompt caller never needs to
+    also spell out "2026-05" by hand.
     """
+    if period is None and requested_period_model is not None:
+        period = requested_period_model["cm"]["key"]
     line_detail_path = line_detail_path or os.path.join(_HERE, "source", "line_detail.xlsx")
     as_of_year, as_of_month = (int(x) for x in period.split("-"))
     from datetime import date as _date
@@ -666,6 +792,36 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     total_lines = len(enriched)
     enrichment_coverage = ((grand_total - unmatched_ab) / grand_total) if grand_total else 1.0
 
+    # ── Inventory rollup (reinstated 2026-08-11) ────────────────────────
+    # inventory is a snapshot stock LEVEL, not a flow -- roll up once per
+    # distinct SKU (sku_totals is already one entry per SKU), never once
+    # per order line, or a SKU with multiple lines this month would have
+    # its on-hand units counted multiple times into department/collection.
+    inventory_index = inventory_index or {}
+    sku_inventory = {sku: inventory_index.get(sku, 0) for sku in sku_totals}
+    matched_inv_skus = sum(1 for sku in sku_totals if sku in inventory_index)
+    inventory_coverage_skus = (matched_inv_skus / len(sku_totals)) if sku_totals else 1.0
+
+    dept_inventory, coll_inventory, status_inventory = {}, {}, {}
+    for sku, v in sku_totals.items():
+        inv = sku_inventory[sku]
+        dept_inventory[v["type_"]] = dept_inventory.get(v["type_"], 0) + inv
+        coll_inventory[(v["type_"], v["coll"])] = coll_inventory.get((v["type_"], v["coll"]), 0) + inv
+        sb = _status_bucket({
+            "newness_bucket": v["newness_bucket"],
+            "status_uk": v["uk_status"] or None, "status_us": v["us_status"] or None,
+        })
+        if sb is not None:
+            status_inventory[sb] = status_inventory.get(sb, 0) + inv
+
+    def _wc(inv, units):
+        return (inv / units * _MONTHS_TO_WEEKS) if units else None
+
+    def _st(inv, units):
+        return (units / (units + inv)) if (units + inv) else None
+
+    total_inventory = sum(sku_inventory.values())
+
     # ── Gate (reused from BRIEF #5) -- non-raising here: a failure must
     # still WRITE the contract (stamped reconciled: False), never abort the
     # whole emission (BRIEF #3 §4).
@@ -732,6 +888,33 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         period_model = {"cm": _period_label(period), "lm": lm_c["period_model"]["cm"], "ly": ly_c["period_model"]["cm"]}
         lq_ly_source = "contract_chain"
         ly_dept_sales = {t["t"]: t["sales"] for t in ly_c.get("prod_types", [])}
+    elif requested_period_model is not None and oracle_bootstrap_path is None and all(
+        os.path.exists(matrixify_orders_snapshot(store, requested_period_model[slot]["key"]))
+        for slot in ("lm", "ly") for store in ("uk", "us")
+    ):
+        # period-from-prompt bootstrap (2026-08-12): the connector-flow
+        # replacement for oracle_bootstrap_path below -- real LM/LY from
+        # fresh Matrixify pulls, no workbook involved. Only taken when the
+        # caller didn't ALSO pass oracle_bootstrap_path (an explicit oracle
+        # request always wins, e.g. for regression-test parity) and every
+        # LM/LY order CSV this period model needs is actually landed --
+        # otherwise falls through to oracle_bootstrap_path or the honest
+        # all-zero placeholder below, never a partial/guessed bootstrap.
+        lm = _matrixify_headline_totals(
+            requested_period_model["lm"]["key"],
+            matrixify_orders_snapshot("uk", requested_period_model["lm"]["key"]),
+            matrixify_orders_snapshot("us", requested_period_model["lm"]["key"]),
+            line_detail_path,
+        )
+        ly = _matrixify_headline_totals(
+            requested_period_model["ly"]["key"],
+            matrixify_orders_snapshot("uk", requested_period_model["ly"]["key"]),
+            matrixify_orders_snapshot("us", requested_period_model["ly"]["key"]),
+            line_detail_path,
+        )
+        period_model = {"cm": requested_period_model["cm"], "lm": requested_period_model["lm"],
+                         "ly": requested_period_model["ly"]}
+        lq_ly_source = "matrixify_bootstrap"
     elif oracle_bootstrap_path is not None:
         oracle_headline = extract_all(oracle_bootstrap_path)
         lm, ly = oracle_headline["lm"], oracle_headline["ly"]
@@ -791,6 +974,9 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     current["us_vs_lm"] = _vs(current["us_gbp"], lm["us"])
     current["us_vs_ly"] = _vs(current["us_gbp"], ly["us"])
     _add_headline_kpis(current)
+    current["inventory"] = total_inventory
+    current["weeks_cover"] = _wc(total_inventory, current["units"])
+    current["sell_through"] = _st(total_inventory, current["units"])
 
     # T1 (trading review round 1): a genuine trailing-3-consecutive-months
     # revenue trend for the headline KPI's arrows -- distinct from the
@@ -823,6 +1009,9 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     statuses = [{
         "s": b, "sales": v["sales"], "units": v["units"], "vs_lq": None, "vs_ly": None,
         "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
+        "inv": status_inventory.get(b, 0),
+        "wc": _wc(status_inventory.get(b, 0), v["units"]),
+        "st": _st(status_inventory.get(b, 0), v["units"]),
     } for b, v in status_totals.items()]
 
     prod_types = []
@@ -874,6 +1063,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         lq_total = oracle_row["lq_total"] if oracle_row else 0.0
         lq_uk = oracle_row["lq_uk"] if oracle_row else 0.0
         lq_us = oracle_row["lq_us"] if oracle_row else 0.0
+        inv = coll_inventory.get((dept, coll), 0)
         collections.append({
             "r": i + 1, "t": dept, "c": coll, "ts": v["ts"], "tu": v["tu"],
             "vs_lq": _vs(v["ts"], lq_total) if oracle_row else None,
@@ -883,6 +1073,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
             "uk_vs": _vs(v["uk_s"], lq_uk) if oracle_row else None,
             "us_vs": _vs(v["us_s"], lq_us) if oracle_row else None,
             "skus": len(v["skus"]),
+            "inv": inv, "wc": _wc(inv, v["tu"]), "st": _st(inv, v["tu"]),
         })
     if oracle_collections_by_key:
         matched = sum(1 for c in collections if c["lq_total"] != 0.0)
@@ -895,7 +1086,9 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
     skus_all = []
     for sku, v in sku_totals.items():
         lq_sales = oracle_sku_lq.get(sku)
+        inv = sku_inventory.get(sku, 0)
         skus_all.append({
+            "inv": inv, "wc": _wc(inv, v["units"]), "st": _st(inv, v["units"]),
             "rank": None, "sku": sku, "desc": v["desc"] or sku, "coll": v["coll"], "type_": v["type_"],
             "finish": v["finish"] or "", "uk_status": v["uk_status"] or "", "us_status": v["us_status"] or "",
             "gross": v["gross"], "units": v["units"],
@@ -926,7 +1119,6 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "statuses": statuses, "prod_types": prod_types, "finishes": finishes,
         "collections": collections, "skus_all": skus_all,
     }
-    _strip_vestigial(payload)
     _exclude_dead_categories(payload)
 
     fx_date = f"{period}-01"
@@ -947,6 +1139,7 @@ def emit_contract_from_matrixify(period, uk_csv, us_csv, line_detail_path=None, 
         "fx_table": fx_table,
         "enrichment_coverage": round(enrichment_coverage, 4),
         "unmatched_sku_revenue_share": round(1 - enrichment_coverage, 4),
+        "inventory_coverage_skus": round(inventory_coverage_skus, 4),
         "country_gaps_vs_oracle": country_gaps_vs_oracle,
         "lq_ly_source": lq_ly_source,
         "ly_dept_unclassified_share": ly_dept_unclassified_share,
