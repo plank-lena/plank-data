@@ -10,15 +10,27 @@ repo — if the two ever disagree, `ROADMAP.md` wins.
 
 - Deterministic; fail loud; never hand-patch an output — fix the mapping in
   code and regenerate.
-- Commit every run so each report is reproducible and diffable.
+- Commit every run so each report is reproducible and diffable — but see the
+  correction below before committing anything under `trading/source/`.
 - Never commit real secrets. `.env` files are gitignored; only `.env.example`
   (placeholders) is tracked, if one exists.
-- `/source` (repo root) is dropped raw feeds and is gitignored — never
-  committed. **Exception:** `trading/source/*.csv` (Matrixify exports) is
-  deliberately tracked — each is a frozen, immutable monthly snapshot and the
-  auditable record a trading report was built from, not a dropped feed. Never
-  overwrite a committed month's export; each month gets its own file. `/output`
-  is generated dashboards and **is** committed (needed for diffability).
+- **`source/` (at any depth — repo root, `trading/source/`, etc.) is dropped
+  raw feeds and is gitignored — NEVER committed, no exceptions.** `/output` is
+  generated dashboards and **is** committed (needed for diffability).
+
+  **Correction, 12 Aug 2026:** this file used to carve out `trading/source/*.csv`
+  (raw Matrixify order exports) as a deliberate exception — "a frozen,
+  immutable monthly snapshot, the auditable record a report was built from."
+  That reasoning is retired. Those exports are full Shopify order-level data:
+  customer name, email, phone, billing/shipping address, browser IP, and
+  card-adjacent fields (CC BIN, AVS/CVV result codes). They were committed for
+  ~6 months before anyone caught it (see `docs/2026-08-12_pii_remediation.md`),
+  and this repo is now public and cloned fresh by every colleague's dashboard
+  request — there is no framing under which that data belongs in git here.
+  **If you need an audit trail of what a report was built from, commit a
+  manifest instead** (period, row count, sha256 of the file, Matrixify job ID,
+  pull timestamp) — not the file. `trading/source/` stays gitignored like
+  every other `source/` directory, full stop.
 - `snake_case` for any SQL written in this repo.
 - Load workbooks with `data_only=False` when you need to see formulas rather
   than resolved values (useful for debugging a `SUMIF`/`XLOOKUP` mismatch
