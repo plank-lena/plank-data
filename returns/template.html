@@ -118,16 +118,19 @@ th[aria-sort="descending"]::after{content:" ↓";color:var(--amber)}
 th[aria-sort="ascending"]::after{content:" ↑";color:var(--amber)}
 td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-m);font-size:10px;white-space:nowrap}
 td:first-child{text-align:left;padding-left:0;font-family:var(--font-s);font-size:13px;white-space:normal}
+tr.dept-row{cursor:pointer}
+tr.dept-row:hover td{background:var(--surface)}
+tr.dept-row td:first-child{font-weight:700}
 tr.cat-row{cursor:pointer}
 tr.cat-row:hover td{background:var(--surface)}
-tr.cat-row td:first-child{font-weight:600}
+tr.cat-row td:first-child{padding-left:18px;font-weight:600}
 tr.sub-row{cursor:pointer}
 tr.sub-row:hover td{background:var(--surface)}
-tr.sub-row td:first-child{padding-left:20px;font-weight:500}
+tr.sub-row td:first-child{padding-left:34px;font-weight:500}
 .twist{display:inline-block;width:11px;font-family:var(--font-m);color:var(--muted);transition:transform .15s}
 tr.open .twist{transform:rotate(90deg)}
 tr.sku-row td{background:var(--surface);font-size:12px}
-tr.sku-row td:first-child{padding-left:36px;font-size:12.5px;color:var(--text)}
+tr.sku-row td:first-child{padding-left:50px;font-size:12.5px;color:var(--text)}
 .cat-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
 .fam-tag{font-family:var(--font-m);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);
   border:1px solid currentColor;padding:1px 5px;margin-left:7px;vertical-align:1px}
@@ -284,17 +287,19 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
 <!-- ===== 5. CATEGORY TRACKER ===== -->
 <section id="s-tracker"><div class="wrap">
   <div class="sec-head"><span class="eyebrow">05 — Investigation list</span><h2>Category tracker</h2>
-    <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">click to drill: category → subcategory → SKU</span></div>
-  <div class="fg" style="margin-bottom:16px"><span class="eyebrow">Sort category/subcategory rows by</span><div class="seg" id="fSort"></div></div>
-  <p class="sec-note">The single investigation surface (the old separate quality watchlist is folded in here). Category and subcategory rows sort by value returned by default — toggle above to sort by return rate instead; any column header can also be clicked directly. SKUs within a subcategory always rank by a <b>combined rank</b> of % orders returned and return value together (ruling 3) — a high rate on a cheap, low-volume SKU is a small problem, a high value on a low rate is a volume effect, and neither alone tells you where to look first. <b>SKUs need at least 20 orders sold in the period to appear</b> — below that a rate moves too much on a handful of orders to act on. Family is shown on each SKU row (e.g. KEPLER 160/220/280 read as one product in three sizes) — v1 doesn't add a separate family axis, just the label.</p>
-  <p class="sec-note" style="margin-top:-14px">On SKU rows, ◆ next to the return value marks a SKU where a single order holds half or more of its returned units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter.</p>
+    <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">click to drill: department → category → subcategory → SKU</span></div>
+  <div class="fg" style="margin-bottom:16px"><span class="eyebrow">Sort department/category/subcategory rows by</span><div class="seg" id="fSort"></div></div>
+  <p class="sec-note">The single investigation surface (the old separate quality watchlist is folded in here). Department, category, and subcategory rows sort by value returned by default — toggle above to sort by return rate instead; any column header can also be clicked directly. SKUs within a subcategory always rank by a <b>combined rank</b> of % orders returned and return value together (ruling 3) — a high rate on a cheap, low-volume SKU is a small problem, a high value on a low rate is a volume effect, and neither alone tells you where to look first. <b>SKUs need at least 20 orders sold in the period to appear</b> — below that a rate moves too much on a handful of orders to act on. Family is shown on each SKU row (e.g. KEPLER 160/220/280 read as one product in three sizes) — v1 doesn't add a separate family axis, just the label.</p>
+  <p class="sec-note" style="margin-top:-14px">On SKU rows, ◆ next to the return value marks a SKU where a single order holds half or more of its returned units — a concentrated single-customer event, not a pattern. Reason is the dominant stated reason for that SKU; review is the matching Yotpo signal — exact SKU where flagged, else the family's review themes, else a dash (the review corpus is separate and sparse — see §07's warning). Trend plots flagged units across the full quarter. Units/orders returned are raw counts at every drill level, alongside the £ value and % rate above them.</p>
   <div class="legend" id="catLegend" style="margin-bottom:14px"></div>
   <div class="tscroll"><table id="catTable"><thead><tr>
-    <th class="sortable" data-k="name">Category / Subcategory / SKU</th>
+    <th class="sortable" data-k="name">Department / Category / Subcategory / SKU</th>
     <th class="sortable" data-k="vr">Return value</th>
     <th class="sortable" data-k="gs">Gross sales</th>
     <th class="sortable" data-k="pct">% of sales</th>
     <th class="sortable" data-k="us">Units sold</th>
+    <th class="sortable" data-k="ur">Units returned</th>
+    <th class="sortable" data-k="rord">Orders returned</th>
     <th class="sortable" data-k="rate">Return rate</th>
     <th>Reason</th>
     <th>Review</th>
@@ -337,8 +342,8 @@ footer{padding:30px 0 60px;font-family:var(--font-m);font-size:11px;color:var(--
 (function(){
 "use strict";
 const D = JSON.parse(document.getElementById('payload').textContent);
-// cube: [m,country,seg,category,subcategory,family,sku,units_sold,gross_sales,orders,units_returned,returned_orders,value_returned]
-const C={M:0,CO:1,SEG:2,CAT:3,SUB:4,FAM:5,SKU:6,US:7,GS:8,ORD:9,UR:10,RORD:11,VR:12};
+// cube: [m,country,seg,department,category,subcategory,family,sku,units_sold,gross_sales,orders,units_returned,returned_orders,value_returned]
+const C={M:0,CO:1,SEG:2,DEPT:3,CAT:4,SUB:5,FAM:6,SKU:7,US:8,GS:9,ORD:10,UR:11,RORD:12,VR:13};
 // reasons: [m,country,seg,category,subcategory,family,sku,order,qty,reason,subreason,is_exchange,stage]
 const R={M:0,CO:1,SEG:2,CAT:3,SUB:4,FAM:5,SKU:6,ORDER:7,QTY:8,REASON:9,SUBREASON:10,ISEXCH:11,STAGE:12};
 // valueRows (collapsed): [m,country,seg,sku_or_blank,qty_nonzero,is_exch,val]
@@ -356,6 +361,12 @@ const NAMES=D.names||{};
 const CAT_COLORS={}, CAT_TEXT_COLORS={};
 Object.entries(D.catColors||{}).forEach(([name,pair])=>{CAT_COLORS[name]=pair[0];CAT_TEXT_COLORS[name]=pair[1];});
 function catColor(name){return CAT_COLORS[name]||'rgba(120,120,120,0.85)';}
+// Department colors (item 7, 2026-08-12): one level up from category, same
+// _stable mechanism (server-side, common/dashboard_colors.py) -- see
+// render.py's build_department_colors.
+const DEPT_COLORS={}, DEPT_TEXT_COLORS={};
+Object.entries(D.deptColors||{}).forEach(([name,pair])=>{DEPT_COLORS[name]=pair[0];DEPT_TEXT_COLORS[name]=pair[1];});
+function deptColor(name){return DEPT_COLORS[name]||'rgba(120,120,120,0.85)';}
 
 const DEFAULT_REASON='Not right for my project';
 const FAULT=new Set(['Disappointed in quality','Finish not as pictured online','Damaged or Defective','Incorrect item sent']);
@@ -367,7 +378,7 @@ const MIN_TRACKER_ORDERS=20;
 // exactly two states, no "All" that would silently average the two conventions.
 let F={region:'All',seg:'Retail',month:'All'};
 let sortK='vr', sortDir=-1;
-const openCats=new Set(), openSubs=new Set();
+const openDepts=new Set(), openCats=new Set(), openSubs=new Set();
 
 /* ---------- helpers ---------- */
 const gbp=n=>'£'+Math.round(n).toLocaleString('en-GB');
@@ -409,7 +420,7 @@ function buildSortToggle(){
     box.appendChild(b);
   });
 }
-document.getElementById('resetBtn').onclick=()=>{F={region:'All',seg:'Retail',month:'All'};openCats.clear();openSubs.clear();render();};
+document.getElementById('resetBtn').onclick=()=>{F={region:'All',seg:'Retail',month:'All'};openDepts.clear();openCats.clear();openSubs.clear();render();};
 
 /* ---------- aggregation: sales/returns cube ---------- */
 function agg(){
@@ -421,7 +432,13 @@ function agg(){
     const us=r[C.US],gs=r[C.GS],ord=r[C.ORD],ur=r[C.UR],rord=r[C.RORD],vr=r[C.VR];
     t.us+=us;t.gs+=gs;t.orders+=ord;t.ur+=ur;t.rord+=rord;t.vr+=vr;
     let c=byCat.get(r[C.CAT]);
-    if(!c){c={name:r[C.CAT],us:0,gs:0,orders:0,ur:0,rord:0,vr:0,subs:new Map()};byCat.set(r[C.CAT],c);}
+    // dept captured once per category (item 7, 2026-08-12) -- a category
+    // (item_type) belongs to exactly one department in practice, so this is
+    // set on first sight rather than re-aggregated; renderTracker() groups
+    // the existing flat byCat map by this field for the new outer drill
+    // level, so every OTHER consumer of A.byCat (start-here/outliers/movers)
+    // is untouched by the grouping.
+    if(!c){c={name:r[C.CAT],dept:r[C.DEPT]||'Unmapped',us:0,gs:0,orders:0,ur:0,rord:0,vr:0,subs:new Map()};byCat.set(r[C.CAT],c);}
     c.us+=us;c.gs+=gs;c.orders+=ord;c.ur+=ur;c.rord+=rord;c.vr+=vr;
     let sc=c.subs.get(r[C.SUB]);
     if(!sc){sc={name:r[C.SUB],us:0,gs:0,orders:0,ur:0,rord:0,vr:0,skus:new Map()};c.subs.set(r[C.SUB],sc);}
@@ -805,76 +822,122 @@ function combinedRank(skus){
   eligible.sort((a,b)=>a.combinedRank-b.combinedRank);
   return eligible;
 }
+// Shared sort comparator for department/category/subcategory rows -- same
+// sortK/sortDir state a column-header click or the Sort toggle drives, at
+// every level (item 7, 2026-08-12 added the department level on top of the
+// existing category/subcategory one, reusing this comparator for it too).
+function trackerSort(a,b){
+  const k=sortK==='vr'?'lost':sortK;
+  if(k==='name')return sortDir*a.name.localeCompare(b.name);
+  return sortDir*((a[k]||0)-(b[k]||0));
+}
 function renderTracker(A,RA){
   const cats=[...A.byCat.values()].map(c=>({...c,pct:c.gs>0?c.vr/c.gs:0,rate:rateOf(c.orders,c.rord),lost:c.vr}));
-  cats.sort((a,b)=>{
-    const k=sortK==='vr'?'lost':sortK;
-    if(k==='name')return sortDir*a.name.localeCompare(b.name);
-    return sortDir*((a[k]||0)-(b[k]||0));
+  // Group the existing flat category map into departments (item 7,
+  // 2026-08-12) -- a NEW view built here from A.byCat's own dept field
+  // (set once in agg()), rather than a whole separate byDept level on A,
+  // so every other consumer of A.byCat (start-here/outliers/movers) is
+  // untouched. Department totals are the sum of their categories' own
+  // already-aggregated numbers, same additive convention as everywhere
+  // else on this page.
+  const deptMap=new Map();
+  cats.forEach(c=>{
+    let d=deptMap.get(c.dept);
+    if(!d){d={name:c.dept,us:0,gs:0,orders:0,ur:0,rord:0,vr:0,cats:[]};deptMap.set(c.dept,d);}
+    d.us+=c.us;d.gs+=c.gs;d.orders+=c.orders;d.ur+=c.ur;d.rord+=c.rord;d.vr+=c.vr;
+    d.cats.push(c);
   });
+  const depts=[...deptMap.values()].map(d=>({...d,pct:d.gs>0?d.vr/d.gs:0,rate:rateOf(d.orders,d.rord),lost:d.vr}));
+  depts.sort(trackerSort);
+  depts.forEach(d=>d.cats.sort(trackerSort));
   // colour-dot key (R5) -- alphabetical regardless of the table's own sort, so
   // the key doesn't reshuffle every time sortK/sortDir changes. Same hues as
-  // trading (common/dashboard_colors.py's stable registry), just this report's
-  // own item_type-grain category vocabulary -- see build_category_colors()'s
-  // docstring in returns/render.py.
+  // trading (common/dashboard_colors.py's stable registry). Shows departments
+  // now (item 7) -- the new outer/primary grouping, a shorter and more useful
+  // key than the full category list underneath.
   const legendBox=document.getElementById('catLegend');
-  legendBox.innerHTML=[...cats].sort((a,b)=>a.name.localeCompare(b.name))
-    .map(c=>`<span><i style="background:${catColor(c.name)};border-radius:50%"></i>${c.name}</span>`).join('');
+  legendBox.innerHTML=[...depts].sort((a,b)=>a.name.localeCompare(b.name))
+    .map(d=>`<span><i style="background:${deptColor(d.name)};border-radius:50%"></i>${d.name}</span>`).join('');
   const maxRate=Math.max(0.01,...cats.map(c=>c.rate));
   const tb=document.querySelector('#catTable tbody');tb.innerHTML='';
   document.querySelectorAll('#catTable th.sortable').forEach(th=>{
     th.setAttribute('aria-sort',th.dataset.k===sortK?(sortDir<0?'descending':'ascending'):'none');});
 
-  cats.forEach(c=>{
-    const catOpen=openCats.has(c.name);
-    const tr=el('tr','cat-row'+(catOpen?' open':''));
-    tr.tabIndex=0;
-    tr.innerHTML=`<td><span class="twist">▸</span> <span class="cat-dot" style="background:${catColor(c.name)}"></span>${c.name}</td>
-      <td>${gbp(c.lost)}</td><td class="thin">${gbp(c.gs)}</td><td>${pc(c.pct)}</td>
-      <td class="thin">${c.us.toLocaleString('en-GB')}</td>
-      <td class="rate-cell"><div class="rate-bg" style="width:${c.rate/maxRate*70}px"></div><span>${pc(c.rate)}</span></td>
+  depts.forEach(d=>{
+    const deptOpen=openDepts.has(d.name);
+    const dr=el('tr','dept-row'+(deptOpen?' open':''));
+    dr.tabIndex=0;
+    dr.innerHTML=`<td><span class="twist">▸</span> <span class="cat-dot" style="background:${deptColor(d.name)}"></span>${d.name}</td>
+      <td>${gbp(d.lost)}</td><td class="thin">${gbp(d.gs)}</td><td>${pc(d.pct)}</td>
+      <td class="thin">${d.us.toLocaleString('en-GB')}</td>
+      <td class="thin">${d.ur.toLocaleString('en-GB')}</td>
+      <td class="thin">${d.rord.toLocaleString('en-GB')}</td>
+      <td class="rate-cell"><div class="rate-bg" style="width:${d.rate/maxRate*70}px"></div><span>${pc(d.rate)}</span></td>
       <td></td><td></td><td></td>`;
-    const toggle=()=>{openCats.has(c.name)?openCats.delete(c.name):openCats.add(c.name);renderTracker(A,RA);};
-    tr.onclick=toggle;
-    tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}};
-    tb.appendChild(tr);
-    if(!catOpen)return;
+    const dToggle=()=>{openDepts.has(d.name)?openDepts.delete(d.name):openDepts.add(d.name);renderTracker(A,RA);};
+    dr.onclick=dToggle;
+    dr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();dToggle();}};
+    tb.appendChild(dr);
+    if(!deptOpen)return;
 
-    const subs=[...c.subs.values()].map(sc=>({...sc,pct:sc.gs>0?sc.vr/sc.gs:0,rate:rateOf(sc.orders,sc.rord),lost:sc.vr}))
-      .sort((a,b)=>b.lost-a.lost);
-    subs.forEach(sc=>{
-      const subKey=c.name+'|'+sc.name;
-      const subOpen=openSubs.has(subKey);
-      const sr=el('tr','sub-row'+(subOpen?' open':''));
-      sr.innerHTML=`<td><span class="twist">▸</span> ${sc.name}</td>
-        <td>${gbp(sc.lost)}</td><td class="thin">${gbp(sc.gs)}</td><td>${pc(sc.pct)}</td>
-        <td class="thin">${sc.us.toLocaleString('en-GB')}</td>
-        <td class="rate-cell"><div class="rate-bg" style="width:${sc.rate/maxRate*70}px"></div><span>${pc(sc.rate)}</span></td>
+    d.cats.forEach(c=>{
+      const catKey=d.name+'|'+c.name;
+      const catOpen=openCats.has(catKey);
+      const tr=el('tr','cat-row'+(catOpen?' open':''));
+      tr.tabIndex=0;
+      tr.innerHTML=`<td><span class="twist">▸</span> <span class="cat-dot" style="background:${catColor(c.name)}"></span>${c.name}</td>
+        <td>${gbp(c.lost)}</td><td class="thin">${gbp(c.gs)}</td><td>${pc(c.pct)}</td>
+        <td class="thin">${c.us.toLocaleString('en-GB')}</td>
+        <td class="thin">${c.ur.toLocaleString('en-GB')}</td>
+        <td class="thin">${c.rord.toLocaleString('en-GB')}</td>
+        <td class="rate-cell"><div class="rate-bg" style="width:${c.rate/maxRate*70}px"></div><span>${pc(c.rate)}</span></td>
         <td></td><td></td><td></td>`;
-      const subToggle=()=>{openSubs.has(subKey)?openSubs.delete(subKey):openSubs.add(subKey);renderTracker(A,RA);};
-      sr.onclick=subToggle;
-      sr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();subToggle();}};
-      tb.appendChild(sr);
-      if(!subOpen)return;
+      const toggle=()=>{openCats.has(catKey)?openCats.delete(catKey):openCats.add(catKey);renderTracker(A,RA);};
+      tr.onclick=toggle;
+      tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}};
+      tb.appendChild(tr);
+      if(!catOpen)return;
 
-      const skus=combinedRank([...sc.skus.values()]);
-      if(!skus.length){const r=el('tr','sku-row');r.innerHTML='<td colspan="9" class="thin">No SKU clears the 20-order floor in this slice.</td>';tb.appendChild(r);return;}
-      skus.forEach(s=>{
-        const rs=RA.bySku.get(s.sku);
-        const ord=orderStats(rs);
-        const series=RA.trend.get(s.sku)||MONTHS.map(()=>0);
-        const dir=direction(series);
-        const tip=MONTHS.map((m,i)=>m+' '+series[i]).join('  ·  ')+'  —  '+dir.t;
-        const r=el('tr','sku-row');
-        r.innerHTML=`<td>${label(s.sku)}<span class="fam-tag">${s.family||'—'}</span><span class="sku-code">${s.sku}</span></td>
-          <td>${gbp(s.vr)}${concFlag(ord)}</td><td class="thin">${gbp(s.gs)}</td>
-          <td>${s.gs>0?pc(s.vr/s.gs):'<span class="thin">—</span>'}</td>
-          <td class="thin">${s.us.toLocaleString('en-GB')}</td>
-          <td><span>${pc(s.pct)}</span></td>
-          <td class="thin">${dominantReason(rs)||'—'}</td>
-          <td>${reviewCell(s.sku,s.family)}</td>
-          <td class="trend-cell" title="${tip}"><span class="spark">${spark(series)}</span><span class="dir ${dir.c}">${dir.g}</span></td>`;
-        tb.appendChild(r);
+      const subs=[...c.subs.values()].map(sc=>({...sc,pct:sc.gs>0?sc.vr/sc.gs:0,rate:rateOf(sc.orders,sc.rord),lost:sc.vr}))
+        .sort((a,b)=>b.lost-a.lost);
+      subs.forEach(sc=>{
+        const subKey=catKey+'|'+sc.name;
+        const subOpen=openSubs.has(subKey);
+        const sr=el('tr','sub-row'+(subOpen?' open':''));
+        sr.innerHTML=`<td><span class="twist">▸</span> ${sc.name}</td>
+          <td>${gbp(sc.lost)}</td><td class="thin">${gbp(sc.gs)}</td><td>${pc(sc.pct)}</td>
+          <td class="thin">${sc.us.toLocaleString('en-GB')}</td>
+          <td class="thin">${sc.ur.toLocaleString('en-GB')}</td>
+          <td class="thin">${sc.rord.toLocaleString('en-GB')}</td>
+          <td class="rate-cell"><div class="rate-bg" style="width:${sc.rate/maxRate*70}px"></div><span>${pc(sc.rate)}</span></td>
+          <td></td><td></td><td></td>`;
+        const subToggle=()=>{openSubs.has(subKey)?openSubs.delete(subKey):openSubs.add(subKey);renderTracker(A,RA);};
+        sr.onclick=subToggle;
+        sr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();subToggle();}};
+        tb.appendChild(sr);
+        if(!subOpen)return;
+
+        const skus=combinedRank([...sc.skus.values()]);
+        if(!skus.length){const r=el('tr','sku-row');r.innerHTML='<td colspan="11" class="thin">No SKU clears the 20-order floor in this slice.</td>';tb.appendChild(r);return;}
+        skus.forEach(s=>{
+          const rs=RA.bySku.get(s.sku);
+          const ord=orderStats(rs);
+          const series=RA.trend.get(s.sku)||MONTHS.map(()=>0);
+          const dir=direction(series);
+          const tip=MONTHS.map((m,i)=>m+' '+series[i]).join('  ·  ')+'  —  '+dir.t;
+          const r=el('tr','sku-row');
+          r.innerHTML=`<td>${label(s.sku)}<span class="fam-tag">${s.family||'—'}</span><span class="sku-code">${s.sku}</span></td>
+            <td>${gbp(s.vr)}${concFlag(ord)}</td><td class="thin">${gbp(s.gs)}</td>
+            <td>${s.gs>0?pc(s.vr/s.gs):'<span class="thin">—</span>'}</td>
+            <td class="thin">${s.us.toLocaleString('en-GB')}</td>
+            <td class="thin">${s.ur.toLocaleString('en-GB')}</td>
+            <td class="thin">${s.rord.toLocaleString('en-GB')}</td>
+            <td><span>${pc(s.pct)}</span></td>
+            <td class="thin">${dominantReason(rs)||'—'}</td>
+            <td>${reviewCell(s.sku,s.family)}</td>
+            <td class="trend-cell" title="${tip}"><span class="spark">${spark(series)}</span><span class="dir ${dir.c}">${dir.g}</span></td>`;
+          tb.appendChild(r);
+        });
       });
     });
   });

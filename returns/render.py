@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from returns import build
 from common.dashboard_colors import assign_dept_colors_stable
+from common.sku_taxonomy import DEAD_DEPARTMENTS
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "template.html")
 DASHBOARD_TOKENS_CSS = os.path.join(os.path.dirname(__file__), "..", "common", "dashboard_tokens.css")
@@ -41,12 +42,21 @@ def _default_period_label(month_nums, year, months):
 
 
 def build_cube(s, ret, shopv):
-    """One row per (month, country, seg, category, subcategory, family, sku):
-    units_sold, gross_sales, orders (sales side, from s) joined to units_returned /
-    returned_orders (from the single-count zap join, ret) and value_returned
-    (stock-linked, exchange-value netted out -- ruling 5 / §5.1, from shopv).
+    """One row per (month, country, seg, department, category, subcategory, family,
+    sku): units_sold, gross_sales, orders (sales side, from s) joined to
+    units_returned / returned_orders (from the single-count zap join, ret) and
+    value_returned (stock-linked, exchange-value netted out -- ruling 5 / §5.1,
+    from shopv).
+
+    department added (item 7, 2026-08-12) as the drill-down's top level, feeding
+    template.html's Category Tracker -- Door excluded here, dynamically, same
+    DEAD_DEPARTMENTS cut build.py's own tracker() (CSV path) already applies;
+    this is the SEPARATE client-side-aggregation dashboard path, which has its
+    own independent cube/agg() rather than reusing tracker(), so the exclusion
+    has to be applied here too, not inherited from build.py.
     """
-    keys = ["m", "mkt", "seg", "category", "subcategory", "family", "sku"]
+    s = s[~s["department"].isin(DEAD_DEPARTMENTS)]
+    keys = ["m", "mkt", "seg", "department", "category", "subcategory", "family", "sku"]
     sales = s.groupby(keys).agg(
         units_sold=("units", "sum"), gross_sales=("cash", "sum"), orders=("order", "nunique")
     )
@@ -125,6 +135,18 @@ def build_category_colors(s):
     return assign_dept_colors_stable(sorted(names))
 
 
+def build_department_colors(s):
+    """{department: [mainColor, textColor]} -- same _stable mechanism as
+    build_category_colors(), one level up (item 7, 2026-08-12): department is
+    now the Category Tracker's outer drill level, needs its own colour key
+    independent of (and stable alongside) category's existing one. Door
+    excluded, matching build_cube()'s own cut -- never assign it a colour it
+    will never be shown with.
+    """
+    names = [d for d in s["department"].dropna().unique() if d and d not in DEAD_DEPARTMENTS]
+    return assign_dept_colors_stable(sorted(names))
+
+
 def build_value_rows(shopv):
     """Collapsed sales-side rows for the client-side stock/value-only/no-SKU
     split (ruling 5, §3) -- collapsed to (month, country, seg, sku, qty!=0,
@@ -158,6 +180,7 @@ def render(sales_df, ld_std, returns_df, month_nums=None, year=build.DEFAULT_YEA
         "gross": build_gross(shopv),
         "names": build.load_line_detail_names(),
         "catColors": build_category_colors(s),
+        "deptColors": build_department_colors(s),
         "months": list(months.values()),
         "periodLabel": period_label,
         "year": year,
