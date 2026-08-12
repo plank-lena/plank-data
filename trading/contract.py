@@ -683,6 +683,13 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     grand_total = 0.0  # independent of country_totals -- see BRIEF #5's assert_country_reconciles
     gm_num = gm_den = 0.0
     d2c_gm_num = d2c_gm_den = b2b_gm_num = b2b_gm_den = 0.0
+    # Feedback row (Annie, Returns/Total Revenue, 2026-08-10 -- applies to
+    # Trading's own Total Revenue KPI too, per the prompt's cross-dashboard
+    # scope): GM by market, alongside the existing by-channel d2c_gm/b2b_gm
+    # above. Same revenue-weighted-average pattern, just keyed by `bucket`
+    # instead of `chan`.
+    market_gm_num = {"UK": 0.0, "US": 0.0, "ROW": 0.0}
+    market_gm_den = {"UK": 0.0, "US": 0.0, "ROW": 0.0}
     unmatched_ab = 0.0
 
     for line in enriched:
@@ -738,6 +745,8 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             else:
                 b2b_gm_num += ab * line["gm_pct"]
                 b2b_gm_den += ab
+            market_gm_num[bucket] += ab * line["gm_pct"]
+            market_gm_den[bucket] += ab
 
         if line["finish"]:
             f = finish_totals.setdefault(line["finish"], {
@@ -964,6 +973,9 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
         "uk_units": units_totals["UK"], "us_units": units_totals["US"], "row_units": units_totals["ROW"],
         "d2c_gm": (d2c_gm_num / d2c_gm_den) if d2c_gm_den else None,
         "b2b_gm": (b2b_gm_num / b2b_gm_den) if b2b_gm_den else None,
+        "uk_gm": (market_gm_num["UK"] / market_gm_den["UK"]) if market_gm_den["UK"] else None,
+        "us_gm": (market_gm_num["US"] / market_gm_den["US"]) if market_gm_den["US"] else None,
+        "row_gm": (market_gm_num["ROW"] / market_gm_den["ROW"]) if market_gm_den["ROW"] else None,
     }
     current["vs_lm"] = _vs(current["total_sales"], lm["total"])
     current["vs_ly"] = _vs(current["total_sales"], ly["total"])

@@ -755,6 +755,18 @@ def compute_kpi_tokens(current, lm, ly, pm, mode='month'):
         'KPI_US_LM':     fmt_pct(c.get('us_vs_lm')),
         'KPI_US_LY_CLS': badge_class(c.get('us_vs_ly')),
         'KPI_US_LY':     fmt_pct(c.get('us_vs_ly')),
+
+        # Gross Margin panel (Annie, Total Revenue, 2026-08-10): total, by
+        # market, by channel -- additive, none of these feed any other
+        # token above. '—' (not 0%) when a split has no gm-eligible AB at
+        # all (e.g. a period with no ROW revenue), matching this template's
+        # existing never-fabricate convention for a missing comparator.
+        'KPI_GM_TOTAL': fmt_pct(c.get('gm_pct'), force_sign=False),
+        'KPI_GM_UK':    fmt_pct(c.get('uk_gm'), force_sign=False),
+        'KPI_GM_US':    fmt_pct(c.get('us_gm'), force_sign=False),
+        'KPI_GM_ROW':   fmt_pct(c.get('row_gm'), force_sign=False),
+        'KPI_GM_D2C':   fmt_pct(c.get('d2c_gm'), force_sign=False),
+        'KPI_GM_B2B':   fmt_pct(c.get('b2b_gm'), force_sign=False),
     }
 
     # MoM Ribbon — Total trajectory

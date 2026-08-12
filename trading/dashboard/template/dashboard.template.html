@@ -31,6 +31,15 @@ body::before{content:'';position:fixed;inset:0;background:
 .kpi-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);position:relative;z-index:1}
 .kpi{padding:14px 18px;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .2s}
 .kpi:last-child{border-right:none}
+/* Feedback row (Annie, Total Revenue, 2026-08-10): GM at total, by market
+   (UK/US/ROW), and by channel (D2C/B2B), alongside revenue -- additive,
+   doesn't touch the KPI row's own revenue/share values above. */
+.gm-panel{padding:10px 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.gm-panel-title{font-family:var(--font-m);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.gm-row{display:flex;gap:24px;flex-wrap:wrap}
+.gm-cell{display:flex;align-items:baseline;gap:6px;font-family:var(--font-m)}
+.gm-lbl{font-size:10px;color:var(--muted)}
+.gm-val{font-size:13px;font-weight:600;color:var(--text)}
 .kpi:hover{background:var(--surface)}
 .kpi-lbl{font-family:var(--font-m);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .kpi-val{font-family:var(--font-m);font-size:18px;font-weight:600;line-height:1}
@@ -351,6 +360,19 @@ td{font-family:var(--font-m);font-size:10px;padding:5px 9px;white-space:nowrap}
       <div class="badge {{KPI_US_LM_CLS}}"><span class="badge-lbl">{{PREV_PERIOD_ABBR}}</span>{{KPI_US_LM}}</div>
       <div class="badge {{KPI_US_LY_CLS}}"><span class="badge-lbl">LY</span>{{KPI_US_LY}}</div>
     </div>
+  </div>
+</div>
+
+<!-- GROSS MARGIN (Annie, Total Revenue feedback) -->
+<div class="gm-panel">
+  <div class="gm-panel-title">Gross Margin</div>
+  <div class="gm-row">
+    <div class="gm-cell"><span class="gm-lbl">Total</span><span class="gm-val">{{KPI_GM_TOTAL}}</span></div>
+    <div class="gm-cell"><span class="gm-lbl">🇬🇧 UK</span><span class="gm-val" style="color:var(--uk)">{{KPI_GM_UK}}</span></div>
+    <div class="gm-cell"><span class="gm-lbl">🇺🇸 US</span><span class="gm-val" style="color:var(--us)">{{KPI_GM_US}}</span></div>
+    <div class="gm-cell"><span class="gm-lbl">ROW</span><span class="gm-val" style="color:var(--row)">{{KPI_GM_ROW}}</span></div>
+    <div class="gm-cell"><span class="gm-lbl">D2C</span><span class="gm-val" style="color:var(--d2c)">{{KPI_GM_D2C}}</span></div>
+    <div class="gm-cell"><span class="gm-lbl">B2B</span><span class="gm-val" style="color:var(--b2b)">{{KPI_GM_B2B}}</span></div>
   </div>
 </div>
 
