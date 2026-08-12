@@ -62,7 +62,7 @@ for _p in (_HERE, _DASHBOARD_DIR):
 from extract import extract_all  # trading/dashboard/extract.py
 from contract import (
     PAYLOAD_KEYS, _wrap_contract, _add_headline_kpis, _is_el_component,
-    _strip_vestigial, _exclude_dead_categories, _git_commit, _vs, _MONTH_NAMES, _current_to_lm_shape,
+    _convert_oracle_weeks_cover, _exclude_dead_categories, _git_commit, _vs, _MONTH_NAMES, _current_to_lm_shape,
     emit_contract_from_matrixify, load_contract, can_publish,
 )
 from common.reconciliation_gate import assert_country_reconciles
@@ -286,10 +286,18 @@ def _aggregate_finishes(months, lq=None):
         rows = [m['finishes'].get(name) for m in months]
         total = sum((r['total'] if r else 0) or 0 for r in rows)
         prior = lq_finishes.get(name)
+        # vsLY (audit finding, 2026-08-12, item 9): hardcoded None
+        # unconditionally before this fix, even though each month's own
+        # finish dict already carries a real vsLY ratio (contract.py) --
+        # same _recompute_yoy reconstruction technique _aggregate_statuses/
+        # _aggregate_prod_types already use, just never applied here. Note
+        # the monthly key is 'vsLY' (contract.py's finishes dict), not the
+        # 'vs_ly' snake_case key statuses/prod_types use.
+        vs_ly = _recompute_yoy([(r['total'], r.get('vsLY')) for r in rows if r])
         out[name] = {
             'total': total,
             'units': sum((r['units'] if r else 0) or 0 for r in rows),
-            'vsLQ': _vs(total, prior.get('total')) if prior else None, 'vsLY': None,
+            'vsLQ': _vs(total, prior.get('total')) if prior else None, 'vsLY': vs_ly,
             'd2c': sum((r['d2c'] if r else 0) or 0 for r in rows),
             'b2b': sum((r['b2b'] if r else 0) or 0 for r in rows),
             'uk': sum((r['uk'] if r else 0) or 0 for r in rows),
@@ -410,16 +418,31 @@ def _aggregate_collections(months, skus_all, lq=None):
         ts = sum((r['ts'] if r else 0) or 0 for r in rows)
         gm = _weighted_avg([(r['gm'], r['ts']) for r in rows if r])
         prior = _find_coll(lq_collections, dept, coll)
+        uk_s = sum((r['uk_s'] if r else 0) or 0 for r in rows)
+        us_s = sum((r['us_s'] if r else 0) or 0 for r in rows)
         agg[(dept, coll)] = {
             'ts': ts,
             'tu': sum((r['tu'] if r else 0) or 0 for r in rows),
             'd2c': sum((r['d2c'] if r else 0) or 0 for r in rows),
             'b2b': sum((r['b2b'] if r else 0) or 0 for r in rows),
-            'uk_s': sum((r['uk_s'] if r else 0) or 0 for r in rows),
-            'us_s': sum((r['us_s'] if r else 0) or 0 for r in rows),
+            'uk_s': uk_s,
+            'us_s': us_s,
             'row_s': sum((r.get('row_s', 0) if r else 0) or 0 for r in rows),
             'gm': gm, 'skus': sku_count.get((dept, coll), 0),
             'vs_lq': _vs(ts, prior['ts']) if prior else None,
+            # Audit finding (2026-08-12, item 9): lq_total/lq_uk/lq_us/uk_vs/
+            # us_vs were hardcoded 0.0/None unconditionally EVEN WHEN `prior`
+            # (a real previously-committed quarter, looked up two lines
+            # above for vs_lq) was available -- the template's LQ ghost
+            # marker (renderCollections()) would silently show no marker on
+            # a quarter that has real prior-quarter data to draw one from.
+            # Same _vs() technique already used for vs_lq, just applied to
+            # the uk_s/us_s split too.
+            'lq_total': prior['ts'] if prior else 0.0,
+            'lq_uk': prior['uk_s'] if prior else 0.0,
+            'lq_us': prior['us_s'] if prior else 0.0,
+            'uk_vs': _vs(uk_s, prior['uk_s']) if prior else None,
+            'us_vs': _vs(us_s, prior['us_s']) if prior else None,
         }
 
     ordered = sorted(agg.items(), key=lambda kv: -kv[1]['ts'])
@@ -427,8 +450,9 @@ def _aggregate_collections(months, skus_all, lq=None):
         'r': i + 1, 't': dept, 'c': coll, 'ts': v['ts'], 'tu': v['tu'],
         'vs_lq': v['vs_lq'], 'gm': v['gm'],
         'd2c': v['d2c'], 'b2b': v['b2b'], 'uk_s': v['uk_s'], 'us_s': v['us_s'],
-        'row_s': v['row_s'], 'lq_total': 0.0, 'lq_uk': 0.0, 'lq_us': 0.0,
-        'uk_vs': None, 'us_vs': None, 'skus': v['skus'],
+        'row_s': v['row_s'], 'lq_total': v['lq_total'], 'lq_uk': v['lq_uk'],
+        'lq_us': v['lq_us'], 'uk_vs': v['uk_vs'], 'us_vs': v['us_vs'],
+        'skus': v['skus'],
     } for i, ((dept, coll), v) in enumerate(ordered)]
 
 
@@ -506,7 +530,7 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
     _add_headline_kpis(payload['current'])
     for sku in payload['skus_all']:
         sku['is_el_component'] = _is_el_component(sku.get('coll'))
-    _strip_vestigial(payload)
+    _convert_oracle_weeks_cover(payload)
     # T2a: the monthly oracle files feed _aggregate_quarter_payload via raw
     # extract_all(), bypassing emit_contract_from_oracle's own dead-category
     # filter -- apply it here too so Door doesn't leak back in at the quarter
@@ -545,7 +569,8 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
 
 def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, lq_contract=None,
                                           oracle_bootstrap_path=None, out_path=None,
-                                          ly_month_contracts=None, month_oracle_bootstrap_paths=None):
+                                          ly_month_contracts=None, month_oracle_bootstrap_paths=None,
+                                          month_requested_period_models=None):
     """The Matrixify-sourced quarterly contract. month_specs: 3
     (period, uk_csv, us_csv) tuples in chronological order. lq_contract:
     same meaning as emit_contract_from_oracle_quarter's -- a previously-
@@ -595,6 +620,23 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     just feeding real monthly vs_ly in. None (the default) reproduces the
     prior all-None behaviour exactly.
 
+    month_requested_period_models (2026-08-12, period-from-prompt): 3
+    common.period.PeriodModel/None, one per month_specs entry -- forwarded
+    as each constituent month's own requested_period_model, so each inner
+    monthly contract can bootstrap its OWN lm/ly from fresh Matrixify pulls
+    (emit_contract_from_matrixify's requested_period_model branch) with no
+    workbook at all, same shape as month_oracle_bootstrap_paths below. Use
+    common.period.months_in_quarter(quarter_num, year) + common.period.
+    parse_period(...) to build these three month strings/models from a
+    single quarter request ("Q2 2026") -- see tests/test_period.py.
+    Deliberately does NOT attempt to bootstrap the QUARTER's own lq (the
+    previous-quarter total) from scratch -- that would mean recursively
+    building the entire previous quarter's 3-month contract, out of scope
+    here. lq stays on the existing lq_contract/oracle_bootstrap_path
+    mechanism, honest-zero when neither is available (ROADMAP.md's
+    accepted "LQ genuinely unavailable for the first quarterly build"
+    behaviour, unchanged).
+
     month_oracle_bootstrap_paths (2026-08-06, QQ1 -- round-3 review): 3
     real MONTHLY-mode oracle workbooks (path/None), one per month_specs
     entry -- forwarded as each constituent month's own oracle_bootstrap_
@@ -634,12 +676,14 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
 
     ly_month_contracts = ly_month_contracts or [None, None, None]
     month_oracle_bootstrap_paths = month_oracle_bootstrap_paths or [None, None, None]
+    month_requested_period_models = month_requested_period_models or [None, None, None]
     month_contracts = [
         emit_contract_from_matrixify(period=period, uk_csv=uk_csv, us_csv=us_csv,
                                       oracle_gaps=oracle_quarter_gaps, ly_month_contract=ly_mc,
-                                      oracle_bootstrap_path=month_ob_path)
-        for (period, uk_csv, us_csv), ly_mc, month_ob_path
-        in zip(month_specs, ly_month_contracts, month_oracle_bootstrap_paths)
+                                      oracle_bootstrap_path=month_ob_path,
+                                      requested_period_model=month_pm)
+        for (period, uk_csv, us_csv), ly_mc, month_ob_path, month_pm
+        in zip(month_specs, ly_month_contracts, month_oracle_bootstrap_paths, month_requested_period_models)
     ]
     months = [load_contract(c) for c in month_contracts]
     all_reconciled = all(c['provenance']['reconciled'] for c in month_contracts)
@@ -670,7 +714,7 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     _add_headline_kpis(payload['current'])
     for sku in payload['skus_all']:
         sku['is_el_component'] = _is_el_component(sku.get('coll'))
-    _strip_vestigial(payload)
+    _convert_oracle_weeks_cover(payload)
     # T2a: harmless no-op in practice -- each month's own contract already
     # excluded dead departments at the line level before aggregation -- but
     # applied here too for the same reason as the oracle quarter aggregator.

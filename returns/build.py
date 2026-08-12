@@ -86,7 +86,7 @@ import pandas as pd
 import numpy as np
 
 from common.io import load_positional_sheets
-from common.sku_taxonomy import SKUTaxonomy, DEFAULT_SEED
+from common.sku_taxonomy import SKUTaxonomy, DEFAULT_SEED, DEAD_DEPARTMENTS
 from common.reconciliation_gate import (
     assert_additive,
     assert_labels_match,
@@ -97,6 +97,7 @@ from common.reconciliation_gate import (
     assert_bucket_reported,
     assert_returns_overlap_sales,
 )
+from common.sources import RETURNS_ZAP_SNAPSHOT, load_returns_zap_snapshot
 
 DEFAULT_MONTH_NUMS = [1, 2, 3]
 DEFAULT_YEAR = 2026
@@ -195,6 +196,28 @@ def load_line_detail_names(xlsx_path=DEFAULT_LINE_DETAIL_NAMES_PATH):
     d["Product Description"] = d["Product Description"].astype(str).str.strip()
     d = d[(d["SKU"] != "") & (d["Product Description"] != "")].drop_duplicates("SKU")
     return dict(zip(d["SKU"], d["Product Description"]))
+
+
+def load_line_detail_departments(xlsx_path=DEFAULT_LINE_DETAIL_NAMES_PATH):
+    """sku -> Product Type (department), from the Line Detail MASTER catalog.
+
+    Item 7 (2026-08-12): department must come from the master, NEVER the Q1
+    workbook's own embedded "Line Detail" tab (load_workbook_sales()'s own
+    ld_std) -- its Product-Type-equivalent column isn't reliably in the same
+    position, and the Data Dictionary v3 documents source sheets label
+    Product Type/Product Category oppositely on some prep tabs (the same
+    "don't trust either column name literally" caution CLAUDE.md's Known
+    Gotchas section already gives for this exact class of confusion). Always
+    this file, for every period, same pattern as load_line_detail_names()
+    above -- prep() merges this in regardless of which sales/ld_std source
+    supplied category/subcategory.
+    """
+    df = pd.read_excel(xlsx_path)
+    d = df[["SKU", "Product Type"]].dropna(subset=["SKU"]).copy()
+    d["SKU"] = d["SKU"].astype(str).str.strip()
+    d["Product Type"] = d["Product Type"].astype(str).str.strip()
+    d = d[d["SKU"] != ""].drop_duplicates("SKU")
+    return dict(zip(d["SKU"], d["Product Type"]))
 
 
 def load_matrixify_sales(sources):
@@ -330,6 +353,84 @@ def load_returns_export(paths):
     })
 
 
+def load_returns_export_from_sheet(csv_path=None):
+    """The Drive-sourced ReturnZap feed (common.sources.RETURNS_ZAP_SNAPSHOT)
+    -- one combined UK+US export with its own Country column, replacing the
+    two separate per-store .numbers files load_returns_export() reads today.
+    Applies common.sources.dedupe_returns_export() first: the live sheet was
+    found (2026-08-11) to carry many exact full-row duplicates -- one return
+    duplicated 139 times -- almost certainly the getReturns Apps Script
+    appending on every run instead of clearing-then-writing. Left unfixed,
+    the sku+order dedupe below (`.agg(qty=("qty", "sum"))` in prep()) would
+    SUM across the duplicate copies too, overstating returned units/cash.
+    The drop count is asserted reported (never silent) via
+    assert_bucket_reported, matching this module's existing convention for
+    every other must-never-be-silent bucket.
+
+    KNOWN GAP: the sheet has no "Please tell us why" free-text column (same
+    omission as the old US .numbers export) -- subreason falls back to
+    "(none)" for every row until the Apps Script pull adds it upstream.
+
+    Maps to the exact same standardized shape load_returns_export() already
+    produces (order/sku/qty/reason/subreason/stage/is_exchange) -- prep()/
+    run() downstream are unchanged either way. RMA Number/Value/Status/
+    Country are read but not surfaced here: the locked dedupe key stays
+    sku+order (ROADMAP.md §5), not RMA+SKU+line, and cash basis stays the
+    sales-side refund columns (ruling 5) -- this loader doesn't touch either.
+    """
+    df, n_dropped = load_returns_zap_snapshot(csv_path or RETURNS_ZAP_SNAPSHOT)
+    assert_bucket_reported(n_dropped, "returns_zap_exact_duplicates_dropped")
+    print(f"load_returns_export_from_sheet: dropped {n_dropped} exact-duplicate "
+          f"raw row(s) out of {len(df) + n_dropped} before the sku+order dedupe",
+          file=sys.stderr)
+    out = pd.DataFrame({
+        "order": pd.array(df["Order Id"], dtype="Int64").astype(str),
+        "sku": df["SKU"].astype(str).str.strip(),
+        "qty": pd.to_numeric(df["Quantity"], errors="coerce").fillna(0),
+        "reason": df["Return Reason"].astype(str).str.strip(),
+        "subreason": pd.Series(["(none)"] * len(df), index=df.index),
+        "stage": df["Stage"].astype(str).str.strip(),
+        "is_exchange": df["Return Type"].astype(str).str.strip().str.upper() == "EXCHANGE",
+    })
+    # ship_country: carried for check_returns_country_agreement() below, NOT
+    # consumed by prep() -- mkt stays sales-side-derived (the locked design;
+    # the old source had no Country column at all, so this was never a
+    # choice until now). Kept as a same-index Series, not merged into `out`,
+    # so a future accidental prep()/run() read of it fails loudly (KeyError)
+    # rather than silently changing which side decides mkt.
+    out.attrs["ship_country"] = df["Country"].astype(str).str.strip()
+    return out
+
+
+def check_returns_country_agreement(returns_df_from_sheet, sales_df):
+    """Diagnostic only (2026-08-11, C2) -- does NOT feed prep()/run() or
+    change any figure. Now that the ReturnZap sheet carries a real Country
+    column (GB/US), cross-check it against the sales-side mkt the pipeline
+    actually uses for the same order, to catch the two disagreeing (e.g. a
+    return recorded against the wrong store) without switching which side
+    is authoritative. Country is ship-to per the sheet -- GB->UK, US->US,
+    else->ROW, same mapping trading uses for ROW derivation.
+    """
+    ship_country = returns_df_from_sheet.attrs.get("ship_country")
+    if ship_country is None:
+        raise ValueError("returns_df_from_sheet has no ship_country attr -- "
+                          "was it produced by load_returns_export_from_sheet()?")
+    mkt_map = {"GB": "UK", "US": "US"}
+    ship_mkt = ship_country.map(lambda c: mkt_map.get(c, "ROW"))
+    order_mkt = sales_df.drop_duplicates("order").set_index("order")["mkt"]
+    joined = pd.DataFrame({"order": returns_df_from_sheet["order"], "ship_mkt": ship_mkt}).join(
+        order_mkt.rename("sales_mkt"), on="order", how="inner"
+    )
+    agree = (joined["ship_mkt"] == joined["sales_mkt"]).sum()
+    total = len(joined)
+    return {
+        "rows_checked": total,
+        "agree": int(agree),
+        "disagree": int(total - agree),
+        "agreement_rate": (agree / total) if total else None,
+    }
+
+
 def _seed():
     with open(DEFAULT_SEED, encoding="utf-8") as fh:
         return json.load(fh)
@@ -357,8 +458,18 @@ def prep(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
 
     # RETURNS single-count, attach order-month via the order's home (inner join also
     # restricts returns to orders actually in this period's cohort)
-    zap = returns_df[returns_df["sku"].notna() & returns_df["order"].notna()].copy()
-    zap = zap.join(home, on="order", how="inner")
+    zap_all = returns_df[returns_df["sku"].notna() & returns_df["order"].notna()].copy()
+    unjoined_orders = sorted(set(zap_all["order"]) - set(home.index))
+    if unjoined_orders:
+        # Reported, never silently dropped (2026-08-11, C2): these rows have
+        # no sales-side order to attach an order-month/mkt/seg to, so they
+        # can't enter the aggregates below -- but the exclusion itself must
+        # be visible, not just absent from every downstream number.
+        print(f"prep: {len(unjoined_orders)} distinct return order_id(s) did not join to any "
+              f"sales order in this period's cohort -- excluded from aggregates (no order-month/"
+              f"mkt/seg to attach), reported here so the exclusion is visible: "
+              f"{unjoined_orders[:10]}{' ...' if len(unjoined_orders) > 10 else ''}", file=sys.stderr)
+    zap = zap_all.join(home, on="order", how="inner")
 
     ret = zap.groupby(["sku", "order"], as_index=False).agg(
         qty=("qty", "sum"),
@@ -387,14 +498,19 @@ def prep(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
         df["finish"] = df["sku"].map(finish_lookup)
 
     # category/subcategory/family via the shared taxonomy (glossary §5's canonical
-    # tree, RECOMMENDED_DRILL = item_type/style)
+    # tree, RECOMMENDED_DRILL = item_type/style). department (item 7, 2026-08-12):
+    # always from the Line Detail MASTER catalog (load_line_detail_departments,
+    # never the Q1 workbook's own embedded ld_std) -- SKU-code fallback inside
+    # SKUTaxonomy.classify() itself when a SKU is absent from the master.
+    ld_departments = load_line_detail_departments()
     ld_map = {}
     for row in ld_std.itertuples(index=False):
         if row.sku and (row.category or row.subcategory):
-            ld_map[row.sku] = (row.category, row.subcategory)
+            ld_map[row.sku] = (ld_departments.get(row.sku, ""), row.category, row.subcategory)
     tax = SKUTaxonomy(line_detail_map=ld_map, seed=_seed())
     for df in (s, ret, zap):
         classified = df["sku"].map(tax.classify)
+        df["department"] = classified.map(lambda t: t.department)
         df["category"] = classified.map(lambda t: t.item_type)
         df["subcategory"] = classified.map(lambda t: t.style)
         df["family"] = df["sku"].map(tax.family_of)
@@ -551,7 +667,11 @@ def tracker(s, ret, shopv, min_orders=MIN_TRACKER_ORDERS):
     single-count join. Return value (value convention) EXCLUDES exchange-attributable
     value, via the same per-SKU exchange match value_split() uses at the aggregate level.
     """
-    sku_sales = s.groupby(["category", "subcategory", "family", "sku"]).agg(
+    # department as the outer grouping level (item 7, 2026-08-12): Door
+    # excluded dynamically here (DEAD_DEPARTMENTS, shared with trading's
+    # own dead-category cut) rather than filtered elsewhere per-caller.
+    s = s[~s["department"].isin(DEAD_DEPARTMENTS)]
+    sku_sales = s.groupby(["department", "category", "subcategory", "family", "sku"]).agg(
         units_sold=("units", "sum"),
         gross_sales=("cash", "sum"),
         orders=("order", "nunique"),
@@ -623,6 +743,32 @@ def run(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
     }
 
 
+def run_for_period(sales_df, ld_std, returns_df, period_str, as_of=None):
+    """Period-from-prompt entry point (2026-08-12): the period comes from
+    the maintainer's/colleague's prompt ("generate the returns dashboard
+    for Q2 2026"), parsed via common/period.py -- never hardcoded month_
+    nums/year, never inferred from a workbook. Runs returns/validate.py's
+    period-coverage/non-empty/both-markets/freshness guardrails against
+    the live ReturnZap snapshot FIRST (fails loud, naming the exact gap,
+    before any aggregation happens), then derives month_nums/year from the
+    parsed period and calls run() exactly as before -- run()'s own gate
+    (assert_returns_overlap_sales et al, inside prep()) still applies on
+    top, unchanged.
+    """
+    from common.period import parse_period
+    from returns.validate import validate_period
+
+    pm = parse_period(period_str, as_of=as_of)
+    validate_period(pm, as_of=as_of)
+
+    cm = pm["cm"]
+    year = cm["start"].year
+    month_nums = ([cm["start"].month, cm["start"].month + 1, cm["start"].month + 2]
+                  if cm["kind"] == "quarter" else [cm["start"].month])
+
+    return run(sales_df, ld_std, returns_df, month_nums=month_nums, year=year)
+
+
 def _show(df, pct=("return_rate",)):
     d = df.copy()
     for c in d.columns:
@@ -635,7 +781,12 @@ def _show(df, pct=("return_rate",)):
 
 if __name__ == "__main__":
     sales_df, ld_std = load_workbook_sales(SRC)
-    returns_df = load_returns_export(RETURNS_SRC)
+    if len(sys.argv) > 2:
+        returns_df = load_returns_export(RETURNS_SRC)  # explicit override wins
+    elif os.path.exists(RETURNS_ZAP_SNAPSHOT):
+        returns_df = load_returns_export_from_sheet()
+    else:
+        returns_df = load_returns_export(RETURNS_SRC)
     blocks = run(sales_df, ld_std, returns_df)
 
     print("=== By ORDER MONTH -- RETAIL headline (orders-based rate, single-count) ===")

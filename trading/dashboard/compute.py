@@ -243,8 +243,13 @@ def _sku_row(s, i):
         'us_u':        s['us_u'],
         'd2c':         round(s['d2c'], 2),
         'b2b':         round(s['b2b'], 2),
-        'lq':          round(s['lq'], 2) if s.get('lq') else 0,
-        'ly':          round(s['ly'], 2) if s.get('ly') else 0,
+        # lq/ly (audit finding, 2026-08-12, item 9): collapsed a genuinely-
+        # None lq/ly (unmatched SKU, or no oracle bootstrap) into the
+        # fabricated literal 0 -- now preserves None so it renders honestly
+        # as unavailable downstream, matching vs_lq/gm's own `is not None`
+        # convention just above.
+        'lq':          round(s['lq'], 2) if s.get('lq') is not None else None,
+        'ly':          round(s['ly'], 2) if s.get('ly') is not None else None,
     }
 
 
@@ -453,8 +458,15 @@ def compute_finish_data(finishes_raw, skus_all, top_n=8):
             # in the sheet's Finish table), real on the Matrixify path.
             'uk_u':            int(raw.get('uk_u') or 0),
             'us_u':            int(raw.get('us_u') or 0),
-            'lq_uk':           0,
-            'lq_us':           0,
+            # Audit finding (2026-08-12, item 9): hardcoded 0 unconditionally
+            # -- no source exists for an absolute per-market LQ figure at
+            # finish grain (contract.py's finishes dict only carries the
+            # uk_vs_lq/us_vs_lq RATIO, reconstructed from a prior committed
+            # contract, never the absolute lq_uk/lq_us collections' own
+            # oracle_row provides) -- currently unrendered in the template,
+            # so None (honestly unavailable) rather than a fabricated 0.
+            'lq_uk':           None,
+            'lq_us':           None,
             # Feedback row (Lena, Finish Analysis, 2026-08-10): GM% + per-
             # market vs-LM, mirroring Category Analysis's sidebar (pt.gm/
             # pt.uk_vs_lq/pt.us_vs_lq) -- see contract.py for the source.
@@ -927,8 +939,14 @@ def js_block_collections(collections):
     for c in collections:
         uk_vs = f'{c["uk_vs"]}' if c.get('uk_vs') is not None else 'null'
         us_vs = f'{c["us_vs"]}' if c.get('us_vs') is not None else 'null'
-        gm    = f'{c["gm"]}' if c.get('gm') is not None else '0'
-        vs_lq = f'{c["vs_lq"]}' if c.get('vs_lq') is not None else '0'
+        # Audit finding (2026-08-12, item 9): these collapsed a genuinely-
+        # None gm/vs_lq (an unmatched/new collection with no oracle LQ row,
+        # or no GM-eligible line data) into the JS literal 0 instead of
+        # null -- the exact silent-zero pattern the original vsLY bug had:
+        # badgeClass(0)/fmtPct(0) renders a confident "+0.0%" badge, not
+        # "-". uk_vs/us_vs right above already correctly used 'null'.
+        gm    = f'{c["gm"]}' if c.get('gm') is not None else 'null'
+        vs_lq = f'{c["vs_lq"]}' if c.get('vs_lq') is not None else 'null'
         rows.append(
             f'  {{r:{c["r"]},t:"{c["t"]}",c:"{c["c"]}",'
             f'ts:{c["ts"]},tu:{c["tu"]},vs_lq:{vs_lq},'
@@ -1050,7 +1068,12 @@ def _sku_rows_js(skus):
             f'uk_s2:{s["uk_s2"]},uk_u:{s["uk_u"]},'
             f'us_s2:{s["us_s2"]},us_u:{s["us_u"]},'
             f'd2c:{s["d2c"]},b2b:{s["b2b"]},'
-            f'lq:{s["lq"]},ly:{s["ly"]}}}'
+            # Audit finding (2026-08-12, item 9): raw f-string interpolation
+            # of a Python None would emit the invalid JS token `None`
+            # (ReferenceError at runtime, same regression class fixed in
+            # js_block_finish_data/js_block_collections) -- now a real
+            # possibility since lq/ly above can legitimately be None.
+            f'lq:{_js_val(s["lq"])},ly:{_js_val(s["ly"])}}}'
         )
     return ',\n'.join(rows)
 
@@ -1066,8 +1089,18 @@ def js_block_bottom_skus(skus):
 def js_block_finish_data(finish_data):
     parts = ['const FINISH_DATA = {']
     for name, fd in finish_data.items():
+        # Audit finding (2026-08-12, item 9): this checked `== 0` instead of
+        # `is None`, mis-serializing a genuinely-None `ly` (the normal case
+        # on the Matrixify path for any finish oracle_finish_ly doesn't
+        # match by name) as the Python literal string "None" -- not valid
+        # JS (None isn't null), which throws ReferenceError at RUNTIME
+        # (syntax-only checks like `node --check` don't catch this, only
+        # actually executing the script does) and halts the entire <script>
+        # block, breaking every chart/toggle on the page. Confirmed live
+        # against every currently-committed Matrixify contract before this
+        # fix. Matches vsLY/vsLQ/lq's own `is None` convention right below.
         vsLY = 'null' if fd['vsLY'] is None else str(fd['vsLY'])
-        ly   = 'null' if fd['ly'] == 0 else str(fd['ly'])
+        ly   = 'null' if fd['ly'] is None else str(fd['ly'])
         vsLQ = 'null' if fd['vsLQ'] is None else str(fd['vsLQ'])
         lq   = 'null' if fd['lq'] is None else str(fd['lq'])
         def _geo_dict(d):
@@ -1089,7 +1122,11 @@ def js_block_finish_data(finish_data):
             f" units:{fd['units']}, vsLQ:{vsLQ}, vsLY:{vsLY},\n"
             f"    d2c:{fd['d2c']}, b2b:{fd['b2b']}, b2b_share:{_js_val(fd.get('b2b_share'))},"
             f" uk:{fd['uk']}, us:{fd['us']}, uk_u:{fd['uk_u']}, us_u:{fd['us_u']},"
-            f" lq_uk:{fd['lq_uk']}, lq_us:{fd['lq_us']},\n"
+            # lq_uk/lq_us (audit finding, 2026-08-12, item 9): now genuinely
+            # None (see the dict above) -- raw interpolation would emit the
+            # invalid JS token `None`, the same ReferenceError-at-runtime
+            # regression class already fixed for ly/vsLY just above.
+            f" lq_uk:{_js_val(fd['lq_uk'])}, lq_us:{_js_val(fd['lq_us'])},\n"
             f"    top_collections:{top_collections_str}\n"
             f"  }},"
         )

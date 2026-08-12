@@ -20,10 +20,11 @@ from extract import extract_all
 from contract import (
     emit_contract_from_oracle, emit_contract_from_matrixify, load_contract,
     render_contract, can_publish, PAYLOAD_KEYS, PROVISIONAL_BANNER_HTML,
-    _add_headline_kpis, _strip_vestigial, _exclude_dead_categories,
+    _add_headline_kpis, _convert_oracle_weeks_cover, _exclude_dead_categories,
     _normalize_oracle_prod_types, _is_el_component,
 )
 from validate import validate_contract
+from common.sources import load_shopify_inventory
 
 ORACLE_XLSX = os.path.join(HERE, "fixtures", "2026-05_Monthly_Trading_Report.xlsx")
 UK_CSV = os.path.join(TRADING_DIR, "source", "orders_2026-05_UK.csv")
@@ -51,7 +52,7 @@ def _apply_contract_layer_mutations(raw):
     _add_headline_kpis(payload["current"])
     for sku in payload["skus_all"]:
         sku["is_el_component"] = _is_el_component(sku.get("coll"))
-    _strip_vestigial(payload)
+    _convert_oracle_weeks_cover(payload)
     _exclude_dead_categories(payload)
     _normalize_oracle_prod_types(payload)
     return payload
@@ -187,30 +188,39 @@ def check_lq_ly_provenance():
     return bootstrap_stamped and lm_populated and ly_populated and chain_stamped and chain_correct
 
 
-def check_no_fabricated_provisionals():
-    """§8.6, updated by BRIEF #4 step 4 §1/§6: with no inventory feed
-    wired AND the redesign dropping st/wc/inv entirely, these keys must be
-    ABSENT from the contract (not merely None) -- a stronger guarantee than
-    before that nothing vestigial leaks back in.
+def check_inventory_reinstated():
+    """§8.6, REVISED 2026-08-11 (Lena): weeks-cover/inventory reinstated,
+    reversing BRIEF #4 step 4's removal (ROADMAP.md §2 Step 4/§5 updated to
+    match), now that a real on-hand inventory source exists
+    (common/sources.py's shopify_product_data snapshot -- never the ship
+    sheet, that's inbound POs). This is the OPPOSITE of the old check: st/
+    wc/inv must be PRESENT with real values when inventory_index is
+    supplied, guarding against inventory silently going back to
+    stripped/None rather than the other way around.
     """
+    inv_index = load_shopify_inventory()
     mx_contract = emit_contract_from_matrixify(
         period="2026-05", uk_csv=UK_CSV, us_csv=US_CSV, oracle_bootstrap_path=ORACLE_XLSX,
+        inventory_index=inv_index,
     )
-    current_absent = not ({"sell_through", "weeks_cover", "inventory"} & mx_contract["current"].keys())
-    statuses_absent = all(not ({"st", "wc", "inv"} & s.keys()) for s in mx_contract["statuses"])
-    collections_absent = all(not ({"st", "wc", "inv"} & c.keys()) for c in mx_contract["collections"])
-    skus_absent = all(not ({"st", "wc", "inv"} & s.keys()) for s in mx_contract["skus_all"])
+    current = mx_contract["current"]
+    current_present = all(current.get(k) is not None for k in ("weeks_cover", "sell_through", "inventory"))
+    statuses_present = all("inv" in s and s["inv"] is not None for s in mx_contract["statuses"])
+    collections_present = all("inv" in c and c["inv"] is not None for c in mx_contract["collections"])
+    skus_present = all("inv" in s and s["inv"] is not None for s in mx_contract["skus_all"])
+    coverage = mx_contract["provenance"]["inventory_coverage_skus"]
 
     template_html = open(TEMPLATE_HTML).read()
-    html = render_contract(mx_contract, template_html)  # must not raise (None-safe rendering)
+    html = render_contract(mx_contract, template_html)  # must not raise
     no_leftover_tokens = "KPI_ST_VAL" not in html and "{{" not in html
 
-    print(f"\n=== No fabricated provisionals (§8.6) ===")
-    print(f"  current st/wc/inv keys absent: {current_absent}")
-    print(f"  statuses/collections/skus_all st/wc/inv keys absent: "
-          f"{statuses_absent and collections_absent and skus_absent}")
+    print(f"\n=== Inventory reinstated (§8.6, revised) ===")
+    print(f"  current.weeks_cover={current['weeks_cover']:.2f}, "
+          f"sell_through={current['sell_through']:.2%}, inventory={current['inventory']:.0f}")
+    print(f"  inventory_coverage_skus (SKUs matched in the on-hand index): {coverage:.2%}")
     print(f"  renders without crashing, no leftover tokens: {no_leftover_tokens}")
-    return current_absent and statuses_absent and collections_absent and skus_absent and no_leftover_tokens
+    return (current_present and statuses_present and collections_present and skus_present
+            and no_leftover_tokens and coverage > 0.5)
 
 
 def check_frozen_fixture():
@@ -245,7 +255,7 @@ def main():
         "reconciled_independent_of_oracle": check_reconciled_independent_of_oracle(),
         "totals_tie_with_unknown": check_totals_tie_with_unknown(),
         "lq_ly_provenance": check_lq_ly_provenance(),
-        "no_fabricated_provisionals": check_no_fabricated_provisionals(),
+        "inventory_reinstated": check_inventory_reinstated(),
         "frozen_fixture": check_frozen_fixture(),
     }
 

@@ -46,6 +46,74 @@ Runs on every build; aborts and writes no output on failure. Full detail in
 A failed gate prints the offending figures and the gap — never bypass it to
 force output through; fix the source or the mapping.
 
+## Data connections
+
+`common/sources.py` is the single source-of-truth for every external connection — pinned
+IDs, tab names, expected columns, and where a fetched snapshot lands on disk. **When a
+source moves:** get the new Drive share link → copy its file ID out of the URL
+(`.../d/<FILE_ID>/edit...`) → replace the one line in `common/sources.py`'s `SOURCES`
+dict → re-run `python common/sources.py preflight`.
+
+| Source | Connector | ID / tab | Lands at |
+|---|---|---|---|
+| Line Detail | Google Drive | `1r5D03e3Df_Qyinrps0wqLlqsp3YGATi6Ob3cvjv7Dok`, tab `Line Detail` | `trading/source/line_detail.xlsx` |
+| On-hand inventory | Google Drive | `1wb7Xj1ionrL3eoZKBZ5JZTxo6jAiIqFaBQ74IJprcjo`, tab `IN Shopify Product Data` | `trading/source/shopify_inventory.csv` |
+| Yotpo reviews | Google Drive | `1wb7Xj1ionrL3eoZKBZ5JZTxo6jAiIqFaBQ74IJprcjo`, tab `API Yotpo Reviews` | `source/yotpo_reviews.csv` |
+| ReturnZap | Google Drive | `1tyinVS7suxKIdaY9Y3R6geaOFkYgeaeVWcDU2VHaGzs`, tab `API: Returns` | `source/returns_zap.csv` |
+| Ship sheet (inbound POs — **not** on-hand) | Google Drive | `1wErCQzW2pi8-OnzN2bbuu5bNkTFt1PGhmBumEFzQMaM`, tab `IP Import` | not fetched by any builder |
+| Matrixify orders | MCP | `Matrixify-PlankUK` / `Matrixify-PlankUS` | `trading/source/orders_<period>_<STORE>.csv` |
+
+The Drive/Matrixify MCP tools are only reachable from an interactive Claude Code session
+(or the shared Claude Project) — never from a standalone `python` process, so
+`common/sources.py` itself never calls a connector. It owns the pinned locations, the
+normalizers that shape a raw download to match what the existing parsers already expect,
+and `preflight()`, which validates whatever's already landed (shape/columns/non-empty) —
+it does not itself check live connector reachability. Whoever is driving a build through
+Claude fetches the raw bytes via the connector and hands them to the matching
+`normalize_*`/`load_*` function here.
+
+**ReturnZap history, resolved 2026-08-12:** the sheet's `getReturns` Apps Script pull
+originally had two bugs — exact full-row duplicates (fixed on read by
+`common/sources.dedupe_returns_export`, two passes: exact-row, then same-line
+snapshot-updates) and a UK-store-specific outage that stopped pulling UK returns after
+2025-03-03 while US kept pulling fine. Both are now fixed upstream (confirmed 2026-08-12:
+74,218 raw rows, both markets current through 2026-08-05) — `returns/build.py`'s
+`load_returns_export_from_sheet`/`run_for_period` reproduce Q1/Q2 2026 within tolerance
+(`returns/tests/test_regression_returnzap.py`). `returns/build_q1.py`/`build_q2.py` still
+default to the `.numbers` files (not yet flipped over as the production default) —
+switching them is a separate decision, not a data-quality blocker anymore.
+
+## Period-from-prompt
+
+The reporting period is an explicit input from the maintainer's/colleague's prompt
+("generate the returns dashboard for Q2 2026") — never inferred from a workbook's
+internal header cell. `common/period.py`'s `parse_period("Q2 2026" | "June 2026")` is the
+one parser both builders call; it returns a `{cm, lm, ly}` model, each with
+`label`/`short`/`start`/`end`/`key`, and fails loud on an unparseable or future period.
+
+- **Matrixify (trading):** the period drives the export date filter — `trading/
+  build_matrixify_dashboard.py`/`build_matrixify_quarterly_dashboard.py` accept a period
+  string directly (`"June 2026"` or `"2026-06"`; `"Q2 2026"` or 3 `YYYY-MM` args for the
+  quarterly script) and pull CM + LM + LY windows. LM/LY preference order: (1) a
+  previously-committed contract via `--lm-contract`/`--ly-contract` — LOCKED, ROADMAP.md
+  §5, never re-derive an already-published month fresh; (2) fresh Matrixify pulls for the
+  LM/LY calendar windows (`trading/contract.py`'s `_matrixify_headline_totals`, wired via
+  `requested_period_model`) — the connector-flow default once a period has no committed
+  contract yet, no workbook involved; (3) `--oracle-bootstrap` (the old default, retired
+  2026-08-12) — kept only for explicit oracle-comparison/regression-parity runs.
+  `trading/dashboard/config.py`'s `PERIOD_CELLS`/`extract.py`'s `extract_period_model` are
+  unchanged and still required for the oracle-only path (`emit_contract_from_oracle`,
+  `pipeline.py`) — that workbook stays the human-readable spec/regression oracle
+  (ROADMAP.md §1); it's just no longer the connector flow's period source.
+- **ReturnZap (returns):** the sheet holds full history — `returns/build.py`'s
+  `run_for_period(sales_df, ld_std, returns_df, "Q2 2026")` parses the period, runs
+  `returns/validate.py`'s guardrails (coverage, non-empty, both-markets, freshness — all
+  computed from the sheet itself, never a prior report), then filters by return-month.
+  `assert_returns_overlap_sales` (unchanged, in `common/reconciliation_gate.py`) still
+  runs inside `prep()` on top.
+- **Yotpo:** no period filter — region filter only, per the returns brief.
+  `common.sources.check_yotpo_freshness` just confirms the snapshot is recent.
+
 ## Domain glossary
 
 The canonical glossary, SKU taxonomy, and Line Detail column dictionary live in

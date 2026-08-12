@@ -74,7 +74,10 @@ dashboard · Yotpo/reviews scanner
   - Headline recomposed: YoY growth% and B2B share of revenue added; GM% moved out of
     the headline into the revenue × GM matrix only; the Sell-Through/WC KPI and the
     entire inventory-feed dependency removed from trading (`st`/`wc`/`inv` are stripped
-    from the contract at emission, not merely left unread downstream).
+    from the contract at emission, not merely left unread downstream). **REVERSED
+    2026-08-11 (Lena)** — see the connections rebuild note right below §2's list: a real
+    on-hand inventory source now exists, so `st`/`wc`/`inv` are reinstated, computed for
+    real rather than stripped.
   - Category bars show current + LY value (both absolute) with a direction-only colour
     cue (`badge_class` on the YoY movement, never the % itself — so a near-zero-LY
     category doesn't read as a spurious "+900%"), plus a subcategory drill toggle.
@@ -187,6 +190,31 @@ dashboard · Yotpo/reviews scanner
 - [ ] **Step 7 — Yotpo / reviews.** Independent, export-based scanner
       (`reviews/review_feedback.py`), runs on the full export, no live API calls, no
       per-review cost. Blocks nothing else and isn't gated on anything above.
+- [x] **Connections rebuild (2026-08-11).** `common/sources.py` is now the single
+      source-of-truth for every external data connection: Line Detail and on-hand
+      inventory (`IN Shopify Product Data`, never the ship sheet) are Drive-sourced via
+      the Google Drive connector; ReturnZap's `getReturns` Apps Script pull (already
+      built, key in Script Properties) is read the same way. Live weeks-cover/inventory
+      reinstatement (above) is part of this — `trading/contract.py`'s
+      `emit_contract_from_matrixify` takes a real `inventory_index` now.
+      **Two real data-quality findings surfaced doing this, not fixed here:**
+      (1) the live ReturnZap sheet had 1,755 raw rows but only 450 distinct — one return
+      duplicated 139 times, byte-identical — almost certainly the Apps Script appending
+      instead of clearing-then-writing; `common/sources.dedupe_returns_export` fixes this
+      on read (reported, never silent), but the script itself should be checked/fixed at
+      the source. (2) even after dedupe, the sheet's total return volume (450 rows,
+      ~292 orders, spanning mid-2024–2026) is far below the ~2,020 distinct returned
+      orders the existing `.numbers` exports show for Q1 2026 ALONE — `assert_returns_
+      overlap_sales` correctly refuses to build against it for any historical period
+      (0.19% overlap on a Q1 2026 test), so `returns/build_q1.py`/`build_q2.py` still
+      default to the proven `.numbers` files; the new sheet-based reader
+      (`returns/build.py`'s `load_returns_export_from_sheet`) is wired, tested, and ready
+      once the Apps Script's pagination is fixed upstream to pull full history. Matrixify
+      MCP connectivity confirmed live (`matrixify_export_get_setup` against
+      Matrixify-PlankUK); the full export→poll→download round trip is written and
+      documented in `common/sources.py` but wasn't run to create a new committed month
+      in this pass — that's a content decision (which period) for whoever's building the
+      next report, not a connections question.
 
 ---
 
@@ -403,9 +431,15 @@ they are exactly where a naive rebuild goes silently wrong.
   double-count trap as returns: sum/de-dupe on order+SKU, or pull a real `line_item.id`
   via the Admin API / Matrixify.
 - **"Weeks Cover" is really months** (`inventory ÷ monthly units`) in the sheet's own raw
-  columns. *Retired from the dashboard with Step 4* (§2) — trading dropped the
-  inventory-feed dependency and the contract no longer emits `st`/`wc`/`inv` at all. Kept
-  here only so the raw-sheet fact isn't lost if an inventory feed is ever reintroduced.
+  columns. *Retired from the dashboard with Step 4* (§2), **reinstated 2026-08-11** (Lena)
+  now that a real on-hand inventory source exists (`common/sources.py`'s
+  `shopify_product_data` — the `IN Shopify Product Data` tab, **never** the ship sheet,
+  which is inbound POs, not on-hand). `trading/contract.py` converts months→weeks once,
+  in `_convert_oracle_weeks_cover`/`emit_contract_from_matrixify`'s own `_wc` helper, for
+  both emitters — not duplicated in `compute.py`. `sell_through` has no code-defined
+  formula anywhere else in this repo (the old oracle path just copied a raw sheet
+  column); the standard `units_sold / (units_sold + inventory_on_hand)` is used —
+  flagged as an assumption to confirm, not a locked decision like the returns dedupe key.
 
 ### Returns — locked from the Q1 proof
 
@@ -513,9 +547,13 @@ Resolved:
   from-scratch recount of its own source data exactly). Not worth further investigation
   now that oracle-parity isn't the bar; the builder's units stand as computed.
 
+Resolved (cont.):
+- ~~Line Detail source~~ → **resolved 2026-08-11**, and it's Google Drive, not Dropbox:
+  `common/sources.py`'s `normalize_line_detail_xlsx` downloads the live sheet and lands a
+  normalized copy at the same path `trading/line_detail.py` always read locally — no
+  parser change needed, per that module's own docstring.
+
 Still open:
-- **Line Detail source:** activate the Dropbox fetch path
-  (`LINE_DETAIL_SOURCE = local | dropbox`) — gated on credentials.
 - **Frozen FX source:** pick the authoritative dated GBP/USD series to commit for every
   month (only July is confirmed today) — close enough to the sheet's historical
   `GOOGLEFINANCE` values that the regression stays in tolerance.

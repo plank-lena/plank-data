@@ -177,12 +177,16 @@ Arrow / badge logic (replicate exactly):
   D2C/B2B figures INCLUDE ROW (they sum to the LM total). `PERIODS.q4_25` mirrors the
   LM behaviour. Keep this asymmetry; do not "fix" it.
 - FINISH `lq` is computed as `total / (1 + vsLQ)`; `vsLY` is left null by design.
-- **Weeks-cover unit conversion (important):** The source spreadsheet stores cover in
-  all three places (Monthly Summary `R7`, By Collection `P`, By SKU `X`) as
-  `inventory_units / monthly_sales_units` — i.e. **months of cover**, not weeks.
-  `compute.py` multiplies every raw cover value by `52/12` (`_MONTHS_TO_WEEKS`) before
-  emitting it. Do not remove this conversion; without it displayed figures are ~4× too
-  low and labelled incorrectly as weeks.
+- **Weeks-cover unit conversion (important, UPDATED 2026-08-11):** The source
+  spreadsheet stores cover in all three places (Monthly Summary `R7`, By Collection `P`,
+  By SKU `X`) as `inventory_units / monthly_sales_units` — i.e. **months of cover**, not
+  weeks. The months→weeks conversion moved to `trading/contract.py` at the redesign
+  (`_convert_oracle_weeks_cover` for the oracle path, an inline `_wc` helper for the
+  Matrixify path) — it no longer lives in `compute.py`/`_MONTHS_TO_WEEKS` here, which was
+  removed at BRIEF #4 step 4 (commit `7988d85`) along with the whole KPI, then reinstated
+  at the contract layer once Step 4's inventory-feed dependency was rewired to a real
+  on-hand source (`common/sources.py`). Both emitters now hand `compute.py` an
+  already-converted weeks figure — do not re-add a conversion here, it would double it.
 - `CAT_ANALYSIS` and `TYPE_DATA` derive from `COLLECTIONS` at runtime — never hand-set.
 - **Reconciliation — hard input failure:** UK (`AT7`) + US (`CD7`) + ROW (`DN7`) must
   equal Total (`F7`) within 0.1% relative. The pipeline aborts before rendering if this

@@ -896,6 +896,13 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     # than either of those since a SKU code is an exact identifier, not a
     # display name that can drift between the two sources.
     oracle_sku_lq = {}
+    # SKU code -> real absolute LY figure, read DIRECTLY from the oracle's
+    # own By SKU sheet (config.SKU_COL['ly'], col 97) -- audit finding
+    # (2026-08-12, item 9): hardcoded None unconditionally before this fix,
+    # no attempt made at all. Unlike lq/vslq above, there's no per-SKU vsly
+    # RATIO column to reconstruct from, so this reads the absolute figure
+    # directly rather than reconstructing it -- the only source available.
+    oracle_sku_ly = {}
     # Finish name -> reconstructed LQ/LY sales (2026-08-12, Finish Analysis
     # mirrors Category Analysis): same sales/(1+ratio) reconstruction, from
     # the oracle sheet's own Finish table, which carries BOTH a vsLQ (col G)
@@ -905,6 +912,15 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     # vsLQ/vsLY to None unconditionally on this path).
     oracle_finish_lq = {}
     oracle_finish_ly = {}
+    # Status bucket name -> reconstructed LQ/LY sales (audit finding,
+    # 2026-08-12, item 9): hardcoded None unconditionally before this fix --
+    # no reconstruction attempted at all, unlike prod_types/finishes/skus,
+    # even though the oracle sheet's own Product Status table carries real
+    # vs_lq/vs_ly columns (config.STATUS_COLS) read by extract_statuses.
+    # Matched by exact status name (Continuity/Newness/Discontinued/Dead),
+    # same reconstruction technique as everywhere else on this path.
+    oracle_status_lq = {}
+    oracle_status_ly = {}
     if lm_contract is not None and ly_contract is not None:
         lm_c = lm_contract if isinstance(lm_contract, dict) else load_contract(lm_contract)
         ly_c = ly_contract if isinstance(ly_contract, dict) else load_contract(ly_contract)
@@ -956,6 +972,9 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             vslq = sk.get("vslq")
             if isinstance(vslq, (int, float)) and abs(1 + vslq) > 1e-9 and sk.get("gross"):
                 oracle_sku_lq[sk["sku"]] = sk["gross"] / (1 + vslq)
+            ly_abs = sk.get("ly")
+            if isinstance(ly_abs, (int, float)):
+                oracle_sku_ly[sk["sku"]] = ly_abs
         for f_name, f_raw in oracle_headline.get("finishes", {}).items():
             f_total = f_raw.get("total")
             vs_lq = f_raw.get("vsLQ")
@@ -964,6 +983,14 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             vs_ly = f_raw.get("vsLY")
             if isinstance(vs_ly, (int, float)) and abs(1 + vs_ly) > 1e-9 and f_total:
                 oracle_finish_ly[f_name] = f_total / (1 + vs_ly)
+        for st in oracle_headline.get("statuses", []):
+            st_sales = st.get("sales")
+            st_vs_lq = st.get("vs_lq")
+            if isinstance(st_vs_lq, (int, float)) and abs(1 + st_vs_lq) > 1e-9 and st_sales:
+                oracle_status_lq[st["s"]] = st_sales / (1 + st_vs_lq)
+            st_vs_ly = st.get("vs_ly")
+            if isinstance(st_vs_ly, (int, float)) and abs(1 + st_vs_ly) > 1e-9 and st_sales:
+                oracle_status_ly[st["s"]] = st_sales / (1 + st_vs_ly)
     else:
         lm = ly = _current_to_lm_shape({
             "total_sales": 0, "d2c_gbp": 0, "b2b_gbp": 0, "uk_gbp": 0, "us_gbp": 0, "row_gbp": 0,
@@ -1051,7 +1078,9 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
         pmc_finish_uk_us = {name: (f.get("uk"), f.get("us")) for name, f in pmc.get("finishes", {}).items()}
 
     statuses = [{
-        "s": b, "sales": v["sales"], "units": v["units"], "vs_lq": None, "vs_ly": None,
+        "s": b, "sales": v["sales"], "units": v["units"],
+        "vs_lq": _vs(v["sales"], oracle_status_lq.get(b)) if b in oracle_status_lq else None,
+        "vs_ly": _vs(v["sales"], oracle_status_ly.get(b)) if b in oracle_status_ly else None,
         "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
         "inv": status_inventory.get(b, 0),
         "wc": _wc(status_inventory.get(b, 0), v["units"]),
@@ -1153,6 +1182,7 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
     skus_all = []
     for sku, v in sku_totals.items():
         lq_sales = oracle_sku_lq.get(sku)
+        ly_sales = oracle_sku_ly.get(sku)
         inv = sku_inventory.get(sku, 0)
         skus_all.append({
             "inv": inv, "wc": _wc(inv, v["units"]), "st": _st(inv, v["units"]),
@@ -1169,7 +1199,13 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             "gm": v["gm"],
             "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "uk_u": v["uk_u"],
             "us": v["us"], "us_u": v["us_u"],
-            "lq": round(lq_sales, 2) if lq_sales is not None else None, "ly": None,
+            "lq": round(lq_sales, 2) if lq_sales is not None else None,
+            # ly (audit finding, 2026-08-12, item 9): hardcoded None
+            # unconditionally before this fix -- read directly from the
+            # oracle bootstrap's own absolute By-SKU 'ly' column (no vsly
+            # ratio column exists at SKU grain to reconstruct from, unlike
+            # lq/vslq above), matched by exact SKU code; None otherwise.
+            "ly": round(ly_sales, 2) if ly_sales is not None else None,
             "is_el_component": v["is_el_component"], "newness_bucket": v["newness_bucket"],
         })
     if oracle_sku_lq:
@@ -1177,6 +1213,11 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
         print(f"contract: {matched}/{len(skus_all)} SKUs matched the oracle bootstrap's own "
               f"per-SKU vs-LM ratio by exact SKU code -- unmatched ones get vslq=None/lq=None "
               f"(a genuinely new SKU this period, or one the oracle sheet doesn't carry), "
+              f"never fabricated.", file=sys.stderr)
+    if oracle_sku_ly:
+        matched_ly = sum(1 for s in skus_all if s["ly"] is not None)
+        print(f"contract: {matched_ly}/{len(skus_all)} SKUs matched the oracle bootstrap's own "
+              f"absolute per-SKU LY figure by exact SKU code -- unmatched ones get ly=None, "
               f"never fabricated.", file=sys.stderr)
 
     payload = {

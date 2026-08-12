@@ -22,10 +22,18 @@ deliberate answers to "what's this SKU's department" for two different
 reports -- noted here so it isn't mistaken for drift.
 
 LINE_DETAIL_SOURCE switches where the workbook comes from; both paths
-converge on the same load_line_detail(path) parser -- "dropbox" (later)
-just needs to land a file shaped like the committed local snapshot
+converge on the same load_line_detail(path) parser -- whichever source is
+active just needs to land a file shaped like the committed local snapshot
 (header on row 1, same column names) before calling it, so no parsing
 logic ever branches on source.
+
+RESOLVED 2026-08-11 (ROADMAP.md §7's "Line Detail source" open item): the
+live source is Google Drive, not Dropbox -- common/sources.py's
+normalize_line_detail_xlsx() downloads the live sheet (confirmed to carry
+2 leading admin rows + an extra Barcode column the committed snapshot
+doesn't) and writes a normalized copy at exactly LINE_DETAIL_LOCAL_PATH, so
+"local" and "drive" converge on the same file; LINE_DETAIL_SOURCE is kept
+for documentation/future alternate paths but no code branches on it today.
 """
 import os
 import sys

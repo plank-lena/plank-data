@@ -23,11 +23,23 @@ three means we don't have to re-decide that here.
 
 WHERE THE ANSWER COMES FROM  (in priority order)
 ------------------------------------------------
-    1. line_detail   Authoritative. Category + Sub Category columns.
+    1. line_detail   Authoritative. Product Type + Product Category + Sub
+                     Category columns (the Line Detail MASTER's own names --
+                     item 7, 2026-08-12: department is now sourced from here
+                     too, not just item_type/style; previously department
+                     was ALWAYS SKU-code-derived even when Line Detail had a
+                     real value, an inconsistency with item_type/style's own
+                     "trust the authoritative source first" priority order).
     2. metafield     Future (Shopify detail.category / detail.subcategory).
                      Same shape as line_detail, so switching source is one line.
     3. sku_rule      Decode the SKU code itself (glossary §5). Covers most SKUs
-                     that line_detail is missing (~the "~12% fall back" case).
+                     that line_detail is missing (~the "~12% fall back" case) --
+                     for ALL THREE levels now, not just item_type (item 7:
+                     Lena confirmed returns/reviews keep the lenient SKU-code
+                     fallback philosophy for department too, unlike trading's
+                     own separate mechanism, which tags "Unknown" instead --
+                     two different, deliberate answers, see trading/
+                     line_detail.py's own docstring, not drift).
     4. unknown       Nothing resolved it -> flagged so a data owner can fix source.
 
 Every result carries `.source` so you can always see which of these answered.
@@ -85,6 +97,13 @@ class Taxon:
         return bool(self.style)
 
 
+# Item 7 (2026-08-12): every Line Detail department is a live category
+# EXCEPT Door -- shared with trading's own _DEAD_DEPARTMENTS (trading/
+# contract.py) so Returns/Reviews cut the same dead category, without
+# unifying trading onto this module's mechanism (Lena, explicit decision).
+DEAD_DEPARTMENTS = {"Door"}
+
+
 def _s(v) -> str:
     if v is None:
         return ""
@@ -97,7 +116,9 @@ class SKUTaxonomy:
     """Loads the sources once, then classifies SKUs against them."""
 
     def __init__(self, line_detail_map=None, metafield_map=None, seed=None):
-        # {sku: (raw_category, raw_subcategory)} from Line Detail / metafields
+        # {sku: (raw_department, raw_category, raw_subcategory)} from Line
+        # Detail / metafields -- department added 2026-08-12 (item 7), same
+        # dict shape as before with one more tuple element, not a new dict.
         self.line_detail = line_detail_map or {}
         self.metafield = metafield_map or {}
         seed = seed or {}
@@ -121,13 +142,19 @@ class SKUTaxonomy:
             # Candidate column names, tried in order. Glossary §5 warns the source
             # sheets label Type/Category oppositely, so we accept the likely names
             # rather than hard-coding one. Add the real header here once confirmed.
-            line_detail_map=_load_pairs(
+            # dept_cols added 2026-08-12 (item 7) -- "Product Type" is Line
+            # Detail's own name for the department level (glossary §5); NOT
+            # "Category" (that's item_type-grain here, same reversed-label
+            # gotcha the module docstring already warns about for cat_cols).
+            line_detail_map=_load_triples(
                 line_detail,
-                cat_cols=("item_type", "Product Category", "Category", "Product Type"),
+                dept_cols=("department", "Product Type"),
+                cat_cols=("item_type", "Product Category", "Category"),
                 sub_cols=("style", "Sub Category", "Subcategory", "Sub-Category"),
             ),
-            metafield_map=_load_pairs(
+            metafield_map=_load_triples(
                 metafields,
+                dept_cols=("detail.department", "department"),
                 cat_cols=("detail.category", "category", "Category"),
                 sub_cols=("detail.subcategory", "subcategory", "Sub Category"),
             ),
@@ -147,11 +174,20 @@ class SKUTaxonomy:
         for src_name, src in (("line_detail", self.line_detail),
                               ("metafield", self.metafield)):
             if sku in src:
-                cat, sub = src[sku]
+                dept, cat, sub = src[sku]
                 t.raw_category, t.raw_subcategory = cat, sub
                 t.item_type = cat or t.item_type
                 t.style = sub
-                t.department = self._department_of(core, fallback=t.department)
+                # item 7 (2026-08-12): department now trusts this source
+                # FIRST, same priority order item_type/style already had --
+                # previously always SKU-code-derived even when Line Detail
+                # had a real "Product Type" value, the one inconsistency in
+                # an otherwise-consistent "authoritative source wins" design.
+                # Code-derived only when this source has no value for this
+                # SKU (the "lenient fallback" philosophy Lena confirmed
+                # keeping for returns/reviews, unlike trading's own separate
+                # mechanism).
+                t.department = dept or self._department_of(core, fallback=t.department)
                 t.source = src_name
                 return t
 
@@ -246,12 +282,17 @@ class SKUTaxonomy:
         }
 
 
-def _load_pairs(path, cat_cols, sub_cols) -> dict:
-    """{sku: (category, subcategory)} from a CSV, or {} if no path.
+def _load_triples(path, cat_cols, sub_cols, dept_cols=()) -> dict:
+    """{sku: (department, category, subcategory)} from a CSV, or {} if no
+    path. dept_cols added 2026-08-12 (item 7) -- department was previously
+    never read from this source at all, always SKU-code-derived; empty
+    dept_cols (the default) preserves the old two-level behaviour exactly
+    for any caller that doesn't pass it.
 
-    cat_cols / sub_cols are candidate header names tried in order; the first
-    present in the file wins. This is the ONE place the source column names
-    live, so the glossary §5 Type/Category label confusion is handled once.
+    cat_cols / sub_cols / dept_cols are candidate header names tried in
+    order; the first present in the file wins. This is the ONE place the
+    source column names live, so the glossary §5 Type/Category label
+    confusion is handled once.
     """
     if not path or not os.path.exists(path):
         return {}
@@ -259,6 +300,7 @@ def _load_pairs(path, cat_cols, sub_cols) -> dict:
     with open(path, newline="", encoding="utf-8-sig", errors="replace") as fh:
         reader = csv.DictReader(fh)
         headers = reader.fieldnames or []
+        dept_col = next((c for c in dept_cols if c in headers), None)
         cat_col = next((c for c in cat_cols if c in headers), None)
         sub_col = next((c for c in sub_cols if c in headers), None)
         sku_col = next((c for c in ("SKU", "Product SKU") if c in headers), "SKU")
@@ -266,10 +308,11 @@ def _load_pairs(path, cat_cols, sub_cols) -> dict:
             sku = _s(row.get(sku_col))
             if not sku:
                 continue
+            dept = _s(row.get(dept_col)) if dept_col else ""
             cat = _s(row.get(cat_col)) if cat_col else ""
             sub = _s(row.get(sub_col)) if sub_col else ""
-            if cat or sub:
-                out[sku] = (cat, sub)
+            if dept or cat or sub:
+                out[sku] = (dept, cat, sub)
     return out
 
 
