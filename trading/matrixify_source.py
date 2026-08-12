@@ -107,10 +107,25 @@ def build_lines(rows, store_label):
         refund_rows = [r for r in line_rows if r["Line: Type"] == "Refund Line"]
         meta = orders_meta.get(name, {})
 
+        # Feedback row (Tom, SKU Performance, 2026-08-10 -- "Bottom 20 SKU
+        # performance units and sales don't look correct"): found 2026-08-12
+        # doing the root-cause investigation -- cash was already netted for
+        # returns (returns_inc_vat below), but units never were, an
+        # asymmetry invisible on high-revenue SKUs but glaring on the
+        # bottom-20 (return-dominated SKUs show near-zero net revenue
+        # alongside their full PRE-return unit count, e.g. "sold 12 units"
+        # for a SKU that netted to ~£0 because 10 of those 12 came back).
+        # Refund Line rows carry NEGATIVE Quantity (this module's own
+        # docstring, confirmed against a real export) -- same sign
+        # convention already used for returns_inc_vat/tax_returned below,
+        # so net units the identical way: negate the already-negative sum
+        # to get a positive "units returned" magnitude, then subtract it.
+        units_returned = -sum(_num(r.get("Line: Quantity")) for r in refund_rows)
+
         lines.append({
             "sku": original.get("Line: SKU") or None,
             "order_name": name,
-            "units": _num(original.get("Line: Quantity")),
+            "units": _num(original.get("Line: Quantity")) - units_returned,
             "net_of_discount": _num(original.get("Line: Total")),
             "tax": _num(original.get("Line: Tax Total")),
             "returns_inc_vat": -sum(_num(r.get("Line: Total")) for r in refund_rows),
