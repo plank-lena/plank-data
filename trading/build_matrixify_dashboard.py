@@ -53,6 +53,7 @@ for _p in (_HERE, _DASHBOARD_DIR, _REPO_ROOT):
 
 from contract import emit_contract_from_matrixify, render_contract, write_committed_file
 from common.period import parse_period, month_period_string
+from common.sources import matrixify_orders_snapshot, matrixify_orders_snapshot_covers
 
 _YYYY_MM_RE = re.compile(r"^(\d{4})-(\d{2})$")
 
@@ -114,18 +115,36 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
                           "chaining silently zeros both in contract.py.")
 
     period, requested_pm = _period_model_for(period_arg, as_of=as_of)
-    uk_csv = os.path.join(SOURCE_DIR, f"orders_{period}_UK.csv")
-    us_csv = os.path.join(SOURCE_DIR, f"orders_{period}_US.csv")
+    # 2026-08-12 (PII incident follow-up, docs/2026-08-12_matrixify_sheet_bridge.md):
+    # ONE rolling ~400-day snapshot per store now, not a file per period --
+    # see common.sources.matrixify_orders_snapshot's docstring for why the
+    # same two files correctly serve any period without re-scoping.
+    uk_csv = matrixify_orders_snapshot("uk")
+    us_csv = matrixify_orders_snapshot("us")
+
+    # The rolling file existing no longer proves it covers THIS period (the
+    # old one-file-per-month convention made "exists" and "covers" the same
+    # fact; a rolling file breaks that). Fail loud rather than silently
+    # building an all-zero CM off an empty filter.
+    cm_covered = (matrixify_orders_snapshot_covers(uk_csv, period)
+                  or matrixify_orders_snapshot_covers(us_csv, period))
+    if not cm_covered:
+        raise FileNotFoundError(
+            f"build_matrixify_dashboard: {period} isn't inside the rolling Matrixify "
+            f"snapshot's window ({uk_csv} / {us_csv}). This period has never been built "
+            f"and falls outside the ~400-day rolling pull -- it needs a one-off historical "
+            f"Matrixify export before this can run (see docs/2026-08-12_matrixify_sheet_bridge.md "
+            f"'backfill' note), not something the rolling snapshot covers automatically."
+        )
 
     oracle_bootstrap_path = None
     requested_period_model = None
     if lm_contract is None and ly_contract is None:
         lm_key, ly_key = requested_pm["lm"]["key"], requested_pm["ly"]["key"]
-        matrixify_windows = [
-            os.path.join(SOURCE_DIR, f"orders_{k}_{store}.csv")
-            for k in (lm_key, ly_key) for store in ("UK", "US")
-        ]
-        matrixify_bootstrap_available = all(os.path.exists(p) for p in matrixify_windows)
+        matrixify_bootstrap_available = (
+            (matrixify_orders_snapshot_covers(uk_csv, lm_key) or matrixify_orders_snapshot_covers(us_csv, lm_key))
+            and (matrixify_orders_snapshot_covers(uk_csv, ly_key) or matrixify_orders_snapshot_covers(us_csv, ly_key))
+        )
 
         if force_oracle_bootstrap:
             fixture = _ORACLE_FIXTURES.get(period)

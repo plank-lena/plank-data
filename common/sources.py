@@ -81,6 +81,45 @@ SOURCES = {
             "needs. Same sheet as shopify_product_data above, different tab."
         ),
     },
+    "matrixify_orders_uk": {
+        "connector": "google_drive",
+        "file_id": "10XoD6qOSr3fwiRE4cGfGrotcRd0YjU60vGvhNJmtE-E",
+        "tab": "Matrixify Orders UK",
+        "expected_columns": (
+            "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
+            "Top Row", "Company: Name", "Billing: Company", "Shipping: Company",
+            "Shipping: Country Code", "Line: Type", "Line: ID", "Line: SKU",
+            "Line: Quantity", "Line: Total", "Line: Tax Total",
+        ),
+        "note": (
+            "Rolling ~400-day Matrixify order snapshot (2026-08-12, PII incident "
+            "follow-up -- see docs/2026-08-12_pii_remediation.md and "
+            "docs/2026-08-12_matrixify_sheet_bridge.md). A recurring Matrixify "
+            "scheduled export (fixed filename, no job ID, so the download URL "
+            "never changes) is fetched daily by a small Apps Script and landed "
+            "in this sheet -- Drive is the hand-off, same as every other source "
+            "here, so a sandboxed session never touches app.matrixify.app "
+            "directly (that domain isn't in its network allowlist). Columns are "
+            "the minimal set trading/matrixify_source.py actually reads -- no "
+            "customer PII, no payment fields, unlike the old per-month exports "
+            "this replaces. One rolling file serves ANY period within its "
+            "window: emit_contract_from_matrixify and _matrixify_headline_totals "
+            "both filter by order_month AFTER parsing, so this file never needs "
+            "to be re-scoped per period."
+        ),
+    },
+    "matrixify_orders_us": {
+        "connector": "google_drive",
+        "file_id": "10XoD6qOSr3fwiRE4cGfGrotcRd0YjU60vGvhNJmtE-E",
+        "tab": "Matrixify Orders US",
+        "expected_columns": (
+            "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
+            "Top Row", "Company: Name", "Billing: Company", "Shipping: Company",
+            "Shipping: Country Code", "Line: Type", "Line: ID", "Line: SKU",
+            "Line: Quantity", "Line: Total", "Line: Tax Total",
+        ),
+        "note": "US twin of matrixify_orders_uk above -- same sheet, different tab.",
+    },
     "returns_zap": {
         "connector": "google_drive",
         "file_id": "1tyinVS7suxKIdaY9Y3R6geaOFkYgeaeVWcDU2VHaGzs",
@@ -182,12 +221,50 @@ RETURNS_ZAP_SNAPSHOT = os.path.join(SNAPSHOT_DIR, "returns_zap.csv")
 YOTPO_REVIEWS_SNAPSHOT = os.path.join(SNAPSHOT_DIR, "yotpo_reviews.csv")
 
 
-def matrixify_orders_snapshot(store, period):
-    """trading/source/orders_<period>_<STORE>.csv -- the existing tracked-
-    file convention (CLAUDE.md's exception for trading/source/*.csv, one
-    file per month, never overwritten), unchanged by this refactor.
+def matrixify_orders_snapshot(store, period=None):
+    """trading/source/orders_ALL_<STORE>.csv -- ONE rolling snapshot per
+    store (2026-08-12, PII incident follow-up), superseding the old
+    per-period file (orders_<period>_<STORE>.csv, CLAUDE.md's old commit
+    exception -- retired, see docs/2026-08-12_pii_remediation.md). `period`
+    is accepted so existing call sites (contract.py's LM/LY bootstrap) don't
+    need to change, but it's ignored: emit_contract_from_matrixify and
+    _matrixify_headline_totals both filter parsed rows by order_month AFTER
+    loading, so the same rolling file correctly serves any period inside its
+    window -- it never needs to be re-scoped per period. This file is never
+    committed either (source/ is gitignored, no exceptions, same as every
+    other snapshot here).
     """
-    return os.path.join(TRADING_SNAPSHOT_DIR, f"orders_{period}_{store.upper()}.csv")
+    return os.path.join(TRADING_SNAPSHOT_DIR, f"orders_ALL_{store.upper()}.csv")
+
+
+def matrixify_orders_snapshot_covers(csv_path, period):
+    """Fail-loud guard for the rolling snapshot: existence alone no longer
+    proves a period's data is actually IN the file (unlike the old one-
+    file-per-month convention, where existence was a perfect proxy -- one
+    file per month, so "exists" and "covers this month" were the same
+    fact). Scans the file's own Created At column (same parse/timezone
+    logic as trading/matrixify_source.py's order_month_london -- duplicated
+    here in miniature rather than imported, to keep common/ independent of
+    trading/, not the other way round) and returns True only if at least
+    one row actually falls in `period`. Callers should treat False the same
+    as a missing file -- fall back or fail loud, never silently proceed to
+    a zero LM/LY.
+    """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    if not os.path.exists(csv_path):
+        return False
+    london = ZoneInfo("Europe/London")
+    with open(csv_path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            created = row.get("Created At")
+            if not created:
+                continue
+            dt = datetime.strptime(created, "%Y-%m-%d %H:%M:%S %z")
+            if dt.astimezone(london).strftime("%Y-%m") == period:
+                return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +272,36 @@ def matrixify_orders_snapshot(store, period):
 # parsers already expect. Each takes a raw downloaded file/bytes and writes
 # the matching *_SNAPSHOT path; none of them change any builder's parser.
 # ---------------------------------------------------------------------------
+
+def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
+    """raw_xlsx_path: the 'Matrixify Orders (Auto-Refresh)' Drive sheet,
+    downloaded as-is -- three tabs (Sheet1, 'Matrixify Orders UK',
+    'Matrixify Orders US'), populated daily by a small Apps Script that
+    fetches Matrixify's own fixed-URL scheduled export (see
+    docs/2026-08-12_matrixify_sheet_bridge.md). Extracts the one tab for
+    `store` ('uk'/'us') to a plain CSV at out_path, same column names
+    Matrixify itself uses (e.g. 'Line: Type') -- trading/matrixify_source.py
+    reads this exactly like it read the old per-month exports, no parser
+    change needed. Blank cells come back as None from openpyxl; written out
+    as empty strings, matching how csv.DictReader expects a missing value.
+    """
+    import openpyxl
+
+    out_path = out_path or matrixify_orders_snapshot(store)
+    tab_name = f"Matrixify Orders {store.upper()}"
+    wb = openpyxl.load_workbook(raw_xlsx_path, read_only=True, data_only=True)
+    ws = wb[tab_name]
+    rows = ws.iter_rows(values_only=True)
+    header = next(rows)
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for row in rows:
+            if row[0] is None:  # trailing blank row
+                continue
+            writer.writerow(["" if v is None else v for v in row])
+    return out_path
+
 
 def normalize_line_detail_xlsx(raw_xlsx_path, out_path=LINE_DETAIL_SNAPSHOT):
     """raw_xlsx_path: the live Drive sheet, downloaded as-is (2 leading admin
