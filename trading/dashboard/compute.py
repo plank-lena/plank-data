@@ -638,16 +638,24 @@ def _kpi_rev_trend_html(trend_3mo):
     )
 
 
-def compute_kpi_tokens(current, lm, pm, mode='month'):
+def compute_kpi_tokens(current, lm, ly, pm, mode='month'):
     c = current
     total   = c['total_sales']
     lm_d2c  = lm['d2c']
     lm_tot  = lm['total']
+    ly_d2c  = ly['d2c']
+    ly_tot  = ly['total']
     d2c_share     = c['d2c_gbp'] / total if total else 0
     lm_d2c_share  = lm_d2c / lm_tot if lm_tot else 0
+    ly_d2c_share  = ly_d2c / ly_tot if ly_tot else 0
     lm_b2b_share  = (lm.get('b2b') / lm_tot) if lm_tot else None
+    ly_b2b_share  = (ly.get('b2b') / ly_tot) if ly_tot else None
     b2b_share     = c.get('b2b_share')
-    b2b_share_delta = (b2b_share - lm_b2b_share) if (b2b_share is not None and lm_b2b_share is not None) else None
+    b2b_share_delta    = (b2b_share - lm_b2b_share) if (b2b_share is not None and lm_b2b_share is not None) else None
+    # Feedback row (Tom, Trading/Top Performance Banner, 2026-08-10): D2C/LY
+    # rise-or-fall alongside the existing vs-LM pp delta -- same pp-delta
+    # convention as KPI_D2C_LM/KPI_B2B_LM above, just against ly instead of lm.
+    b2b_share_ly_delta = (b2b_share - ly_b2b_share) if (b2b_share is not None and ly_b2b_share is not None) else None
     cm_lbl = pm['cm']['label']
     lm_lbl = pm['lm']['label']
     ly_lbl = pm['ly']['label']
@@ -721,6 +729,8 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
         'KPI_D2C_SHARE':    f'{d2c_share*100:.1f}%',
         'KPI_D2C_LM_CLS':   badge_class(d2c_share - lm_d2c_share),
         'KPI_D2C_LM':       ('+' if d2c_share >= lm_d2c_share else '') + f'{(d2c_share - lm_d2c_share)*100:.1f}pp',
+        'KPI_D2C_LY_CLS':   badge_class(d2c_share - ly_d2c_share),
+        'KPI_D2C_LY':       ('+' if d2c_share >= ly_d2c_share else '') + f'{(d2c_share - ly_d2c_share)*100:.1f}pp',
 
         # KPI — B2B Share of Revenue (new -- BRIEF #4 step 4 §1/§6, item 1.
         # Labelled "share of revenue", not "B2B %", because D2C% + B2B%
@@ -729,6 +739,8 @@ def compute_kpi_tokens(current, lm, pm, mode='month'):
         'KPI_B2B_SHARE':    fmt_pct(b2b_share, force_sign=False),
         'KPI_B2B_LM_CLS':   badge_class(b2b_share_delta),
         'KPI_B2B_LM':       (('+' if b2b_share_delta >= 0 else '') + f'{b2b_share_delta*100:.1f}pp') if b2b_share_delta is not None else '—',
+        'KPI_B2B_LY_CLS':   badge_class(b2b_share_ly_delta),
+        'KPI_B2B_LY':       (('+' if b2b_share_ly_delta >= 0 else '') + f'{b2b_share_ly_delta*100:.1f}pp') if b2b_share_ly_delta is not None else '—',
 
         # KPI — UK
         'KPI_UK_VAL':    fmt_gbp(c.get('uk_gbp')),
