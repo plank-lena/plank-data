@@ -31,6 +31,7 @@ function here, which writes the matching *_SNAPSHOT path. Then run each
 builder exactly as it runs today -- no builder code branches on where its
 input file came from.
 """
+import csv
 import json
 import os
 
@@ -241,6 +242,46 @@ def normalize_shopify_inventory_xlsx(raw_xlsx_path, out_path=SHOPIFY_INVENTORY_S
         columns=["SKU", "Inventory"],
     )
     df.to_csv(out_path, index=False)
+    return out_path
+
+
+def normalize_yotpo_reviews_xlsx(raw_xlsx_path, out_path=YOTPO_REVIEWS_SNAPSHOT):
+    """raw_xlsx_path: the Yotpo-bound sheet downloaded as xlsx. Extracts the
+    `API Yotpo Reviews` tab to a flat CSV.
+
+    Found 2026-08-12 refreshing this snapshot for the first time since the
+    committed one: openpyxl reads a whole-number Google Sheets cell (ID,
+    Score, Votes Up/Down -- confirmed the affected columns) back as a Python
+    float, so a naive dump renders "866558445" as "866558445.0". Confirmed
+    by diffing a fresh pull against the committed snapshot: every row
+    "changed" until this was stripped, at which point the two were
+    byte-identical except for 2 genuinely new reviews. Cast every
+    whole-number float to int before writing so this doesn't recur on every
+    future refresh.
+    """
+    import openpyxl
+
+    wb = openpyxl.load_workbook(raw_xlsx_path, read_only=True, data_only=True)
+    ws = wb["API Yotpo Reviews"]
+
+    def _clean(v):
+        if isinstance(v, float) and v.is_integer():
+            return int(v)
+        return v
+
+    raw_rows = [[_clean(v) for v in row] for row in ws.iter_rows(values_only=True)]
+    # Trailing blank column/rows (found 2026-08-12): ws.max_row/max_column on
+    # the live sheet run past the real data by a formatting artifact -- an
+    # all-blank trailing header cell and 2 fully-blank trailing rows, neither
+    # present in the committed snapshot. Confirmed via diff against it that
+    # trimming these (not the real header width) reproduces it exactly bar
+    # genuinely new reviews.
+    header = raw_rows[0]
+    width = max(i + 1 for i, v in enumerate(header) if v not in (None, ""))
+    rows = [row[:width] for row in raw_rows if any(v not in (None, "") for v in row[:width])]
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerows(rows)
     return out_path
 
 
