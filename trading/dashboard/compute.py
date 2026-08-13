@@ -1121,12 +1121,24 @@ def js_block_finish_data(finish_data):
             f"    total:{fd['total']}, lq:{lq}, ly:{ly},"
             f" units:{fd['units']}, vsLQ:{vsLQ}, vsLY:{vsLY},\n"
             f"    d2c:{fd['d2c']}, b2b:{fd['b2b']}, b2b_share:{_js_val(fd.get('b2b_share'))},"
+            f" d2c_share:{_js_val(fd.get('d2c_share'))},"
             f" uk:{fd['uk']}, us:{fd['us']}, uk_u:{fd['uk_u']}, us_u:{fd['us_u']},"
             # lq_uk/lq_us (audit finding, 2026-08-12, item 9): now genuinely
             # None (see the dict above) -- raw interpolation would emit the
             # invalid JS token `None`, the same ReferenceError-at-runtime
             # regression class already fixed for ly/vsLY just above.
             f" lq_uk:{_js_val(fd['lq_uk'])}, lq_us:{_js_val(fd['lq_us'])},\n"
+            # gm / d2c_share / uk_vs_lq / us_vs_lq (2026-08-13): compute_finish_
+            # analysis() has set all four since the 2026-08-10 Finish Analysis
+            # feedback row, and the template reads all four (d.gm, d.d2c_share,
+            # d.uk_vs_lq, d.us_vs_lq) -- but this serializer never emitted them,
+            # so they arrived at the client as `undefined` and every one of those
+            # sidebar rows rendered a literal "—" on EVERY build, forever. The
+            # data was real the whole time; only this string was missing it.
+            # Caught from a screenshot of the Jun 2026 dashboard showing GM% and
+            # D2C share blank while B2B share (which WAS emitted here) worked.
+            f"    gm:{_js_val(fd.get('gm'))},"
+            f" uk_vs_lq:{_js_val(fd.get('uk_vs_lq'))}, us_vs_lq:{_js_val(fd.get('us_vs_lq'))},\n"
             f"    top_collections:{top_collections_str}\n"
             f"  }},"
         )
