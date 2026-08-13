@@ -225,6 +225,8 @@ def load_matrixify_sales(sources):
     [("UK","trading/source/orders_2026-04_UK.csv"), ("US","trading/source/orders_2026-04_US.csv"), ...]
     -- one or more months per country, concatenated; prep()'s own order-month cohort
     logic (not each file's own boundary) decides which order lands in which month.
+    `country` here means "which store this file came from" -- see the mkt derivation
+    note below for why that's NOT the same thing as market.
 
     Row structure confirmed in trading/matrixify_source.py: a refund shares the SAME
     `Line: ID` as its original `Line Item` row, as one or more `Refund Line` rows with
@@ -233,11 +235,23 @@ def load_matrixify_sales(sources):
     This is a returns-specific adapter (not a reuse of matrixify_source.build_lines(),
     which doesn't expose refunded quantity) -- it only borrows that module's raw CSV
     reader and datetime parsing.
+
+    mkt derivation, fixed 2026-08-13: this used to just be `country` -- literally which
+    file/store the row came from, not the order's actual ship-to market. That meant a
+    UK-store order shipped to a ROW country (or vice versa) was silently folded into
+    UK/US, and ROW could never appear in `by_market` at all -- a real, structural gap
+    (pre-existing, not introduced by the connector migration; see
+    docs/2026-08-13_returns_findings.md). Now derives mkt from `Shipping: Country Code`
+    the same way trading and check_returns_country_agreement() already do (GB -> UK,
+    US -> US, else -> ROW), falling back to the store-file `country` only when that
+    column is genuinely blank (defensive -- shouldn't happen for a real Matrixify export).
     """
     trading_dir = os.path.join(os.path.dirname(__file__), "..", "trading")
     if trading_dir not in sys.path:
         sys.path.insert(0, trading_dir)
     from matrixify_source import load_rows, _num, _parse_dt
+
+    ship_mkt_map = {"GB": "UK", "US": "US"}
 
     records = []
     orphan_refunds = 0
@@ -249,10 +263,12 @@ def load_matrixify_sales(sources):
             if row.get("Top Row", "").lower() == "true":
                 company = (row.get("Company: Name") or row.get("Billing: Company")
                            or row.get("Shipping: Company") or None)
+                ship_country_code = (row.get("Shipping: Country Code") or "").strip()
                 orders_meta[name] = {
                     "order_id": row.get("ID"),
                     "created_at": row.get("Created At"),
                     "company": company,
+                    "mkt": ship_mkt_map.get(ship_country_code, "ROW") if ship_country_code else country,
                 }
             line_type = row.get("Line: Type")
             if line_type in ("Line Item", "Refund Line"):
@@ -274,7 +290,7 @@ def load_matrixify_sales(sources):
                 "order": str(meta.get("order_id") or ""),
                 "sku": sku,
                 "name": original.get("Line: Title"),
-                "mkt": country,
+                "mkt": meta.get("mkt", country),
                 "seg": "Trade" if meta.get("company") else "Retail",
                 "created": pd.Timestamp(created) if created is not None else pd.NaT,
                 "units": _num(original.get("Line: Quantity")),
@@ -484,11 +500,27 @@ def prep(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
     # blended-file check that still passes because another market's overlap is
     # healthy (this is exactly how US returns went to zero unnoticed: the
     # combined UK+US assert above stayed green off UK's overlap alone).
+    #
+    # ROW is exempted from the strict assert (2026-08-13, added the same day
+    # mkt started being derived from Shipping: Country Code instead of which
+    # store-file an order came from -- see load_matrixify_sales). Checked via
+    # check_returns_country_agreement() + a direct scan of the raw ReturnZap
+    # sheet: its own Country column contains ONLY "GB" or "US", across all
+    # 54,831 raw rows, no exceptions. That's not this period happening to have
+    # zero ROW returns -- ReturnZap has no way to record a ROW return at all,
+    # ever, with the current source. Asserting overlap on a bucket the source
+    # can structurally never populate isn't a safety check, it's a permanent
+    # false alarm -- but "exempt" still means visible: ROW's own sales/
+    # returned counts are printed every run, not silently skipped.
     for mkt in sorted(s["mkt"].dropna().unique()):
-        assert_returns_overlap_sales(
-            ret.loc[ret["mkt"] == mkt, "order"].nunique(),
-            s.loc[s["mkt"] == mkt, "order"].nunique(),
-        )
+        mkt_sales_orders = s.loc[s["mkt"] == mkt, "order"].nunique()
+        mkt_returned_orders = ret.loc[ret["mkt"] == mkt, "order"].nunique()
+        if mkt == "ROW":
+            print(f"prep: ROW -- {mkt_returned_orders} of {mkt_sales_orders} sales orders have a "
+                  f"matching return this period (overlap NOT asserted -- ReturnZap's Country "
+                  f"column is GB/US only, see comment above)", file=sys.stderr)
+            continue
+        assert_returns_overlap_sales(mkt_returned_orders, mkt_sales_orders)
 
     # enrich (status + finish, from Line Detail)
     status_lookup = dict(zip(ld_std["sku"], ld_std["status"]))
@@ -533,6 +565,30 @@ def prep(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
     exch_keys = set(zip(ret.loc[ret.is_exchange, "sku"], ret.loc[ret.is_exchange, "order"]))
     shopv["is_exch_line"] = list(zip(shopv["sku"], shopv["order"]))
     shopv["is_exch_line"] = shopv["is_exch_line"].isin(exch_keys)
+
+    # Value-metrics dead-zone guard (2026-08-13, C3 finding): shopv["val"] comes
+    # from load_matrixify_sales()'s refund_val, which is entirely dependent on the
+    # Matrixify export actually containing "Refund Line" rows -- confirmed 2026-08-13
+    # that Matrixify only emits them at all when the "refunds" group (or any of its
+    # columns) is requested; a column set missing that produces zero Refund Line
+    # rows, not partially-populated ones, so refund_val is silently zero for every
+    # order and value_returned reads zero throughout the dashboard with no error --
+    # exactly what happened building this fix. ret["qty"] (ReturnZap-sourced, a
+    # completely independent feed) is the control: if ReturnZap shows real returned
+    # units this period but the Matrixify side shows zero value across all of them,
+    # that's the export missing refund rows again, not a quiet period.
+    returned_units = ret["qty"].sum()
+    returned_value = shopv["val"].abs().sum()
+    if returned_units > 0 and returned_value == 0:
+        raise AssertionError(
+            f"RECONCILE FAIL: ReturnZap shows {returned_units:.0f} returned units this period, "
+            f"but the Matrixify-sourced refund value is exactly zero across all of them -- "
+            f"implausible for a real period, and the known signature of the Matrixify export "
+            f"missing 'Refund Line' rows (fix: include a column from the 'refunds' group in the "
+            f"export's column list, not just Line: Total/Line: Quantity -- see "
+            f"docs/2026-08-13_returns_findings.md). Don't publish a dashboard with every value "
+            f"metric silently reading zero."
+        )
 
     return s, ret, zap, shopv, months
 
@@ -731,7 +787,7 @@ def run(sales_df, ld_std, returns_df, month_nums=None, year=DEFAULT_YEAR):
         "by_month_trade": by_month(s_trade, ret_trade, months),
         "by_month_blended": by_month(s, ret, months),          # reported for transparency only, never headlined
         "by_status": by_group(s, ret, "status", STAT),
-        "by_market": by_group(s, ret, "mkt", ["UK", "US"]),
+        "by_market": by_group(s, ret, "mkt", ["UK", "US", "ROW"]),
         "reason_mix": reason_mix(zap),
         "reason_detail": reason_detail(zap),
         "by_stage": by_stage(zap),

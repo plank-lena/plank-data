@@ -83,13 +83,14 @@ SOURCES = {
     },
     "matrixify_orders_uk": {
         "connector": "google_drive",
-        "file_id": "10XoD6qOSr3fwiRE4cGfGrotcRd0YjU60vGvhNJmtE-E",
-        "tab": "Matrixify Orders UK",
+        "file_id": "1b7Lt_2SnPt4Y0iwvWX0hctcqCqixSnQSRYT_534a2Cw",
+        "tab": "Sheet1",
         "expected_columns": (
-            "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
+            "ID", "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
             "Top Row", "Company: Name", "Billing: Company", "Shipping: Company",
             "Shipping: Country Code", "Line: Type", "Line: ID", "Line: SKU",
-            "Line: Quantity", "Line: Total", "Line: Tax Total",
+            "Line: Title", "Line: Quantity", "Line: Total", "Line: Tax Total",
+            "Refund: ID", "Refund: Created At",
         ),
         "note": (
             "Rolling ~400-day Matrixify order snapshot (2026-08-12, PII incident "
@@ -97,28 +98,39 @@ SOURCES = {
             "docs/2026-08-12_matrixify_sheet_bridge.md). A recurring Matrixify "
             "scheduled export (fixed filename, no job ID, so the download URL "
             "never changes) is fetched daily by a small Apps Script and landed "
-            "in this sheet -- Drive is the hand-off, same as every other source "
-            "here, so a sandboxed session never touches app.matrixify.app "
-            "directly (that domain isn't in its network allowlist). Columns are "
-            "the minimal set trading/matrixify_source.py actually reads -- no "
-            "customer PII, no payment fields, unlike the old per-month exports "
-            "this replaces. One rolling file serves ANY period within its "
-            "window: emit_contract_from_matrixify and _matrixify_headline_totals "
-            "both filter by order_month AFTER parsing, so this file never needs "
-            "to be re-scoped per period."
+            "here -- Drive is the hand-off, same as every other source here, so "
+            "a sandboxed session never touches app.matrixify.app directly (that "
+            "domain isn't in its network allowlist). Columns are the minimal set "
+            "trading/matrixify_source.py and returns/build.py's load_matrixify_sales "
+            "actually read -- no customer PII, no payment fields, unlike the old "
+            "per-month exports this replaces. One rolling file serves ANY period "
+            "within its window: emit_contract_from_matrixify and "
+            "_matrixify_headline_totals both filter by order_month AFTER parsing, "
+            "so this file never needs to be re-scoped per period.\n"
+            "SPLIT INTO ITS OWN FILE 2026-08-13: originally one 3-tab workbook "
+            "shared with matrixify_orders_us (file_id "
+            "10XoD6qOSr3fwiRE4cGfGrotcRd0YjU60vGvhNJmtE-E, tab 'Matrixify Orders "
+            "UK') -- once the export started actually including Refund Line rows "
+            "(one row PER REFUNDED UNIT, not per refund event -- a documented "
+            "Matrixify convention, not a bug; a single large refund can add "
+            "dozens of rows), the combined workbook grew too large for xlsx "
+            "export. Split into two single-tab files, each comfortably within "
+            "the export size limit. The old combined file still exists but is no "
+            "longer written to -- safe to delete once this is confirmed working."
         ),
     },
     "matrixify_orders_us": {
         "connector": "google_drive",
-        "file_id": "10XoD6qOSr3fwiRE4cGfGrotcRd0YjU60vGvhNJmtE-E",
-        "tab": "Matrixify Orders US",
+        "file_id": "16VgsZvBTDiZkB7hFJcdVqLGzjUq8ahqv7NCHWLwzqx8",
+        "tab": "Sheet1",
         "expected_columns": (
-            "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
+            "ID", "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
             "Top Row", "Company: Name", "Billing: Company", "Shipping: Company",
             "Shipping: Country Code", "Line: Type", "Line: ID", "Line: SKU",
-            "Line: Quantity", "Line: Total", "Line: Tax Total",
+            "Line: Title", "Line: Quantity", "Line: Total", "Line: Tax Total",
+            "Refund: ID", "Refund: Created At",
         ),
-        "note": "US twin of matrixify_orders_uk above -- same sheet, different tab.",
+        "note": "US twin of matrixify_orders_uk above -- own file now too, see its note.",
     },
     "returns_zap": {
         "connector": "google_drive",
@@ -298,9 +310,10 @@ def _clean_cell(v):
 
 
 def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
-    """raw_xlsx_path: the 'Matrixify Orders (Auto-Refresh)' Drive sheet,
-    downloaded as-is -- three tabs (Sheet1, 'Matrixify Orders UK',
-    'Matrixify Orders US'), populated daily by a small Apps Script that
+    """raw_xlsx_path: one of the two 'Matrixify Orders (Auto-Refresh)' Drive
+    sheets -- UK and US now live in SEPARATE files (split 2026-08-13, see
+    matrixify_orders_uk's SOURCES note for why), each a single default
+    'Sheet1' tab, populated daily by a small Apps Script that
     fetches Matrixify's own fixed-URL scheduled export (see
     docs/2026-08-12_matrixify_sheet_bridge.md). Extracts the one tab for
     `store` ('uk'/'us') to a plain CSV at out_path, same column names
@@ -314,7 +327,7 @@ def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
     import openpyxl
 
     out_path = out_path or matrixify_orders_snapshot(store)
-    tab_name = f"Matrixify Orders {store.upper()}"
+    tab_name = SOURCES[f"matrixify_orders_{store.lower()}"]["tab"]
     wb = openpyxl.load_workbook(raw_xlsx_path, read_only=True, data_only=True)
     ws = wb[tab_name]
     rows = ws.iter_rows(values_only=True)

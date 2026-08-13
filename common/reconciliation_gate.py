@@ -197,9 +197,22 @@ def assert_returns_overlap_sales(returned_orders, sales_orders, min_rate=0.01, m
     sales_orders: distinct sales orders in this period (s["order"].nunique()).
     min_rate/min_absolute: generous floors, not a precise expectation -- this
     catches "the file is obviously wrong," not "the rate looks a bit off."
+    min_absolute's actual job is different from min_rate's: min_rate alone
+    would let a single coincidental match in a small population pass (1 of
+    50 orders = 2%, above a 1% floor, off pure chance) -- min_absolute=5
+    exists to require more than one lucky coincidence before trusting the
+    join. That reasoning only holds when the population is big enough for
+    5 to be a small fraction of it; scaled down here (2026-08-13, added
+    when returns/build.py started deriving a real ROW bucket instead of
+    folding everything into UK/US -- ROW is genuinely small, e.g. 45 orders
+    in a typical month, and demanding 5 of 45 is a ~11% floor, disproportionate
+    versus UK/US's own effectively-~0.05% floor at their scale) so the same
+    anti-coincidence intent applies at any population size instead of one
+    fixed number calibrated for thousands of orders.
     """
+    scaled_min_absolute = min(min_absolute, max(1, round(sales_orders * min_rate)))
     rate = returned_orders / sales_orders if sales_orders else 0
-    assert returned_orders >= min_absolute and rate >= min_rate, (
+    assert returned_orders >= scaled_min_absolute and rate >= min_rate, (
         f"RECONCILE FAIL: only {returned_orders} of {sales_orders} sales orders "
         f"({rate:.2%}) have a matching return in this period -- implausibly low "
         f"for a real returns export. Check the returns source file actually "
