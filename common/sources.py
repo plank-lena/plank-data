@@ -34,6 +34,7 @@ input file came from.
 import csv
 import json
 import os
+import sys
 
 import pandas as pd
 
@@ -75,10 +76,39 @@ SOURCES = {
         "connector": "google_drive",
         "file_id": "1wb7Xj1ionrL3eoZKBZ5JZTxo6jAiIqFaBQ74IJprcjo",
         "tab": "API Yotpo Reviews",
+        "expected_columns": (
+            "ID", "Market", "Title", "Content", "Score", "Votes Up", "Votes Down",
+            "Created At", "Updated At", "Sentiment", "SKU", "Name", "Email",
+            "Reviewer Type", "Deleted", "Archived", "Escalated", "User Reference",
+            "Is Incentivized", "Product SKU", "Product Group", "Product Title",
+            "Product Type", "Product Category", "Sub Category", "Collection",
+            "Material", "Finish", "Product Type Metafield", "Style Metafield",
+            "Descriptor Word", "Product_Type", "YGroup", "Product Status", "CORE?",
+            # "Review IDs" deliberately excluded -- see normalize_yotpo_reviews_
+            # from_csv's docstring for why it's the one column allowed to be
+            # missing entirely, not just blank.
+        ),
         "note": (
             "Pulled with deleted=true -- deleted/escalated rows are in this "
             "tab by design, the whole criticism signal review_feedback.py "
-            "needs. Same sheet as shopify_product_data above, different tab."
+            "needs. Same sheet as shopify_product_data above, different tab.\n"
+            "CONFIRMED BROKEN 2026-08-13: the sheet's own 'Review IDs' column "
+            "(a formula, not raw Yotpo data) reads literal 'Loading...' on row "
+            "2 and blank on the other 5,516 of 5,517 rows -- a stuck Google "
+            "Sheets formula, not something fixable from here (the Drive "
+            "connector reads final values, not formula definitions). Data is "
+            "also stale as of this check: newest review 2026-07-05. Refresh "
+            "has been deliberately withheld rather than risk undercounting --  "
+            "review_feedback.py's dedupe_key falls back to Email+Content when "
+            "Review IDs is blank, and that fallback is measurably less precise "
+            "at catching syndicated copies (the same review posted once, "
+            "attached to every SKU in a product group) than a real grouped ID.\n"
+            "ALTERNATE PATH while the Sheet is stuck: normalize_yotpo_reviews_"
+            "from_csv() below accepts a raw Yotpo CSV export uploaded directly "
+            "(same shape as project knowledge's Sample_of_Yotpo_data_.csv), "
+            "bypassing the Sheet (and its broken formula) entirely -- landed "
+            "at the exact same snapshot path normalize_yotpo_reviews_xlsx "
+            "writes to, so review_feedback.py needs no changes either way."
         ),
     },
     "matrixify_orders_uk": {
@@ -460,6 +490,58 @@ def normalize_yotpo_reviews_xlsx(raw_xlsx_path, out_path=YOTPO_REVIEWS_SNAPSHOT)
     header = raw_rows[0]
     width = max(i + 1 for i, v in enumerate(header) if v not in (None, ""))
     rows = [row[:width] for row in raw_rows if any(v not in (None, "") for v in row[:width])]
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerows(rows)
+    return out_path
+
+
+def normalize_yotpo_reviews_from_csv(raw_csv_path, out_path=YOTPO_REVIEWS_SNAPSHOT):
+    """Alternate path for when the Yotpo Google Sheet's own 'Review IDs'
+    formula is broken/stuck (see yotpo_reviews's SOURCES note) -- refreshing
+    from the Sheet while that's stuck would silently undercount syndicated
+    reviews via review_feedback.py's own fallback dedupe key (Email +
+    Content), which is measurably less precise than a real grouped ID.
+    Accepts a raw Yotpo CSV export (the same shape as project knowledge's
+    Sample_of_Yotpo_data_.csv) uploaded directly instead -- e.g. someone
+    attaches the file to a chat and hands its /mnt/user-data/uploads/ path
+    here -- bypassing the Sheet (and its broken formula) entirely.
+
+    Deliberately tolerant of a missing 'Review IDs' column altogether, not
+    just a blank one: that column looks like something computed inside
+    Plank's own Google Sheet, not part of Yotpo's native export -- a raw
+    pull straight from Yotpo's own UI may never have had it. Either way,
+    review_feedback.py's existing fallback already handles a blank/absent
+    Review IDs value per row; this function doesn't try to compute one
+    itself. Its only job is landing the raw rows at the exact CSV shape
+    normalize_yotpo_reviews_xlsx already produces, so review_feedback.py
+    (or anything else downstream) can't tell which path a given refresh
+    came from -- same snapshot path, same column names, same dtype
+    handling it would have gotten from the Sheet.
+    """
+    with open(raw_csv_path, newline="", encoding="utf-8-sig") as f:
+        rows = [row for row in csv.reader(f) if any(v.strip() for v in row)]
+
+    if not rows:
+        raise ValueError(f"normalize_yotpo_reviews_from_csv: {raw_csv_path} has no data rows")
+
+    header = rows[0]
+    expected = SOURCES["yotpo_reviews"]["expected_columns"]
+    missing = [c for c in expected if c not in header]
+    if missing:
+        raise ValueError(
+            f"normalize_yotpo_reviews_from_csv: {raw_csv_path} is missing expected column(s) "
+            f"{missing} -- doesn't look like the Yotpo export format review_feedback.py expects. "
+            f"Check it's a genuine Yotpo reviews export, not a different report."
+        )
+    if "Review IDs" not in header:
+        print("normalize_yotpo_reviews_from_csv: no 'Review IDs' column in this export -- "
+              "review_feedback.py's fallback dedupe key (Email + Content) will be used for "
+              "every row, same degraded-but-working behavior as when the Sheet's formula is "
+              "stuck. Syndicated-review counts may be very slightly less precise as a result.",
+              file=sys.stderr)
+
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
