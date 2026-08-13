@@ -15,9 +15,11 @@ drives the By Period and Reconciliation tabs' per-period breakdown; with exactly
 one entry, the redundant explicit total row is skipped (it would just repeat the
 single period's own numbers).
 
-Known data gap, not fabricated: the contract's `finishes` block carries no
-per-finish GM or ROW (unlike Product Type/Collection/SKU, which do) -- Cuts'
-By Finish section leaves those two columns blank rather than estimating them.
+Fixed 2026-08-13: `finishes` used to carry no per-finish GM or ROW (unlike
+Product Type/Collection/SKU, which always did) -- GM was actually being
+accumulated internally already (for the Finish Analysis GM% sidebar) but never
+exposed; ROW wasn't tracked at all. Both now real, in contract.py's
+emit_contract_from_matrixify -- see its finish_totals accumulation.
 """
 import os
 import sys
@@ -276,9 +278,7 @@ def _build_cuts(wb, cc, period_label):
     finishes_rows = [{"name": k, **v} for k, v in
                       sorted(cc["finishes"].items(), key=lambda kv: -kv[1]["total"])]
     r = cut_table(r, "By Finish", "Finish", finishes_rows,
-                  "name", "total", "units", None, "uk", "us", None)
-    note_row(ws, r, "By Finish has no GM or ROW column: the contract's finishes block doesn't "
-                     "carry either (unlike Product Type/Collection/SKU) -- left blank, not estimated.", 7)
+                  "name", "total", "units", "gm", "uk", "us", "row")
 
 
 def _build_reconciliation(wb, constituent_contracts, cc, period_label):

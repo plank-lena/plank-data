@@ -751,7 +751,7 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
         if line["finish"]:
             f = finish_totals.setdefault(line["finish"], {
                 "total": 0.0, "units": 0, "d2c": 0.0, "b2b": 0.0,
-                "uk": 0.0, "us": 0.0, "uk_u": 0, "us_u": 0,
+                "uk": 0.0, "us": 0.0, "row": 0.0, "uk_u": 0, "us_u": 0,
                 "gm_num": 0.0, "gm_den": 0.0,
             })
             f["total"] += ab
@@ -763,6 +763,12 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             elif bucket == "US":
                 f["us"] += ab
                 f["us_u"] += line["units"]
+            else:
+                # 2026-08-13: ROW wasn't tracked here at all -- the Excel companion's
+                # Cuts tab needed it and there was nowhere to read it from. `bucket`
+                # is only ever UK/US/ROW (country_bucket()'s own range), so the
+                # else here is unambiguous, same as country_totals's own ROW slot.
+                f["row"] += ab
             # Feedback row (Lena, Finish Analysis, 2026-08-10): GM% for the
             # sidebar -- same revenue-weighted-average pattern as dept/coll/
             # channel/market GM above.
@@ -1147,6 +1153,14 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             "vsLQ": _vs(v["total"], oracle_finish_lq.get(name)) if name in oracle_finish_lq else None,
             "vsLY": _vs(v["total"], oracle_finish_ly.get(name)) if name in oracle_finish_ly else None,
             "d2c": v["d2c"], "b2b": v["b2b"], "uk": v["uk"], "us": v["us"],
+            # 2026-08-13: row/gm were both real internally already (gm_num/gm_den
+            # were accumulated for the Finish Analysis GM% sidebar, 2026-08-10 --
+            # row wasn't tracked at all until the accumulation fix above) but
+            # neither was ever exposed here. The Excel companion's Cuts tab
+            # needed both -- same revenue-weighted-average pattern collections
+            # and product types already use for gm.
+            "row": v["row"],
+            "gm": (v["gm_num"] / v["gm_den"]) if v["gm_den"] else None,
             # T3b: units-by-country, needed for a genuine Units x UK/US
             # toggle at finish grain (cash-by-country already existed).
             "uk_u": v["uk_u"], "us_u": v["us_u"],
