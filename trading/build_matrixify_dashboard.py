@@ -207,9 +207,24 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     write_committed_file(html, out_path, force=force, label="dashboard output")
 
+    # Values-only Excel companion, automatic alongside the HTML (2026-08-13) --
+    # not a separate manual step. Monthly = a single-constituent call (see
+    # excel_companion.py's module docstring for why that's not a special case
+    # in the tab-building code, just constituent_contracts of length 1).
+    period_label = contract["period_model"]["cm"]["label"]
+    companion_path = os.path.join(os.path.dirname(out_path), f"{label}_companion{out_suffix}.xlsx")
+    if os.path.exists(companion_path) and not force:
+        raise FileExistsError(
+            f"refusing to overwrite existing committed companion Excel at {companion_path} -- "
+            f"pass force=True (CLI: --force) to intentionally overwrite."
+        )
+    from excel_companion import build_companion
+    build_companion(companion_path, period_label, contract, [(period_label, contract)])
+
     reconciled = contract["provenance"]["reconciled"]
     print(f"contract:  {contract_path}")
     print(f"dashboard: {out_path}")
+    print(f"companion: {companion_path}")
     print(f"reconciled (structural leak check): {reconciled}")
     if not reconciled:
         print("WARNING: not reconciled -- do not publish this build.", file=sys.stderr)

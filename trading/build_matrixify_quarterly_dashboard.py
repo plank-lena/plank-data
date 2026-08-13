@@ -176,9 +176,32 @@ def build(periods, lq_contract=None, out_suffix="_matrixify", force_oracle_boots
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     write_committed_file(html, out_path, force=force, label="dashboard output")
 
+    # Values-only Excel companion, automatic alongside the HTML (2026-08-13).
+    # Constituent months are read from their own ALREADY-COMMITTED contracts
+    # (ROADMAP.md §5's contract-chaining rule -- a quarter is only built once
+    # its months are, so these should always exist; fails loud if not, rather
+    # than silently reconstructing a month that hasn't actually been published).
+    month_contracts = []
+    month_names = {4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug", 9: "Sep",
+                   10: "Oct", 11: "Nov", 12: "Dec", 1: "Jan", 2: "Feb", 3: "Mar"}
+    for p in periods:
+        mpath = os.path.join(CONTRACTS_DIR, f"{p}-matrixify.json")
+        mcontract = json.load(open(mpath))
+        mlabel = f"{month_names[int(p.split('-')[1])]} {p.split('-')[0]}"
+        month_contracts.append((mlabel, mcontract))
+    companion_path = os.path.join(os.path.dirname(out_path), f"{label}_companion{out_suffix}.xlsx")
+    if os.path.exists(companion_path) and not force:
+        raise FileExistsError(
+            f"refusing to overwrite existing committed companion Excel at {companion_path} -- "
+            f"pass force=True (CLI: --force) to intentionally overwrite."
+        )
+    from excel_companion import build_companion
+    build_companion(companion_path, q_label, contract, month_contracts)
+
     reconciled = contract["provenance"]["reconciled"]
     print(f"contract:  {contract_path}")
     print(f"dashboard: {out_path}")
+    print(f"companion: {companion_path}")
     print(f"reconciled (structural leak check): {reconciled}")
     print(f"lq_ly_source: {contract['provenance']['lq_ly_source']}")
     if not reconciled:
