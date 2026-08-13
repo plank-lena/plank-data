@@ -195,7 +195,7 @@ def build(periods, lq_contract=None, out_suffix="_matrixify", force_oracle_boots
             f"refusing to overwrite existing committed companion Excel at {companion_path} -- "
             f"pass force=True (CLI: --force) to intentionally overwrite."
         )
-    from excel_companion import build_companion
+    from trading.excel_companion import build_companion
     build_companion(companion_path, q_label, contract, month_contracts)
 
     reconciled = contract["provenance"]["reconciled"]

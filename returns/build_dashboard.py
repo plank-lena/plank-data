@@ -78,7 +78,27 @@ def build_returns(period_arg, force=False, as_of=None, out_path=None):
         source_label="Matrixify rolling snapshot (UK+US) + ReturnZap Drive sheet",
         out_path=out_path,
     )
+
+    # Values-only Excel companion, automatic alongside the HTML (2026-08-13) --
+    # matches trading's build_matrixify_dashboard.py pattern. Real per-SKU/
+    # per-department aggregation computed fresh here (returns has no
+    # pre-built "contract" artifact like trading's contract.json), not a
+    # re-derivation of numbers render() already computed independently --
+    # both start from the same sales_df/ld_std/returns_df, same prep().
+    from returns.excel_companion import build_returns_companion
+    companion_path = os.path.splitext(out_path)[0] + "_companion.xlsx"
+    if os.path.exists(companion_path) and not force:
+        raise FileExistsError(
+            f"build_returns: {companion_path} already exists -- refusing to silently overwrite. "
+            f"Pass force=True (--force on the CLI) if this is deliberate."
+        )
+    build_returns_companion(
+        companion_path, label, sales_df, ld_std, returns_df, month_nums, year,
+        source_note=f"Source: {label} committed returns build. Values-only (no formulas).",
+    )
+
     print(f"dashboard: {written}")
+    print(f"companion: {companion_path}")
     return written
 
 

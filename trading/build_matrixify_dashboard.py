@@ -218,7 +218,7 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
             f"refusing to overwrite existing committed companion Excel at {companion_path} -- "
             f"pass force=True (CLI: --force) to intentionally overwrite."
         )
-    from excel_companion import build_companion
+    from trading.excel_companion import build_companion
     build_companion(companion_path, period_label, contract, [(period_label, contract)])
 
     reconciled = contract["provenance"]["reconciled"]
