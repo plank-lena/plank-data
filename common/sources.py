@@ -319,6 +319,7 @@ def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
     ws = wb[tab_name]
     rows = ws.iter_rows(values_only=True)
     header = next(rows)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(header)
@@ -350,6 +351,7 @@ def normalize_returns_zap_xlsx(raw_xlsx_path, out_path=RETURNS_ZAP_SNAPSHOT):
     ws = wb["API Returns"]
     rows = ws.iter_rows(values_only=True)
     header = next(rows)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(header)
@@ -443,6 +445,7 @@ def normalize_yotpo_reviews_xlsx(raw_xlsx_path, out_path=YOTPO_REVIEWS_SNAPSHOT)
     header = raw_rows[0]
     width = max(i + 1 for i, v in enumerate(header) if v not in (None, ""))
     rows = [row[:width] for row in raw_rows if any(v not in (None, "") for v in row[:width])]
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerows(rows)
