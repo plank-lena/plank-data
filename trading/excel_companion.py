@@ -27,10 +27,12 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 from common.excel_styling import (
     title_row, subtitle_row, section_header, table_header, data_row, total_row,
-    kpi_block, note_row, FMT_CURRENCY, FMT_PERCENT, FMT_PERCENT_SIGNED, FMT_INT,
+    kpi_block, note_row, block_label, FMT_CURRENCY, FMT_PERCENT, FMT_PERCENT_SIGNED, FMT_INT,
 )
+from common import sku_cuts
 
 
 def _build_summary(wb, cc, period_label, period_note):
@@ -219,7 +221,109 @@ def _build_by_collection(wb, cc, period_label):
     ws.freeze_panes = "A4"
 
 
-def _build_by_sku(wb, cc, period_label):
+# ── By SKU: the full column set ──────────────────────────────────────────
+# Laid out to match the hand-built Monthly Trading Report's own By-SKU tab
+# (2026-08-13, Lena) -- same block order, same block bands, same header
+# wording, so someone reading both side by side finds each column where they
+# expect it. The COLUMN LIST matches; the FIGURES deliberately do not, and
+# that is the whole point: the report is gross-basis (returns not netted) and
+# diverges from our per-SKU figures in both directions, so every number here
+# is our own line_ab-derived value. Two intentional departures from the
+# report's layout, both additive:
+#
+#   * A ROW block. The report has no ROW column, so its per-SKU UK + US
+#     misses ROW revenue entirely (July 2026: GBP 9,359, 1.75% of the month).
+#     Reproducing that would break the reconciliation contract at SKU grain.
+#   * "Net Sales" rather than "Gross Sales" in the money headers. The report's
+#     label is wrong -- the figure it names has returns netted out (locked
+#     decision, trading_logic_spec.md) -- and carrying a wrong word into a new
+#     deliverable propagates it. Same number, honest header.
+#
+# Columns the report carries that are NOT here, and why: "cc Size (mm)",
+# "Available?", "Screw?", "IMG" and "US Supplier Cost incl Tariffs" are not
+# parsed from the Line Detail master (see line_detail.COLUMN_MAP -- adding
+# them is a one-line change per column IF the master carries those headers,
+# which needs confirming against the live sheet, not assumed).
+
+_SKU_BLOCKS = [
+    ("", 1, 12),
+    ("TOTAL", 13, 20),
+    ("D2C", 21, 25),
+    ("B2B", 26, 30),
+    ("UK", 31, 41),
+    ("US", 42, 52),
+    ("ROW", 53, 56),
+    ("LAST MONTH (LM-1)", 57, 63),
+    ("LAST YEAR (LY LM)", 64, 70),
+]
+
+_SKU_HEADERS = [
+    # attributes (1-12)
+    "Ranking", "SKU", "Product Description", "Product Category", "Product Type",
+    "Sub Category", "Material", "Finish", "Material - Finish", "Family/Collection",
+    "UK Status", "US Status",
+    # TOTAL (13-20)
+    "Net Sales \u00a3", "TOTAL Units", "vs LM-1", "% Share of Total",
+    "Inv Units", "Sell Through", "Weeks Cover", "Gross Margin %",
+    # D2C (21-25)
+    "D2C \u00a3", "D2C Units", "% Share (of SKU)", "% Share (of Channel)", "D2C Gross Margin %",
+    # B2B (26-30)
+    "B2B \u00a3", "B2B Units", "% Share (of SKU)", "% Share (of Channel)", "B2B Gross Margin %",
+    # UK (31-41)
+    "UK TOTAL \u00a3", "UK TOTAL Units", "% Share (of SKU)", "% Share (of Location)",
+    "UK Gross Margin %", "D2C UK \u00a3", "D2C UK Units", "D2C UK Gross Margin %",
+    "B2B UK \u00a3", "B2B UK Units", "B2B UK Gross Margin %",
+    # US (42-52)
+    "US TOTAL \u00a3", "US TOTAL Units", "% Share (of SKU)", "% Share (of Location)",
+    "US Gross Margin %", "D2C US \u00a3", "D2C US Units", "D2C US Gross Margin %",
+    "B2B US \u00a3", "B2B US Units", "B2B US Gross Margin %",
+    # ROW (53-56)
+    "ROW TOTAL \u00a3", "ROW TOTAL Units", "% Share (of SKU)", "% Share (of Location)",
+    # LM-1 (57-63)
+    "LM-1 Net Sales \u00a3", "LM-1 Units", "LM-1 D2C \u00a3", "LM-1 B2B \u00a3",
+    "LM-1 UK \u00a3", "LM-1 US \u00a3", "LM-1 ROW \u00a3",
+    # LY LM (64-70)
+    "LY LM Net Sales \u00a3", "LY LM Units", "LY LM D2C \u00a3", "LY LM B2B \u00a3",
+    "LY LM UK \u00a3", "LY LM US \u00a3", "LY LM ROW \u00a3",
+]
+
+_C, _I, _P, _S = FMT_CURRENCY, FMT_INT, FMT_PERCENT, FMT_PERCENT_SIGNED
+_SKU_FORMATS = (
+    [_I] + [None] * 11
+    + [_C, _I, _S, _P, _I, _P, "0.0", _P]
+    + [_C, _I, _P, _P, _P]
+    + [_C, _I, _P, _P, _P]
+    + [_C, _I, _P, _P, _P, _C, _I, _P, _C, _I, _P]
+    + [_C, _I, _P, _P, _P, _C, _I, _P, _C, _I, _P]
+    + [_C, _I, _P, _P]
+    + [_C, _I, _C, _C, _C, _C, _C]
+    + [_C, _I, _C, _C, _C, _C, _C]
+)
+
+_SKU_WIDTHS = {1: 8, 2: 22, 3: 34, 4: 16, 5: 14, 6: 16, 7: 14, 8: 16, 9: 22, 10: 16, 11: 12, 12: 12}
+
+
+def _prior_cuts_index(prior_contract):
+    """{sku: cuts} from a prior period's contract, or {} if that contract
+    predates the SKU-grain fields. Used for the LM-1 and LY LM blocks: the
+    prior period's own committed contract is the only source on the same
+    basis as this period's figures, and chaining to it costs nothing (no
+    re-derivation) while guaranteeing the comparison is against what was
+    actually published.
+    """
+    if not prior_contract:
+        return {}
+    return {s["sku"]: sku_cuts.deserialize(s["cuts"])
+            for s in prior_contract.get("skus_all", []) if s.get("cuts")}
+
+
+def _build_by_sku_narrow(wb, cc, period_label):
+    """The pre-2026-08-13 By-SKU tab: 12 columns, everything the contract holds
+    at SKU grain before `cuts` existed. Retained deliberately, not as dead
+    code -- it is what a version-1.0 contract (April/May/June 2026, and every
+    2025 month) renders, so those months' companions stay reproducible without
+    a back-fill. Back-fill a month and it gets the full tab instead.
+    """
     ws = wb.create_sheet("By SKU")
     ws.sheet_view.showGridLines = False
     for col, w in zip("ABCDEFGHIJKL", [8, 20, 30, 14, 12, 13, 11, 12, 10, 11, 11, 11]):
@@ -238,6 +342,130 @@ def _build_by_sku(wb, cc, period_label):
                           s.get("uk_status"), s["gross"], s["units"], s["gm"], s["uk"], s["us"]], fmts)
         r += 1
     ws.freeze_panes = "A4"
+    note_row(ws, r + 1, (
+        f"This is the narrow By-SKU view: {period_label}'s contract predates the per-SKU "
+        f"channel/country breakdown (contract_version "
+        f"{cc.get('contract_version') or 'pre-1.1'!r}), so the D2C/B2B/UK/US/ROW cross, the "
+        f"realised margins and the LM-1/LY LM blocks aren't available for it. To get the full "
+        f"column set, back-fill the period: python trading/backfill_sku_grain.py "
+        f"\"{period_label}\" --write. Nothing shown here is affected either way."), 12)
+    return ws
+
+
+def _build_by_sku(wb, cc, period_label, lm_contract=None, ly_contract=None):
+    ws = wb.create_sheet("By SKU")
+    ws.sheet_view.showGridLines = False
+    ncols = len(_SKU_HEADERS)
+    assert ncols == _SKU_BLOCKS[-1][2], "By SKU: header count and block map disagree"
+    assert len(_SKU_FORMATS) == ncols, "By SKU: format count and header count disagree"
+
+    for idx, w in _SKU_WIDTHS.items():
+        ws.column_dimensions[get_column_letter(idx)].width = w
+    for idx in range(13, ncols + 1):
+        ws.column_dimensions[get_column_letter(idx)].width = 15
+
+    missing = [s["sku"] for s in cc["skus_all"] if not s.get("cuts")]
+    if len(missing) == len(cc["skus_all"]):
+        # A pre-1.1 contract holds none of the cuts. Write the narrow tab this
+        # module always wrote rather than 58 empty columns OR an exception:
+        # rebuilding a published month's companion must keep working, and a
+        # short tab where every cell is populated beats a wide one where most
+        # aren't. The note says how to widen it.
+        wb.remove(ws)
+        return _build_by_sku_narrow(wb, cc, period_label)
+
+    title_row(ws, 1, f"{period_label} - By SKU", ncols)
+    subtitle_row(ws, 2, "ranked by net sales  |  ex-VAT, net of in-window returns and "
+                        "per-line discounts  |  filterable", ncols)
+    for label, c0, c1 in _SKU_BLOCKS:
+        if label:
+            block_label(ws, 3, label, c0, c1)
+    table_header(ws, 4, _SKU_HEADERS)
+
+    lm_index = _prior_cuts_index(lm_contract)
+    ly_index = _prior_cuts_index(ly_contract)
+
+    cur = cc["current"]
+    grand = {
+        "total": cur["total_sales"], "d2c": cur["d2c_gbp"], "b2b": cur["b2b_gbp"],
+        "uk": cur["uk_gbp"], "us": cur["us_gbp"], "row": cur["row_gbp"],
+    }
+
+    r = 5
+    rows_written = 0
+    for i, s in enumerate(sorted(cc["skus_all"], key=lambda s: -(s.get("gross") or 0)), start=1):
+        cuts = sku_cuts.deserialize(s["cuts"]) if s.get("cuts") else None
+        lm = lm_index.get(s["sku"])
+        ly = ly_index.get(s["sku"])
+
+        def cut(key, field="rev"):
+            return cuts[key][field] if cuts else None
+
+        def gm(key):
+            return sku_cuts.gm_of(cuts[key]) if cuts else None
+
+        def share_of_grand(key):
+            den = grand.get(key)
+            return (cut(key) / den) if (cuts and den) else None
+
+        def share_of_sku(key):
+            tot = s.get("gross")
+            return (cut(key) / tot) if (cuts and tot and tot > 0) else None
+
+        material = s.get("material")
+        finish = s.get("finish")
+        mat_finish = f"{material} - {finish}" if (material and finish) else (material or finish or None)
+
+        values = [
+            i, s["sku"], s["desc"], s.get("item_type"), s["type_"], s.get("style"),
+            material, finish, mat_finish, s["coll"], s.get("uk_status"), s.get("us_status"),
+            # TOTAL
+            s["gross"], s["units"], s.get("vslq"),
+            (s["gross"] / grand["total"]) if grand["total"] else None,
+            s.get("inv"), s.get("st"), s.get("wc"), gm("total") if cuts else s.get("gm"),
+            # D2C / B2B
+            cut("d2c"), cut("d2c", "u"), share_of_sku("d2c"), share_of_grand("d2c"), gm("d2c"),
+            cut("b2b"), cut("b2b", "u"), share_of_sku("b2b"), share_of_grand("b2b"), gm("b2b"),
+            # UK
+            cut("uk"), cut("uk", "u"), share_of_sku("uk"), share_of_grand("uk"), gm("uk"),
+            cut("uk_d2c"), cut("uk_d2c", "u"), gm("uk_d2c"),
+            cut("uk_b2b"), cut("uk_b2b", "u"), gm("uk_b2b"),
+            # US
+            cut("us"), cut("us", "u"), share_of_sku("us"), share_of_grand("us"), gm("us"),
+            cut("us_d2c"), cut("us_d2c", "u"), gm("us_d2c"),
+            cut("us_b2b"), cut("us_b2b", "u"), gm("us_b2b"),
+            # ROW
+            cut("row"), cut("row", "u"), share_of_sku("row"), share_of_grand("row"),
+            # LM-1 -- from the prior period's own contract, never re-derived here
+            lm["total"]["rev"] if lm else s.get("lq"),
+            lm["total"]["u"] if lm else None,
+            lm["d2c"]["rev"] if lm else None, lm["b2b"]["rev"] if lm else None,
+            lm["uk"]["rev"] if lm else None, lm["us"]["rev"] if lm else None,
+            lm["row"]["rev"] if lm else None,
+            # LY LM
+            ly["total"]["rev"] if ly else s.get("ly"),
+            ly["total"]["u"] if ly else None,
+            ly["d2c"]["rev"] if ly else None, ly["b2b"]["rev"] if ly else None,
+            ly["uk"]["rev"] if ly else None, ly["us"]["rev"] if ly else None,
+            ly["row"]["rev"] if ly else None,
+        ]
+        data_row(ws, r, values, _SKU_FORMATS)
+        r += 1
+        rows_written += 1
+
+    ws.freeze_panes = "D5"
+    ws.auto_filter.ref = f"A4:{get_column_letter(ncols)}{r - 1}"
+
+    note = (f"{rows_written} SKUs with sales in {period_label}. Figures are this pipeline's own, "
+            f"net of in-window returns and per-line discounts, ex-VAT -- they will NOT match the "
+            f"hand-built Monthly Trading Report cell for cell, which reports on a gross basis. "
+            f"LM-1 and LY LM blocks come from those periods' committed contracts, so they are on "
+            f"the same basis as the current period.")
+    if missing:
+        note += (f" {len(missing)} SKU(s) have no channel/country breakdown: their published "
+                 f"figures no longer tie to a re-derivation, so the cuts were left out rather "
+                 f"than estimated (see provenance.sku_cuts_backfill.unmatched).")
+    note_row(ws, r + 1, note, ncols)
 
 
 def _build_cuts(wb, cc, period_label):
@@ -325,7 +553,8 @@ def _build_reconciliation(wb, constituent_contracts, cc, period_label):
         "Source: the committed trading contract(s) (trading/contracts/*.json) -- the pipeline's "
         "own reconciliation-gated output, not re-derived here.",
         f"{period_label} = " + ("sum of its constituent months. " if multi else "a single period. ") +
-        "SKU-level ROW = gross - UK - US (ties to the contract's own ROW figure).",
+        "SKU-level ROW is carried explicitly (2026-08-13), not inferred as gross - UK - US; "
+        "uk + us + row ties to each SKU's own total as well as to the headline.",
         "Country is the reconciliation key, never channel. All ex-VAT; returns reported separately.",
         "Values-only (no formulas).",
     ]
@@ -334,16 +563,24 @@ def _build_reconciliation(wb, constituent_contracts, cc, period_label):
         r += 1
 
 
-def build_companion(out_path, period_label, current_contract, constituent_contracts, period_note=""):
+def build_companion(out_path, period_label, current_contract, constituent_contracts,
+                    period_note="", lm_contract=None, ly_contract=None):
     """The one function callers need. See module docstring for the two calling
     shapes (monthly: 1 constituent; quarterly: 3).
+
+    lm_contract / ly_contract: the prior-month and prior-year contracts as
+    already-loaded dicts, optional. They feed the By-SKU tab's LM-1 and LY LM
+    blocks at SKU grain. Passing them is strictly additive -- omit them and
+    those blocks fall back to the contract's own per-SKU lq/ly totals, which
+    is what every caller did before 2026-08-13.
     """
     wb = Workbook()
     _build_summary(wb, current_contract, period_label, period_note)
     _build_by_period(wb, constituent_contracts, current_contract, period_label)
     _build_drill_down(wb, current_contract, period_label)
     _build_by_collection(wb, current_contract, period_label)
-    _build_by_sku(wb, current_contract, period_label)
+    _build_by_sku(wb, current_contract, period_label, lm_contract=lm_contract,
+                  ly_contract=ly_contract)
     _build_cuts(wb, current_contract, period_label)
     _build_reconciliation(wb, constituent_contracts, current_contract, period_label)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

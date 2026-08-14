@@ -64,6 +64,7 @@ from contract import (
     PAYLOAD_KEYS, _wrap_contract, _add_headline_kpis, _is_el_component,
     _convert_oracle_weeks_cover, _exclude_dead_categories, _git_commit, _vs, _MONTH_NAMES, _current_to_lm_shape,
     emit_contract_from_matrixify, load_contract, can_publish,
+    _period_str_from_label, _settled_at_for,
 )
 from common.reconciliation_gate import assert_country_reconciles
 
@@ -537,6 +538,7 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
     # grain.
     _exclude_dead_categories(payload)
 
+    period_key = _period_str_from_label(payload['period_model']['cm']['label'])
     provenance = {
         'source': 'oracle_quarter_aggregate',
         'reconciled': True,
@@ -555,8 +557,13 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
                           else 'ly_from_monthly_oracle_blocks__lq_unavailable'),
         'lq_source_period': lq['period_model']['cm']['label'] if lq else None,
         'aggregated_from': [os.path.basename(p) for p in month_xlsx_paths],
+        # §13 provenance -- see emit_contract_from_matrixify's docstring for
+        # what settled_at/source_slices/supersedes mean and don't mean.
+        'source_slices': None,  # N/A -- oracle path, no Matrixify slice read
+        'supersedes': None,
+        'settled_at': _settled_at_for(period_key),
         'built_at': datetime.now(timezone.utc).isoformat(),
-        'commit': _git_commit(),
+        'pipeline_sha': _git_commit(),
     }
     contract = _wrap_contract(payload, provenance)
     if out_path:
@@ -570,7 +577,8 @@ def emit_contract_from_oracle_quarter(month_xlsx_paths, lq_contract=None, out_pa
 def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, lq_contract=None,
                                           oracle_bootstrap_path=None, out_path=None,
                                           ly_month_contracts=None, month_oracle_bootstrap_paths=None,
-                                          month_requested_period_models=None):
+                                          month_requested_period_models=None, month_source_slices=None,
+                                          supersedes=None):
     """The Matrixify-sourced quarterly contract. month_specs: 3
     (period, uk_csv, us_csv) tuples in chronological order. lq_contract:
     same meaning as emit_contract_from_oracle_quarter's -- a previously-
@@ -677,13 +685,20 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
     ly_month_contracts = ly_month_contracts or [None, None, None]
     month_oracle_bootstrap_paths = month_oracle_bootstrap_paths or [None, None, None]
     month_requested_period_models = month_requested_period_models or [None, None, None]
+    # month_source_slices (2026-08-13, §13): 3 lists of {"store","period",
+    # "sha256"} dicts (or None), one per month_specs entry -- forwarded as
+    # each constituent month's own source_slices so the quarter's aggregate
+    # provenance can carry every slice any of its 3 months actually read,
+    # not just a quarter-level guess.
+    month_source_slices = month_source_slices or [None, None, None]
     month_contracts = [
         emit_contract_from_matrixify(period=period, uk_csv=uk_csv, us_csv=us_csv,
                                       oracle_gaps=oracle_quarter_gaps, ly_month_contract=ly_mc,
                                       oracle_bootstrap_path=month_ob_path,
-                                      requested_period_model=month_pm)
-        for (period, uk_csv, us_csv), ly_mc, month_ob_path, month_pm
-        in zip(month_specs, ly_month_contracts, month_oracle_bootstrap_paths, month_requested_period_models)
+                                      requested_period_model=month_pm, source_slices=month_ss)
+        for (period, uk_csv, us_csv), ly_mc, month_ob_path, month_pm, month_ss
+        in zip(month_specs, ly_month_contracts, month_oracle_bootstrap_paths,
+               month_requested_period_models, month_source_slices)
     ]
     months = [load_contract(c) for c in month_contracts]
     all_reconciled = all(c['provenance']['reconciled'] for c in month_contracts)
@@ -759,8 +774,15 @@ def emit_contract_from_matrixify_quarter(month_specs, oracle_quarter_gaps=None, 
             default=None,
         ),
         'aggregated_from': [p for p, _, _ in month_specs],
+        # §13 provenance -- concatenate every constituent month's own
+        # source_slices (skipping months that had none) so the quarter's
+        # contract records every slice any of its 3 months actually read.
+        'source_slices': ([s for c in month_contracts for s in (c['provenance'].get('source_slices') or [])]
+                           or None),
+        'supersedes': supersedes,
+        'settled_at': _settled_at_for(month_specs[-1][0]),
         'built_at': datetime.now(timezone.utc).isoformat(),
-        'commit': _git_commit(),
+        'pipeline_sha': _git_commit(),
     }
     contract = _wrap_contract(payload, provenance)
     if out_path:

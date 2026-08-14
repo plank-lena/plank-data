@@ -219,7 +219,20 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
             f"pass force=True (CLI: --force) to intentionally overwrite."
         )
     from trading.excel_companion import build_companion
-    build_companion(companion_path, period_label, contract, [(period_label, contract)])
+    # The By-SKU tab's LM-1 / LY LM blocks read the prior periods' own
+    # contracts at SKU grain (2026-08-13). These are the same files already
+    # resolved above for the LM/LY headline chain, so this adds no new source
+    # and no re-derivation -- and it guarantees the comparison is against what
+    # was published for those months, on the same net basis.
+    def _load_if_present(path):
+        if not path or not os.path.exists(path):
+            return None
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+
+    build_companion(companion_path, period_label, contract, [(period_label, contract)],
+                    lm_contract=_load_if_present(prior_month_contract),
+                    ly_contract=_load_if_present(ly_month_contract))
 
     reconciled = contract["provenance"]["reconciled"]
     print(f"contract:  {contract_path}")

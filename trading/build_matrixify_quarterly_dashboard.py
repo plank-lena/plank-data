@@ -7,33 +7,25 @@ output file for the real Matrixify quarterly path.
 
 Worth knowing before trusting a quarter built with this script (T0
 finding, not silently patched): emit_contract_from_matrixify_quarter()
-calls emit_contract_from_matrixify() per month WITHOUT any lm_contract/
-ly_contract/oracle_bootstrap_path, so each month's own contract inside the
-aggregate carries zero lm/ly, and the quarter's own LY (_aggregate_ly,
-summing each month's 'ly' block) inherits that zero. This differs from
-emit_contract_from_oracle_quarter(), whose docstring explicitly promises
-"LY is always real" -- that promise does not currently hold for this
-Matrixify front-end. Fixing it means deciding how each month should source
-its own lm/ly inside the aggregate (bootstrap each month from its own
-oracle fixture too? chain from already-committed monthly Matrixify
-contracts?) -- a real decision for whoever owns quarterly.py next, not
-something this glue script should decide silently. (Separately: round-2
-review's B3 -- vs-LY is unavailable at the QUARTER headline grain for the
-same underlying reason, no 2025 Matrixify data exists to source it from;
-that's a data-staging decision, not something this script can fix either.)
-
-Auto-detects a quarterly oracle bootstrap file (_QUARTER_ORACLE_FIXTURES)
-for the SKU-level vs-LQ backfill (B2, round-2 review) -- see
-emit_contract_from_matrixify_quarter's own docstring for what this does
-and doesn't cover.
+calls emit_contract_from_matrixify() per month, so each month's own LM/LY
+sourcing is decided per-month by this script (same connector-first
+preference as the standalone monthly build), and the quarter's own LQ
+(previous quarter) stays unavailable until a prior quarterly contract
+exists to chain from (lq_contract) -- see quarterly.py's own module
+docstring for the full accounting rule.
 
 Period-from-prompt (2026-08-12): accepts a single quarter string ("Q2
 2026") -- common/period.py derives its 3 constituent months
 (months_in_quarter), and each month's own lm/ly bootstraps from fresh
-Matrixify pulls (requested_period_model, connector-first, same preference
-order as build_matrixify_dashboard.py) rather than defaulting to that
-month's oracle fixture. The 3-separate-YYYY-MM-args CLI form still works
-unchanged, for anyone scripting around specific months directly.
+Matrixify pulls (requested_period_model) with no workbook at all. The
+3-separate-YYYY-MM-args CLI form still works unchanged, for anyone
+scripting around specific months directly.
+
+No oracle-fixture fallback exists anymore (Matrixify Slice Architecture
+brief, 2026-08-13, §6) -- if any constituent month has no committed
+contract to chain LM/LY from AND isn't fully covered in the manifest, this
+raises naming exactly which month/window is missing, rather than silently
+falling back to a hand-built workbook or zeroing that month's LM/LY.
 
 Run:
   python trading/build_matrixify_quarterly_dashboard.py "Q2 2026"
@@ -54,118 +46,80 @@ for _p in (_HERE, _DASHBOARD_DIR, _REPO_ROOT):
 from contract import render_contract, write_committed_file
 from quarterly import emit_contract_from_matrixify_quarter
 from common.period import parse_period, months_in_quarter, month_period_string
-from common.sources import matrixify_orders_snapshot, matrixify_orders_snapshot_covers
-from build_matrixify_dashboard import _period_model_for
+from common.sources import (
+    matrixify_orders_snapshot, matrixify_orders_snapshot_covers,
+    assert_orders_coverage, load_orders_manifest,
+)
+from build_matrixify_dashboard import _period_model_for, _period_fully_covered, _resolve_ly_month_contract
 
 TEMPLATE = os.path.join(_DASHBOARD_DIR, "template", "dashboard.template.html")
 SOURCE_DIR = os.path.join(_HERE, "source")
-ORACLE_FIXTURE_DIR = os.path.join(_HERE, "tests", "fixtures")
 CONTRACTS_DIR = os.path.join(_HERE, "contracts")
 OUTPUT_DIR = os.path.join(_DASHBOARD_DIR, "output")
 
-# B2: committed quarterly-mode oracle workbooks usable as a per-SKU vs-LQ
-# bootstrap source, keyed by the 3 consecutive months they cover.
-_QUARTER_ORACLE_FIXTURES = {
-    ("2026-04", "2026-05", "2026-06"): "2026-Q2_Quarterly_Trading_Report.xlsx",
-}
 
-# B3 (round-2 review): real prior-year same-month Matrixify contracts, one
-# per constituent month -- same mapping as build_matrixify_dashboard.py's
-# _LY_MONTH_CONTRACTS, forwarded per-month via ly_month_contracts. See
-# emit_contract_from_matrixify's ly_month_contract docstring for what this
-# does and doesn't fix (department-grain vs_ly only, disclosed caveat).
-_LY_MONTH_CONTRACTS = {
-    "2026-04": "2025-04-matrixify.json",
-    "2026-05": "2025-05-matrixify.json",
-    "2026-06": "2025-06-matrixify.json",
-}
-
-# QQ1 (round-3 review): the same MONTHLY-mode oracle fixtures build_
-# matrixify_dashboard.py's own _ORACLE_FIXTURES uses for each standalone
-# monthly build, forwarded per-month via month_oracle_bootstrap_paths so
-# each constituent month gets a real headline lm/ly inside the quarterly
-# aggregate too -- see emit_contract_from_matrixify_quarter's own
-# docstring for why this was the actual "quarterly has no YoY" gap.
-_MONTH_ORACLE_FIXTURES = {
-    "2026-04": "2026-04_Monthly_Trading_Report.xlsx",
-    "2026-05": "2026-05_Monthly_Trading_Report.xlsx",
-    "2026-06": "2026-06_Monthly_Trading_Report.xlsx",
-}
-
-
-def build(periods, lq_contract=None, out_suffix="_matrixify", force_oracle_bootstrap=False, as_of=None,
-          force=False, contract_out_path=None, html_out_path=None):
+def build(periods, lq_contract=None, out_suffix="_matrixify", as_of=None,
+          force=False, force_settled=False, contract_out_path=None, html_out_path=None):
     if len(periods) != 3:
         raise ValueError(f"emit_contract_from_matrixify_quarter needs exactly 3 consecutive months, got {periods}")
-    # 2026-08-12 (PII incident follow-up, docs/2026-08-12_matrixify_sheet_bridge.md):
-    # ONE rolling ~400-day snapshot per store now, not a file per period --
-    # same fix as build_matrixify_dashboard.py's build(). Each constituent
-    # month still gets its own fail-loud coverage check below (a rolling
-    # file existing doesn't prove it covers a given month).
-    uk_csv, us_csv = matrixify_orders_snapshot("uk"), matrixify_orders_snapshot("us")
-    for p in periods:
-        if not (matrixify_orders_snapshot_covers(uk_csv, p) or matrixify_orders_snapshot_covers(us_csv, p)):
-            raise FileNotFoundError(
-                f"build_matrixify_quarterly_dashboard: {p} isn't inside the rolling Matrixify "
-                f"snapshot's window ({uk_csv} / {us_csv}). This month has never been built and "
-                f"falls outside the ~400-day rolling pull -- needs a one-off historical Matrixify "
-                f"export first (see docs/2026-08-12_matrixify_sheet_bridge.md 'backfill' note)."
-            )
-    month_specs = [(p, uk_csv, us_csv) for p in periods]
-    oracle_bootstrap_path = None
-    fixture = _QUARTER_ORACLE_FIXTURES.get(tuple(periods))
-    if fixture:
-        oracle_bootstrap_path = os.path.join(ORACLE_FIXTURE_DIR, fixture)
-    ly_month_contracts = []
-    for p in periods:
-        ly_fixture = _LY_MONTH_CONTRACTS.get(p)
-        candidate = os.path.join(CONTRACTS_DIR, ly_fixture) if ly_fixture else None
-        ly_month_contracts.append(candidate if candidate and os.path.exists(candidate) else None)
 
-    # Period-from-prompt (2026-08-12): per-month connector-first bootstrap,
-    # same preference order as build_matrixify_dashboard.py -- fresh
-    # Matrixify LM/LY pulls beat that month's own oracle fixture, unless
-    # --oracle-bootstrap was explicitly requested or the windows aren't
-    # landed yet.
-    month_oracle_bootstrap_paths = []
+    # Full-period, AND-across-stores coverage per constituent month (brief
+    # §5) -- each month needs its own CM window covered; the old check was
+    # OR'd across stores and only proved "at least one row" existed.
+    for p in periods:
+        assert_orders_coverage(p)
+
+    manifest = load_orders_manifest()
+    month_specs = [
+        (p, matrixify_orders_snapshot("uk", p), matrixify_orders_snapshot("us", p))
+        for p in periods
+    ]
+
+    ly_month_contracts = [_resolve_ly_month_contract(p) for p in periods]
+
+    # Per-month connector-first LM/LY bootstrap, same preference as the
+    # standalone monthly build -- fresh Matrixify pulls when both windows
+    # are fully covered; no fallback left if not (§6: the oracle-fixture
+    # escape hatch is retired, not fixed).
     month_requested_period_models = []
+    month_source_slices = []
     for p in periods:
         _, month_pm = _period_model_for(p, as_of=as_of)
         lm_key, ly_key = month_pm["lm"]["key"], month_pm["ly"]["key"]
-        matrixify_bootstrap_available = (
-            (matrixify_orders_snapshot_covers(uk_csv, lm_key) or matrixify_orders_snapshot_covers(us_csv, lm_key))
-            and (matrixify_orders_snapshot_covers(uk_csv, ly_key) or matrixify_orders_snapshot_covers(us_csv, ly_key))
-        )
-        mo_fixture = _MONTH_ORACLE_FIXTURES.get(p)
-        mo_candidate = os.path.join(ORACLE_FIXTURE_DIR, mo_fixture) if mo_fixture else None
-        mo_candidate = mo_candidate if mo_candidate and os.path.exists(mo_candidate) else None
 
-        if force_oracle_bootstrap:
-            month_oracle_bootstrap_paths.append(mo_candidate)
-            month_requested_period_models.append(None)
-        elif matrixify_bootstrap_available:
-            month_oracle_bootstrap_paths.append(None)
+        this_month_slices = [
+            {"store": s, "period": p, "sha256": manifest[(s, p)]["sha256"]}
+            for s in ("uk", "us")
+        ]
+
+        if _period_fully_covered(lm_key, manifest) and _period_fully_covered(ly_key, manifest):
             month_requested_period_models.append(month_pm)
+            for slot_key in (lm_key, ly_key):
+                for s in ("uk", "us"):
+                    this_month_slices.append(
+                        {"store": s, "period": slot_key, "sha256": manifest[(s, slot_key)]["sha256"]}
+                    )
         else:
-            month_oracle_bootstrap_paths.append(mo_candidate)
-            month_requested_period_models.append(None)
-            if mo_candidate is None:
-                print(f"build_matrixify_quarterly_dashboard: {p}'s LM/LY Matrixify exports "
-                      f"aren't both landed and no oracle fixture exists -- that month's lm/ly "
-                      f"will be zero.", file=sys.stderr)
+            raise FileNotFoundError(
+                f"build_matrixify_quarterly_dashboard: {p}'s LM ({lm_key}) / LY ({ly_key}) windows "
+                f"aren't both fully covered in the manifest, and there is no oracle-fixture "
+                f"fallback left (retired, brief §6). Land the missing slice(s) "
+                f"(trading/tools/backfill_slice.py) before building this quarter."
+            )
+        month_source_slices.append(this_month_slices)
 
     contract = emit_contract_from_matrixify_quarter(
-        month_specs, lq_contract=lq_contract, oracle_bootstrap_path=oracle_bootstrap_path,
+        month_specs, lq_contract=lq_contract,
         ly_month_contracts=ly_month_contracts,
-        month_oracle_bootstrap_paths=month_oracle_bootstrap_paths,
         month_requested_period_models=month_requested_period_models,
+        month_source_slices=month_source_slices,
     )
 
     q_label = contract["period_model"]["cm"]["label"]  # e.g. "Q2 2026"
     contract_path = contract_out_path or os.path.join(CONTRACTS_DIR, f"{q_label.replace(' ', '-')}-matrixify.json")
     os.makedirs(os.path.dirname(contract_path), exist_ok=True)
     write_committed_file(json.dumps(contract, indent=2, default=str), contract_path,
-                          force=force, label="contract")
+                          force=force, force_settled=force_settled, label="contract")
 
     with open(TEMPLATE, encoding="utf-8") as f:
         template_html = f.read()
@@ -174,7 +128,7 @@ def build(periods, lq_contract=None, out_suffix="_matrixify", force_oracle_boots
     label = q_label.replace(" ", "_")
     out_path = html_out_path or os.path.join(OUTPUT_DIR, f"{label}_dashboard{out_suffix}.html")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    write_committed_file(html, out_path, force=force, label="dashboard output")
+    write_committed_file(html, out_path, force=force, force_settled=force_settled, label="dashboard output")
 
     # Values-only Excel companion, automatic alongside the HTML (2026-08-13).
     # Constituent months are read from their own ALREADY-COMMITTED contracts
@@ -225,12 +179,14 @@ def _quarter_string_to_periods(quarter_arg, as_of=None):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python trading/build_matrixify_quarterly_dashboard.py <quarter> "
-              "[--lq-contract path] [--oracle-bootstrap] [--force]\n"
+              "[--lq-contract path] [--force] [--force-settled]\n"
               "       python trading/build_matrixify_quarterly_dashboard.py "
-              "<YYYY-MM> <YYYY-MM> <YYYY-MM> [--lq-contract path] [--oracle-bootstrap] [--force]\n"
+              "<YYYY-MM> <YYYY-MM> <YYYY-MM> [--lq-contract path] [--force] [--force-settled]\n"
               "  <quarter>: \"Q2 2026\"\n"
               "  --force: allow overwriting an existing committed contract/output "
-              "(refused by default -- see contract.py's write_committed_file)",
+              "(refused by default -- see contract.py's write_committed_file)\n"
+              "  --force-settled: also required once the existing contract has passed its own "
+              "settled_at -- plain --force alone is no longer enough past that point",
               file=sys.stderr)
         sys.exit(1)
 
@@ -247,11 +203,11 @@ if __name__ == "__main__":
         if rest[i] == "--lq-contract":
             kwargs["lq_contract"] = rest[i + 1]
             i += 2
-        elif rest[i] == "--oracle-bootstrap":
-            kwargs["force_oracle_bootstrap"] = True
-            i += 1
         elif rest[i] == "--force":
             kwargs["force"] = True
+            i += 1
+        elif rest[i] == "--force-settled":
+            kwargs["force_settled"] = True
             i += 1
         else:
             print(f"Unknown argument: {rest[i]}", file=sys.stderr)

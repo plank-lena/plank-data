@@ -86,6 +86,25 @@ COLUMN_MAP = {
     "ads_class": "Included or Excluded from Ads",
 }
 
+# Columns the hand-built Monthly Trading Report's By-SKU tab carries and this
+# module didn't read (2026-08-13). Kept SEPARATE from COLUMN_MAP because they
+# are OPTIONAL: COLUMN_MAP's headers are load-critical and a missing one
+# should crash the build, whereas a missing one of these should degrade that
+# single column and say so, not stop a month from being reported.
+#
+# UNVERIFIED against the live master as of 2026-08-13 -- these header strings
+# are read off the hand-built report, and the report is not the master. The
+# loader prints exactly which of them it could not find, so the first real
+# run over the live sheet tells us which exist and what the real headers are.
+# Do not "fix" a name here by guessing; read it off the master.
+OPTIONAL_COLUMN_MAP = {
+    "cc_size_mm": "cc Size\n(mm)",
+    "is_available_raw": "Available?",
+    "is_screw_raw": "Screw?",
+    "supplier_cost_us_gbp": "US Supplier Cost  (£) incl estimated Import Tariffs + Material Taxes",
+    "leading_dimension_mm": "Product Size\nLeading Dimension\n(mm)",
+}
+
 UNKNOWN = "Unknown"
 
 
@@ -159,12 +178,28 @@ def load_line_detail(path=None):
     header = next(rows)
     col_idx = {name: header.index(src) for name, src in COLUMN_MAP.items()}
 
+    # Optional columns: resolve what's there, report what isn't, once per load.
+    optional_idx = {}
+    absent = []
+    for name, src in OPTIONAL_COLUMN_MAP.items():
+        try:
+            optional_idx[name] = header.index(src)
+        except ValueError:
+            absent.append(src)
+    if absent:
+        print(f"line_detail: {len(absent)} optional column(s) not present in this workbook's "
+              f"header -- the By-SKU companion columns they feed will be empty rather than "
+              f"wrong: {absent}", file=sys.stderr)
+
     records = []
     for row in rows:
         sku = _s(row[col_idx["sku"]])
         if not sku:
             continue
         record = {name: row[col_idx[name]] for name in COLUMN_MAP}
+        record.update({name: row[idx] for name, idx in optional_idx.items()})
+        for name in OPTIONAL_COLUMN_MAP:
+            record.setdefault(name, None)
         record["sku"] = sku
         records.append(record)
     return records

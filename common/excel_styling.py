@@ -102,6 +102,21 @@ def kpi_block(ws, row, label, value_str, subtext, col):
     ws.cell(row=row + 2, column=col + 1).border = Border(bottom=THIN)
 
 
+def block_label(ws, row, text, start_col, end_col):
+    """A merged band above a group of columns, naming the group -- the
+    hand-built Monthly Trading Report's By-SKU tab uses exactly this to keep
+    114 columns legible (a "UK" band over the UK block, so the repeated
+    "vs LM-1"/"% Share" headers underneath are unambiguous). Added 2026-08-13
+    with the full By-SKU layout; nothing else uses it yet.
+    """
+    if end_col > start_col:
+        ws.merge_cells(start_row=row, start_column=start_col, end_row=row, end_column=end_col)
+    c = ws.cell(row=row, column=start_col, value=text)
+    c.font = Font(name="Arial", size=10, bold=True, color=WHITE)
+    c.fill = PatternFill("solid", fgColor=SECTION_BLUE)
+    c.alignment = Alignment(horizontal="center", vertical="center")
+
+
 def note_row(ws, row, text, ncols):
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=ncols)
     c = ws.cell(row=row, column=1, value=text)

@@ -111,56 +111,33 @@ SOURCES = {
             "writes to, so review_feedback.py needs no changes either way."
         ),
     },
-    "matrixify_orders_uk": {
+    "matrixify_order_slices": {
         "connector": "google_drive",
-        "file_id": "1b7Lt_2SnPt4Y0iwvWX0hctcqCqixSnQSRYT_534a2Cw",
-        "tab": "Sheet1",
-        "expected_columns": (
-            "ID", "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
-            "Top Row", "Company: Name", "Billing: Company", "Shipping: Company",
-            "Shipping: Country Code", "Line: Type", "Line: ID", "Line: SKU",
-            "Line: Title", "Line: Quantity", "Line: Total", "Line: Tax Total",
-            "Refund: ID", "Refund: Created At",
-        ),
+        "file_id": None,  # TBD -- set once Appendix A's SLICE_FOLDER_ID Script Property exists
+        "manifest_file_id": None,  # TBD -- Appendix A's MANIFEST_FILE_ID
         "note": (
-            "Rolling ~400-day Matrixify order snapshot (2026-08-12, PII incident "
-            "follow-up -- see docs/2026-08-12_pii_remediation.md and "
-            "docs/2026-08-12_matrixify_sheet_bridge.md). A recurring Matrixify "
-            "scheduled export (fixed filename, no job ID, so the download URL "
-            "never changes) is fetched daily by a small Apps Script and landed "
-            "here -- Drive is the hand-off, same as every other source here, so "
-            "a sandboxed session never touches app.matrixify.app directly (that "
-            "domain isn't in its network allowlist). Columns are the minimal set "
-            "trading/matrixify_source.py and returns/build.py's load_matrixify_sales "
-            "actually read -- no customer PII, no payment fields, unlike the old "
-            "per-month exports this replaces. One rolling file serves ANY period "
-            "within its window: emit_contract_from_matrixify and "
-            "_matrixify_headline_totals both filter by order_month AFTER parsing, "
-            "so this file never needs to be re-scoped per period.\n"
-            "SPLIT INTO ITS OWN FILE 2026-08-13: originally one 3-tab workbook "
-            "shared with matrixify_orders_us (file_id "
-            "10XoD6qOSr3fwiRE4cGfGrotcRd0YjU60vGvhNJmtE-E, tab 'Matrixify Orders "
-            "UK') -- once the export started actually including Refund Line rows "
-            "(one row PER REFUNDED UNIT, not per refund event -- a documented "
-            "Matrixify convention, not a bug; a single large refund can add "
-            "dozens of rows), the combined workbook grew too large for xlsx "
-            "export. Split into two single-tab files, each comfortably within "
-            "the export size limit. The old combined file still exists but is no "
-            "longer written to -- safe to delete once this is confirmed working."
+            "REPLACES the old matrixify_orders_uk/matrixify_orders_us rolling-"
+            "sheet entries (2026-08-13, Matrixify Slice Architecture migration). "
+            "Those relied on one ~400-day Drive sheet per store; that sheet's "
+            "Google-native -> xlsx export started failing outright (not a size "
+            "limit -- the conversion step itself fails for a file this large), "
+            "and a 400-day window can never serve a YoY comparison regardless. "
+            "Replaced by plain CSV files in a Drive folder, per store per month "
+            "(orders_<store>_<YYYY-MM>.csv, written by Appendix A's Apps Script "
+            "-- runDaily for the standing pipeline, backfillNext/a local run of "
+            "trading/tools/backfill_slice.py for the one-time historical "
+            "backfill), plus orders_manifest.csv recording rows/orders/"
+            "min_created_at/max_created_at/sha256/last_written per slice -- see "
+            "matrixify_orders_snapshot()/load_orders_manifest() below.\n"
+            "file_id/manifest_file_id are TBD -- they don't exist yet (Appendix "
+            "A's SLICE_FOLDER_ID/MANIFEST_FILE_ID Script Properties haven't been "
+            "created). Left honestly unset rather than filled with a placeholder "
+            "that looks real. Local landing paths (matrixify_orders_snapshot()/ "
+            "ORDERS_MANIFEST_PATH below) work today independent of these Drive "
+            "IDs, since trading/tools/backfill_slice.py writes there directly -- "
+            "note the LOCAL filename convention (orders_<period>_<STORE>.csv) "
+            "is a different naming layer from the Drive one above, not a typo."
         ),
-    },
-    "matrixify_orders_us": {
-        "connector": "google_drive",
-        "file_id": "16VgsZvBTDiZkB7hFJcdVqLGzjUq8ahqv7NCHWLwzqx8",
-        "tab": "Sheet1",
-        "expected_columns": (
-            "ID", "Name", "Created At", "Cancelled At", "Payment: Status", "Source",
-            "Top Row", "Company: Name", "Billing: Company", "Shipping: Company",
-            "Shipping: Country Code", "Line: Type", "Line: ID", "Line: SKU",
-            "Line: Title", "Line: Quantity", "Line: Total", "Line: Tax Total",
-            "Refund: ID", "Refund: Created At",
-        ),
-        "note": "US twin of matrixify_orders_uk above -- own file now too, see its note.",
     },
     "returns_zap": {
         "connector": "google_drive",
@@ -269,51 +246,130 @@ SHOPIFY_INVENTORY_SNAPSHOT = os.path.join(TRADING_SNAPSHOT_DIR, "shopify_invento
 RETURNS_ZAP_SNAPSHOT = os.path.join(SNAPSHOT_DIR, "returns_zap.csv")
 YOTPO_REVIEWS_SNAPSHOT = os.path.join(SNAPSHOT_DIR, "yotpo_reviews.csv")
 
+# Matrixify orders -- per-store, per-month CSV slices + a manifest (2026-08-13
+# migration, superseding the single rolling orders_ALL_<STORE>.csv this
+# module used until then). Written by trading/tools/backfill_slice.py (the
+# one-time local backfill) and, eventually, by the standing Apps Script in
+# Appendix A of the Matrixify Slice Architecture brief -- one shared
+# manifest regardless of which produced a given slice.
+ORDERS_MANIFEST_PATH = os.path.join(TRADING_SNAPSHOT_DIR, "orders_manifest.csv")
+ORDERS_MANIFEST_COLS = ("store", "period", "file_name", "rows", "orders",
+                        "min_created_at", "max_created_at", "sha256", "last_written")
 
-def matrixify_orders_snapshot(store, period=None):
-    """trading/source/orders_ALL_<STORE>.csv -- ONE rolling snapshot per
-    store (2026-08-12, PII incident follow-up), superseding the old
-    per-period file (orders_<period>_<STORE>.csv, CLAUDE.md's old commit
-    exception -- retired, see docs/2026-08-12_pii_remediation.md). `period`
-    is accepted so existing call sites (contract.py's LM/LY bootstrap) don't
-    need to change, but it's ignored: emit_contract_from_matrixify and
-    _matrixify_headline_totals both filter parsed rows by order_month AFTER
-    loading, so the same rolling file correctly serves any period inside its
-    window -- it never needs to be re-scoped per period. This file is never
-    committed either (source/ is gitignored, no exceptions, same as every
-    other snapshot here).
+
+def matrixify_orders_snapshot(store, period):
+    """trading/source/orders_<period>_<STORE>.csv -- e.g.
+    "trading/source/orders_2025-07_UK.csv" -- the per-store, per-month slice
+    for `period` ("2026-06"). This is the LOCAL landing-path convention
+    (period first, STORE uppercase, no subdirectory) -- a different naming
+    layer from the Drive-side per-slice filename in the brief's own §2.1
+    (orders_<store>_<YYYY-MM>.csv, lowercase store); don't conflate the two,
+    a mismatch here means the builders find nothing on disk.
+
+    `period` is now REQUIRED: it used to be accepted-and-ignored, back when
+    one rolling ~400-day file served every period unfiltered (retired
+    2026-08-13 -- that file's own Drive sheet stopped being downloadable at
+    all, and no 400-day window could ever serve a YoY comparison regardless
+    of size). There is no longer a single file that could serve an
+    arbitrary period, by design: matrixify_orders_snapshot_covers() below
+    needs a specific period to check coverage FOR. Never committed
+    (source/ is gitignored, no exceptions, same as every other snapshot
+    here).
     """
-    return os.path.join(TRADING_SNAPSHOT_DIR, f"orders_ALL_{store.upper()}.csv")
+    return os.path.join(TRADING_SNAPSHOT_DIR, f"orders_{period}_{store.upper()}.csv")
 
 
-def matrixify_orders_snapshot_covers(csv_path, period):
-    """Fail-loud guard for the rolling snapshot: existence alone no longer
-    proves a period's data is actually IN the file (unlike the old one-
-    file-per-month convention, where existence was a perfect proxy -- one
-    file per month, so "exists" and "covers this month" were the same
-    fact). Scans the file's own Created At column (same parse/timezone
-    logic as trading/matrixify_source.py's order_month_london -- duplicated
-    here in miniature rather than imported, to keep common/ independent of
-    trading/, not the other way round) and returns True only if at least
-    one row actually falls in `period`. Callers should treat False the same
-    as a missing file -- fall back or fail loud, never silently proceed to
-    a zero LM/LY.
+def load_orders_manifest(manifest_path=ORDERS_MANIFEST_PATH):
+    """{(store, period): row_dict} from orders_manifest.csv, {} if the
+    manifest doesn't exist yet (e.g. before any backfill/standing slice has
+    ever been written). Keys are the lowercase store/period strings exactly
+    as trading/tools/backfill_slice.py and the Appendix A Apps Script both
+    write them.
     """
+    if not os.path.exists(manifest_path):
+        return {}
+    with open(manifest_path, newline="", encoding="utf-8") as fh:
+        return {(row["store"], row["period"]): row for row in csv.DictReader(fh)}
+
+
+def matrixify_orders_snapshot_covers(store, period, manifest=None):
+    """Full-period coverage from the manifest, not "at least one row" --
+    the bug this replaces (the old matrixify_orders_snapshot_covers(csv_path,
+    period), which scanned a CSV and returned True on the FIRST matching
+    row, then got OR'd across stores at both call sites) let a missing store
+    pass silently, since a rolling file merely existing was never proof it
+    covered a given month either.
+
+    A manifest row's min_created_at/max_created_at must bracket the whole
+    period (on/before its first day, on/after its last), not just intersect
+    it -- a slice that only half-landed (an interrupted backfill, say) must
+    not read as covered. Caveat, intentional rather than fixed further: a
+    real calendar day with genuinely zero orders at the very start or end of
+    a period would also fail this check, same as a missing day would --
+    implausible at this store's volume, and a false negative here is a far
+    smaller risk than the "any single row passes" bug it replaces.
+    """
+    manifest = manifest if manifest is not None else load_orders_manifest()
+    row = manifest.get((store.lower(), period))
+    if row is None or not row.get("min_created_at") or not row.get("max_created_at"):
+        return False
+
     from datetime import datetime
     from zoneinfo import ZoneInfo
+    from common.period import month_key_bounds
 
-    if not os.path.exists(csv_path):
-        return False
     london = ZoneInfo("Europe/London")
-    with open(csv_path, newline="", encoding="utf-8-sig") as fh:
-        for row in csv.DictReader(fh):
-            created = row.get("Created At")
-            if not created:
-                continue
-            dt = datetime.strptime(created, "%Y-%m-%d %H:%M:%S %z")
-            if dt.astimezone(london).strftime("%Y-%m") == period:
-                return True
-    return False
+    period_start, period_end = month_key_bounds(period)
+    min_dt = datetime.strptime(row["min_created_at"], "%Y-%m-%d %H:%M:%S %z").astimezone(london).date()
+    max_dt = datetime.strptime(row["max_created_at"], "%Y-%m-%d %H:%M:%S %z").astimezone(london).date()
+    return min_dt <= period_start and max_dt >= period_end
+
+
+def assert_orders_coverage(period, stores=("uk", "us")):
+    """The shared, AND-across-stores coverage guard (Matrixify Slice
+    Architecture brief 5/11.1) -- both trading/build_matrixify_dashboard.py
+    (which had an OR-across-stores bug) and returns/build_dashboard.py
+    (which had NO coverage guard at all) call this, so there is one place
+    deciding "is this period's Matrixify data actually usable," not a
+    duplicated or drifted copy per caller. Lives in common/, not trading/,
+    so returns/build_dashboard.py can call it without depending on
+    trading/. Raises AssertionError naming the exact missing/partial
+    store(s), never returns a soft False a caller could accidentally OR past.
+    """
+    manifest = load_orders_manifest()
+    missing = [s for s in stores if not matrixify_orders_snapshot_covers(s, period, manifest=manifest)]
+    assert not missing, (
+        f"ORDERS COVERAGE FAILED: {period} is not fully covered for store(s) {missing} "
+        f"-- a missing/partial store must not silently pass (this used to be OR'd "
+        f"across stores; that's exactly the bug this replaces). Check "
+        f"{ORDERS_MANIFEST_PATH} has a row for each store, and that its "
+        f"min_created_at/max_created_at actually bracket the whole period."
+    )
+
+
+def check_orders_manifest_staleness(stores=("uk", "us"), max_staleness_hours=36, as_of=None):
+    """WARNS (does not abort) if any store's newest manifest last_written is
+    older than max_staleness_hours -- the standing Apps Script's runDaily
+    trigger going silent is otherwise invisible until someone notices a
+    number looks wrong (brief section 5's staleness assertion).
+    """
+    from datetime import datetime, timezone
+
+    as_of = as_of or datetime.now(timezone.utc)
+    manifest = load_orders_manifest()
+    for store in stores:
+        rows = [r for (s, _p), r in manifest.items() if s == store.lower()]
+        if not rows:
+            print(f"check_orders_manifest_staleness: no manifest rows at all for store {store!r}",
+                  file=sys.stderr)
+            continue
+        newest = max(datetime.fromisoformat(r["last_written"]) for r in rows)
+        staleness_hours = (as_of - newest).total_seconds() / 3600
+        if staleness_hours > max_staleness_hours:
+            print(f"check_orders_manifest_staleness: WARNING -- {store} manifest's newest "
+                  f"last_written is {newest.isoformat()} ({staleness_hours:.1f}h before "
+                  f"{as_of.isoformat()}) -- the standing Apps Script pipeline may have gone silent.",
+                  file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -341,40 +397,6 @@ def _clean_cell(v):
     return v
 
 
-def normalize_matrixify_orders_sheet(raw_xlsx_path, store, out_path=None):
-    """raw_xlsx_path: one of the two 'Matrixify Orders (Auto-Refresh)' Drive
-    sheets -- UK and US now live in SEPARATE files (split 2026-08-13, see
-    matrixify_orders_uk's SOURCES note for why), each a single default
-    'Sheet1' tab, populated daily by a small Apps Script that
-    fetches Matrixify's own fixed-URL scheduled export (see
-    docs/2026-08-12_matrixify_sheet_bridge.md). Extracts the one tab for
-    `store` ('uk'/'us') to a plain CSV at out_path, same column names
-    Matrixify itself uses (e.g. 'Line: Type') -- trading/matrixify_source.py
-    reads this exactly like it read the old per-month exports, no parser
-    change needed. Blank cells come back as None from openpyxl; written out
-    as empty strings, matching how csv.DictReader expects a missing value.
-    Whole-number floats are cleaned to plain integers (_clean_cell) before
-    writing -- see its docstring for why this matters well beyond cosmetics.
-    """
-    import openpyxl
-
-    out_path = out_path or matrixify_orders_snapshot(store)
-    tab_name = SOURCES[f"matrixify_orders_{store.lower()}"]["tab"]
-    wb = openpyxl.load_workbook(raw_xlsx_path, read_only=True, data_only=True)
-    ws = wb[tab_name]
-    rows = ws.iter_rows(values_only=True)
-    header = next(rows)
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        for row in rows:
-            if row[0] is None:  # trailing blank row
-                continue
-            writer.writerow(["" if v is None else _clean_cell(v) for v in row])
-    return out_path
-
-
 def normalize_returns_zap_xlsx(raw_xlsx_path, out_path=RETURNS_ZAP_SNAPSHOT):
     """raw_xlsx_path: the ReturnZap Apps Script's sheet, downloaded as-is
     (single relevant tab, 'API: Returns' in the Sheets UI -- populated by
@@ -386,9 +408,9 @@ def normalize_returns_zap_xlsx(raw_xlsx_path, out_path=RETURNS_ZAP_SNAPSHOT):
     not 'API: Returns'. Extracts that tab to a plain CSV at out_path in the
     sheet's own native column names (Order Id, SKU, Quantity, Stage, ...)
     -- load_returns_zap_snapshot()/load_returns_export_from_sheet() read
-    this directly, no parser change needed. Same blank-cell handling as
-    normalize_matrixify_orders_sheet: openpyxl's None becomes an empty
-    string, matching what pd.read_csv would see from a real CSV export.
+    this directly, no parser change needed. openpyxl's None becomes an
+    empty string, matching what pd.read_csv would see from a real CSV
+    export.
     """
     import openpyxl
 

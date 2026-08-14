@@ -132,6 +132,29 @@ def parse_period(period_str, as_of=None):
     return PeriodModel(cm=cm, lm=lm, ly=ly)
 
 
+def prior_month_key(period_key):
+    """"2026-05" -> "2026-04"; "2026-01" -> "2025-12" -- the M-1 key,
+    exposed for callers (build_matrixify_dashboard.py's own LM-derivation)
+    that need to compute the immediately-prior month from a bare key
+    without hand-rolling the year-rollover arithmetic again.
+    """
+    year, month = (int(x) for x in period_key.split("-"))
+    prev_month, prev_year = _prev_month(month, year)
+    return f"{prev_year}-{prev_month:02d}"
+
+
+def month_key_bounds(period_key):
+    """"2026-06" -> (date(2026,6,1), date(2026,6,30)) -- the same calendar
+    arithmetic _month_bounds already does, exposed for callers (e.g.
+    common/sources.py's manifest coverage check) that only have a bare
+    "YYYY-MM" key, not a full parse_period() label, and shouldn't have to
+    round-trip through parse_period's own "not in the future" validation
+    just to ask what a period's own start/end dates are.
+    """
+    year, month = (int(x) for x in period_key.split("-"))
+    return _month_bounds(month, year)
+
+
 def month_period_string(month_num, year):
     """(6, 2026) -> "June 2026" -- the inverse of parse_period's month
     branch, for callers building a period string from calendar arithmetic

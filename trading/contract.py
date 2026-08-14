@@ -47,10 +47,19 @@ from revenue import country_bucket, line_ab
 from line_detail import build_line_detail_index, enrich_lines
 from build_matrixify import _fx_rate_for, channel_from_company, MAY_THREE_WAY
 from common.reconciliation_gate import assert_country_reconciles
+from common import sku_cuts
 from common.fx import DEFAULT_PATH as FX_RATES_PATH
 from common.sources import matrixify_orders_snapshot
 
-CONTRACT_VERSION = "1.0"
+# 1.1 (2026-08-13): skus_all entries gained `row`/`row_u`, the catalogue
+# attributes (item_type/material/style/is_kit/supplier_cost) and `cuts` --
+# the channel x country grain the By-SKU companion tab needs. A 1.0 contract
+# is still valid and still renders every tab it always did; the companion's
+# By-SKU writer is the only consumer that requires 1.1, and it says so by
+# name rather than printing empty columns. Back-fill 1.0 -> 1.1 with
+# trading/backfill_sku_grain.py (additive; never rewrites a gated figure).
+CONTRACT_VERSION = "1.1"
+SKU_CUTS_MIN_VERSION = "1.1"
 
 # extract_all()'s payload keys, i.e. everything it returns EXCEPT the
 # _ws_* openpyxl handles. This is the exact shape compute.py's functions
@@ -800,6 +809,18 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             # already used to build LIVE_STATUS_VALUES' per-line status
             # rollup), not something that varies line to line for one SKU.
             "newness_bucket": line["newness_bucket"],
+            # Catalogue attributes the By-SKU companion tab needs and that
+            # enrich_lines already carries per line (2026-08-13) -- item_type
+            # is the *Product Category* grain ("Handle"), narrower than
+            # type_/department ("Cabinetry"); see the taxonomy reference for
+            # why the header names read backwards.
+            "item_type": line["item_type"], "material": line["material"],
+            "style": line["style"], "is_kit": line["is_kit"],
+            "supplier_cost": line["supplier_cost_gbp"],
+            # ROW at SKU grain (2026-08-13): previously dropped entirely, so
+            # per-SKU uk + us silently missed ROW revenue.
+            "row": 0.0, "row_u": 0,
+            "cuts": sku_cuts.new_cuts(),
         })
         s["gross"] += ab
         s["units"] += line["units"]
@@ -810,6 +831,10 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
         elif bucket == "US":
             s["us"] += ab
             s["us_u"] += line["units"]
+        else:
+            s["row"] += ab
+            s["row_u"] += line["units"]
+        sku_cuts.add_line(s["cuts"], ab, line["units"], chan, bucket, line["supplier_cost_gbp"])
 
     total_lines = len(enriched)
     enrichment_coverage = ((grand_total - unmatched_ab) / grand_total) if grand_total else 1.0
@@ -1233,7 +1258,22 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
             # lq/vslq above), matched by exact SKU code; None otherwise.
             "ly": round(ly_sales, 2) if ly_sales is not None else None,
             "is_el_component": v["is_el_component"], "newness_bucket": v["newness_bucket"],
+            # ── SKU grain, added 2026-08-13 for the By-SKU companion tab ──
+            # Every field below is derived from the same enriched order lines
+            # and the same line_ab as `gross` above -- nothing here comes from
+            # the hand-built report, whose per-SKU figures are on a different
+            # (gross) basis and diverge bidirectionally from ours. See
+            # docs/2026-08-13_sku_grain_cuts.md.
+            "row": v["row"], "row_u": v["row_u"],
+            "item_type": v["item_type"], "material": v["material"], "style": v["style"],
+            "is_kit": v["is_kit"], "supplier_cost": v["supplier_cost"],
+            "cuts": sku_cuts.serialize(v["cuts"]),
         })
+        # SKU-grain twin of the headline country gate. A partition failure
+        # here means a line was routed into `total` but not into a country or
+        # channel cut, which would silently understate a cut column in the
+        # companion -- fail the build, don't print a wrong share.
+        sku_cuts.assert_cuts_reconcile(sku, v["cuts"])
     if oracle_sku_lq:
         matched = sum(1 for s in skus_all if s["vslq"] is not None)
         print(f"contract: {matched}/{len(skus_all)} SKUs matched the oracle bootstrap's own "
