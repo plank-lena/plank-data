@@ -53,7 +53,10 @@ for _p in (_HERE, _DASHBOARD_DIR, _REPO_ROOT):
 
 from contract import emit_contract_from_matrixify, render_contract, write_committed_file
 from common.period import parse_period, month_period_string
-from common.sources import matrixify_orders_snapshot, matrixify_orders_snapshot_covers
+from common.sources import (
+    matrixify_orders_snapshot, matrixify_orders_snapshot_covers,
+    assert_orders_coverage, check_orders_manifest_staleness, load_orders_manifest,
+)
 
 _YYYY_MM_RE = re.compile(r"^(\d{4})-(\d{2})$")
 
@@ -85,6 +88,36 @@ _ORACLE_FIXTURES = {
 # T1: the immediately-prior consecutive month, used only to source
 # current['trend_3mo']'s M-2 point (see contract.py's docstring) -- no
 # entry for 2026-04 since there's no prior month's contract to read yet.
+def _period_fully_covered(period, manifest=None, stores=("uk", "us")):
+    """Soft (non-raising) twin of common.sources.assert_orders_coverage --
+    True only when EVERY store's slice covers `period` in full. Used where a
+    missing period is a legitimate branch rather than an error: deciding
+    whether the LM/LY connector bootstrap can run. AND across stores, never
+    OR (the OR form is the bug docs/2026-08-13_order_slices.md replaced).
+
+    Defined here, and imported from here by
+    build_matrixify_quarterly_dashboard.py, so monthly and quarterly share
+    one definition. Added 2026-08-14: the quarterly builder was already
+    importing this name and _resolve_ly_month_contract below, but neither
+    was ever defined, so that module raised ImportError on load.
+    """
+    manifest = manifest if manifest is not None else load_orders_manifest()
+    return all(matrixify_orders_snapshot_covers(s, period, manifest=manifest) for s in stores)
+
+
+def _resolve_ly_month_contract(period):
+    """Path to `period`'s prior-year same-month committed contract, or None
+    if this period has no mapping or the file isn't present. Reads the
+    existing _LY_MONTH_CONTRACTS table below rather than deriving the key, so
+    the mapping stays declared in exactly one place.
+    """
+    fixture = _LY_MONTH_CONTRACTS.get(period)
+    if not fixture:
+        return None
+    candidate = os.path.join(CONTRACTS_DIR, fixture)
+    return candidate if os.path.exists(candidate) else None
+
+
 _PRIOR_PERIOD = {
     "2026-05": "2026-04",
     "2026-06": "2026-05",
@@ -115,35 +148,27 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
                           "chaining silently zeros both in contract.py.")
 
     period, requested_pm = _period_model_for(period_arg, as_of=as_of)
-    # 2026-08-12 (PII incident follow-up, docs/2026-08-12_matrixify_sheet_bridge.md):
-    # ONE rolling ~400-day snapshot per store now, not a file per period --
-    # see common.sources.matrixify_orders_snapshot's docstring for why the
-    # same two files correctly serve any period without re-scoping.
-    uk_csv = matrixify_orders_snapshot("uk")
-    us_csv = matrixify_orders_snapshot("us")
+    # 2026-08-14: migrated to the per-store, per-month slice convention
+    # (docs/2026-08-13_order_slices.md). This call site was missed by the
+    # 13 Aug migration -- it kept the pre-slice signature
+    # (matrixify_orders_snapshot("uk") with no period) and so raised
+    # TypeError before reading any data, i.e. the monthly builder could not
+    # run at all from a clean clone. The coverage check below was also the
+    # OR-across-stores version the brief replaced; it now calls the shared
+    # assert_orders_coverage(), same as the quarterly builder.
+    assert_orders_coverage(period)
+    check_orders_manifest_staleness()
+    uk_csv = matrixify_orders_snapshot("uk", period)
+    us_csv = matrixify_orders_snapshot("us", period)
 
-    # The rolling file existing no longer proves it covers THIS period (the
-    # old one-file-per-month convention made "exists" and "covers" the same
-    # fact; a rolling file breaks that). Fail loud rather than silently
-    # building an all-zero CM off an empty filter.
-    cm_covered = (matrixify_orders_snapshot_covers(uk_csv, period)
-                  or matrixify_orders_snapshot_covers(us_csv, period))
-    if not cm_covered:
-        raise FileNotFoundError(
-            f"build_matrixify_dashboard: {period} isn't inside the rolling Matrixify "
-            f"snapshot's window ({uk_csv} / {us_csv}). This period has never been built "
-            f"and falls outside the ~400-day rolling pull -- it needs a one-off historical "
-            f"Matrixify export before this can run (see docs/2026-08-12_matrixify_sheet_bridge.md "
-            f"'backfill' note), not something the rolling snapshot covers automatically."
-        )
 
     oracle_bootstrap_path = None
     requested_period_model = None
     if lm_contract is None and ly_contract is None:
         lm_key, ly_key = requested_pm["lm"]["key"], requested_pm["ly"]["key"]
+        manifest = load_orders_manifest()
         matrixify_bootstrap_available = (
-            (matrixify_orders_snapshot_covers(uk_csv, lm_key) or matrixify_orders_snapshot_covers(us_csv, lm_key))
-            and (matrixify_orders_snapshot_covers(uk_csv, ly_key) or matrixify_orders_snapshot_covers(us_csv, ly_key))
+            _period_fully_covered(lm_key, manifest) and _period_fully_covered(ly_key, manifest)
         )
 
         if force_oracle_bootstrap:

@@ -62,7 +62,7 @@ for _p in (_HERE, os.path.join(_HERE, ".."), os.path.join(_HERE, "dashboard")):
 
 from common import sku_cuts
 from common.period import parse_period  # period comes from the prompt, never a file header
-from common.sources import matrixify_orders_snapshot, matrixify_orders_snapshot_covers
+from common.sources import assert_orders_coverage, matrixify_orders_snapshot
 from contract import CONTRACT_VERSION, emit_contract_from_matrixify
 
 CONTRACTS_DIR = os.path.join(_HERE, "contracts")
@@ -106,18 +106,24 @@ def _rederive(period):
     nothing else, so LM/LY bootstrap sources are deliberately not passed
     (they would only rebuild blocks this script then asserts are unchanged).
     """
-    uk_csv = matrixify_orders_snapshot("uk")
-    us_csv = matrixify_orders_snapshot("us")
-    if not (matrixify_orders_snapshot_covers(uk_csv, period)
-            or matrixify_orders_snapshot_covers(us_csv, period)):
+    # 2026-08-14: migrated to the per-store, per-month slice convention and
+    # the shared AND-across-stores guard (docs/2026-08-13_order_slices.md).
+    # This call site was left on the pre-slice signature
+    # (matrixify_orders_snapshot("uk"), covers(path, period), OR'd across
+    # stores), so every invocation died with a TypeError before reading any
+    # data -- which is why the back-fill was recorded as "blocked on data".
+    try:
+        assert_orders_coverage(period)
+    except AssertionError as exc:
         raise SystemExit(
-            f"backfill: {period} is outside the order snapshot's window "
-            f"({uk_csv} / {us_csv}), so it cannot be re-derived and its cuts cannot be "
-            f"back-filled. Stage that period's archive export into the snapshot location "
-            f"first (see docs on the Matrixify Drive bridge). Deriving the cuts from the "
-            f"hand-built report instead is NOT an option -- that source is gross-basis and "
-            f"diverges per SKU from what was published."
+            f"backfill: {exc}\n\nSo {period} cannot be re-derived and its cuts cannot be "
+            f"back-filled. Stage that period's slices into the order-slices folder first "
+            f"(see docs/2026-08-13_order_slices.md). Deriving the cuts from the hand-built "
+            f"report instead is NOT an option -- that source is gross-basis and diverges "
+            f"per SKU from what was published."
         )
+    uk_csv = matrixify_orders_snapshot("uk", period)
+    us_csv = matrixify_orders_snapshot("us", period)
     return emit_contract_from_matrixify(period=period, uk_csv=uk_csv, us_csv=us_csv)
 
 
