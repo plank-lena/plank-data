@@ -6,8 +6,10 @@ exact source/gap, per CLAUDE.md's "never hand-patch" rule.
 
 ReturnZap is full-history (unlike Matrixify, which is filtered at the
 EXPORT/fetch step for the requested period -- see common/sources.py's
-matrixify_orders_snapshot) -- the builder filters to the requested period
-here, by return-month, via slice_by_return_month(). Yotpo reviews are
+matrixify_orders_snapshot, one manifest-backed slice per store per month
+as of the 2026-08-13 Matrixify Slice Architecture migration) -- the
+builder filters to the requested period here, by return-month, via
+slice_by_return_month(). Yotpo reviews are
 NOT period-filtered at all (region filter only, per the returns brief) --
 see reviews/review_feedback.py; nothing in this module applies to Yotpo.
 

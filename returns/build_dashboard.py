@@ -32,7 +32,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from common.period import parse_period
-from common.sources import matrixify_orders_snapshot, LINE_DETAIL_SNAPSHOT
+from common.sources import matrixify_orders_snapshot, LINE_DETAIL_SNAPSHOT, assert_orders_coverage
 from returns import build, render
 from returns.validate import validate_period
 
@@ -59,12 +59,25 @@ def build_returns(period_arg, force=False, as_of=None, out_path=None):
     # aggregation -- the same gate run_for_period applies, run explicitly
     # here since render() re-derives its own month_nums/year from what we
     # pass it directly, not from a period string (it doesn't call
-    # run_for_period internally).
+    # run_for_period internally). That's the ReturnZap-side gate; the
+    # Matrixify SALES side had no coverage guard at all before this
+    # (Matrixify Slice Architecture brief, 2026-08-13, §11.1 -- worse than
+    # trading, which at least had a guard to fix). Full-period, BOTH-stores
+    # coverage per constituent month, raising on any gap -- a quarter needs
+    # all three months covered, not just the ones that happen to have
+    # landed.
     validate_period(pm, as_of=as_of)
+    for m in month_nums:
+        assert_orders_coverage(f"{year}-{m:02d}")
 
+    # Flattened per-store, per-month slice list across the whole requested
+    # period -- fits load_matrixify_sales' own existing docstring contract
+    # ("one or more months per country, concatenated") without changing
+    # that function at all.
     sales_sources = [
-        ("UK", matrixify_orders_snapshot("uk")),
-        ("US", matrixify_orders_snapshot("us")),
+        (country, matrixify_orders_snapshot(store, f"{year}-{m:02d}"))
+        for store, country in (("uk", "UK"), ("us", "US"))
+        for m in month_nums
     ]
     sales_df = build.load_matrixify_sales(sales_sources)
     ld_std = build.load_line_detail_file(LINE_DETAIL_SNAPSHOT)
