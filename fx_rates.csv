@@ -14,3 +14,4 @@ date,gbp_usd,source
 2026-05-01,1.3509,"frankfurter.app (ECB reference rate), nearest available: 2026-04-30"
 2026-06-01,1.3465,frankfurter.app (ECB reference rate)
 2026-07-01,1.3250,"googlefinance (sheet AA, month rate)"
+2026-08-01,1.3421,"frankfurter.app (ECB reference rate), nearest available: 2026-07-31"
