@@ -59,9 +59,45 @@ def save(rows, path=DEFAULT_PATH):
             writer.writerow([date, f"{rate:.4f}", source])
 
 
+class FxUnavailable(RuntimeError):
+    """The month's rate isn't in the frozen table and couldn't be fetched.
+
+    Raised instead of letting requests' own HTTPError/ConnectionError escape.
+    Added 2026-08-14: inside a Claude session api.frankfurter.app is not in
+    the network allowlist, so this is the FIRST thing a colleague hits when
+    they ask for a month whose rate was never seeded -- and what they saw was
+    a bare `403 Client Error: Forbidden` traceback with no indication that a
+    person simply needs to add one row to a CSV. The build must still stop:
+    a guessed rate would distort every US line, and the country
+    reconciliation gate CANNOT catch it, because the total and the
+    uk+us+row split both derive from the same rows and would tie either way.
+    """
+
+
 def _fetch_rate(date_str, source_url):
-    resp = requests.get(source_url.format(date=date_str), timeout=15)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(source_url.format(date=date_str), timeout=15)
+        resp.raise_for_status()
+    except Exception as exc:
+        raise FxUnavailable(
+            f"No GBP/USD rate for {date_str} in fx_rates.csv, and it could not be "
+            f"fetched ({type(exc).__name__}: {exc}).\n"
+            f"\n"
+            f"This period cannot be built until that rate is added -- guessing one "
+            f"would silently distort every US order line, and the UK+US+ROW "
+            f"reconciliation check would still pass, so nothing downstream would "
+            f"catch it.\n"
+            f"\n"
+            f"To fix, from a machine with normal internet access:\n"
+            f"    python -c \"from common.fx import ensure_month; ensure_month('{date_str[:7]}')\"\n"
+            f"then commit fx_rates.csv. Or read the month's rate off the live trading "
+            f"sheet's AA column and seed it directly:\n"
+            f"    python -c \"from common.fx import seed_confirmed; "
+            f"seed_confirmed('{date_str[:7]}', <rate>, 'googlefinance (sheet AA, month rate)')\"\n"
+            f"\n"
+            f"One row per report month; it only needs doing once per month, and it is "
+            f"the only step in a monthly build that a Claude session cannot do for itself."
+        ) from exc
     data = resp.json()
     rate = data["rates"]["USD"]
     actual_date = data.get("date", date_str)

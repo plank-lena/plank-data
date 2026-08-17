@@ -33,7 +33,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _DASHBOARD_DIR = os.path.join(_HERE, "dashboard")
@@ -204,12 +204,26 @@ def _add_headline_kpis(current):
 
 
 def _git_commit():
+    """HEAD's sha, suffixed `-dirty` when the working tree has uncommitted
+    changes (2026-08-14). Without the suffix a contract built from edited-but-
+    uncommitted code recorded a sha that does not contain the code that ran --
+    provenance claiming reproducibility it doesn't have. A `-dirty` sha is an
+    honest "this cannot be reproduced from the repo yet".
+    """
     try:
-        return subprocess.check_output(
+        sha = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=_HERE, text=True, stderr=subprocess.DEVNULL
         ).strip()
     except Exception:
         return None
+    try:
+        dirty = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=_HERE, text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except Exception:
+        dirty = ""
+    return f"{sha}-dirty" if dirty else sha
 
 
 def _period_str_from_label(label):
@@ -230,7 +244,81 @@ def _period_str_from_label(label):
     return f"{year}-{month:02d}"
 
 
-def write_committed_file(content_str, out_path, force=False, label="file"):
+SETTLING_DAYS = 30
+
+
+def _slices_read(period, requested_period_model=None):
+    """(store, period, sha256) for every order slice a build of `period`
+    actually read -- the CM pair always, plus the LM/LY pairs when the
+    connector bootstrap used them. Read from the manifest, so the recorded
+    sha is the one the slicer wrote, not one recomputed here.
+    """
+    from common.sources import load_orders_manifest
+    manifest = load_orders_manifest()
+    keys = [period]
+    if requested_period_model is not None:
+        keys += [requested_period_model["lm"]["key"], requested_period_model["ly"]["key"]]
+    out = []
+    for p in keys:
+        for store in ("uk", "us"):
+            row = manifest.get((store, p))
+            if row:
+                out.append((store, p, row["sha256"]))
+    return out
+
+
+def _settled_at_for(period_key):
+    """When `period_key`'s figures stop moving: SETTLING_DAYS after its last
+    day, UTC. Accepts either month ('2026-06') or quarter ('2026-Q2') keys,
+    the two forms _period_str_from_label emits.
+
+    A month keeps moving after it ends -- refunds mature, returns land -- so
+    a contract written the day after month end is provisional in a way one
+    written a month later is not. 30 days matches the only settled_at ever
+    stamped by hand (2026-06 -> 2026-07-30T00:00:00+00:00) and the returns
+    window the returns dashboard already assumes.
+
+    Added 2026-08-14: quarterly.py had imported this name since 13 Aug but it
+    was never defined, so that module raised ImportError on load and the
+    quarterly builder could not run at all.
+    """
+    year_str, tail = period_key.split("-")
+    year = int(year_str)
+    if tail.upper().startswith("Q"):
+        end_month = int(tail[1:]) * 3
+    else:
+        end_month = int(tail)
+    from calendar import monthrange
+    last_day = date(year, end_month, monthrange(year, end_month)[1])
+    settled = datetime(last_day.year, last_day.month, last_day.day,
+                        tzinfo=timezone.utc) + timedelta(days=SETTLING_DAYS)
+    return settled.isoformat()
+
+
+def _existing_is_settled(out_path, as_of=None):
+    """Is the file already at `out_path` past its own settled_at?
+
+    Reads settled_at out of the existing file when it is a contract JSON that
+    carries one. **A committed file with no readable settled_at counts as
+    SETTLED** -- that is the deliberate default, not a gap: it covers every
+    contract and dashboard written before settled_at existed (everything
+    before 13 Aug 2026) and every non-JSON output, which carries no
+    provenance to read. Erring towards "settled" means the stricter flag is
+    required in the ambiguous case.
+    """
+    as_of = as_of or datetime.now(timezone.utc)
+    try:
+        with open(out_path, encoding="utf-8") as f:
+            settled_at = json.load(f).get("provenance", {}).get("settled_at")
+    except Exception:
+        return True
+    if not settled_at:
+        return True
+    return as_of >= datetime.fromisoformat(settled_at)
+
+
+def write_committed_file(content_str, out_path, force=False, force_settled=False,
+                          label="file", as_of=None):
     """Refuse to silently overwrite an existing committed file (a contract
     JSON or a dashboard HTML output) -- fails loud unless the caller
     explicitly passes force=True.
@@ -243,6 +331,12 @@ def write_committed_file(content_str, out_path, force=False, label="file"):
     site that can touch a committed path must go through this function
     from now on -- committed contracts/outputs are read-only unless the
     caller deliberately opts in.
+
+    Two-tier as of 2026-08-14 (the behaviour code_map.md already documented):
+    `force` is enough for a period that has not settled yet; once the existing
+    file is past its own settled_at, `force_settled` is required as well.
+    Re-deriving a settled period is a bigger claim than re-deriving this
+    month's provisional figures, so it takes a separate, explicit flag.
     """
     if os.path.exists(out_path) and not force:
         raise FileExistsError(
@@ -250,6 +344,13 @@ def write_committed_file(content_str, out_path, force=False, label="file"):
             f"force=True (CLI: --force) to intentionally overwrite, or write to a "
             f"different (temp/diff) path to check parity without touching the "
             f"committed file."
+        )
+    if os.path.exists(out_path) and not force_settled and _existing_is_settled(out_path, as_of=as_of):
+        raise FileExistsError(
+            f"refusing to overwrite existing SETTLED committed {label} at {out_path} -- "
+            f"it is past its own settled_at (or carries none, which counts as settled), so "
+            f"plain force=True is not enough. Pass force_settled=True (CLI: --force-settled) "
+            f"to re-derive a settled period, or write to a temp/diff path instead."
         )
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(content_str)
@@ -542,7 +643,8 @@ def _matrixify_headline_totals(period, uk_csv, us_csv, line_detail_path=None, as
 def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_detail_path=None, as_of=None,
                                   lm_contract=None, ly_contract=None, oracle_bootstrap_path=None,
                                   oracle_gaps=None, out_path=None, prior_month_contract=None,
-                                  ly_month_contract=None, inventory_index=None, requested_period_model=None):
+                                  ly_month_contract=None, inventory_index=None, requested_period_model=None,
+                                  source_slices=None):
     """The real builder: BRIEF #5's ship-to reconcile + BRIEF #2's Line
     Detail enrichment, rolled up into extract_all()'s exact payload shape.
 
@@ -1317,7 +1419,26 @@ def emit_contract_from_matrixify(period=None, uk_csv=None, us_csv=None, line_det
         "country_gaps_vs_oracle": country_gaps_vs_oracle,
         "lq_ly_source": lq_ly_source,
         "ly_dept_unclassified_share": ly_dept_unclassified_share,
+        # §13 provenance, added to the monthly path 2026-08-14 -- the
+        # quarterly path already stamped all three, and the only monthly
+        # contract carrying settled_at had it added by hand. Without it every
+        # freshly-built month counted as settled the moment it was written
+        # (see _existing_is_settled), so the two-tier force gate could never
+        # distinguish a provisional month from a closed one.
+        #
+        # source_slices: the quarterly aggregator forwards each constituent
+        # month's own slice list so the quarter's provenance can carry every
+        # slice any of its 3 months read (quarterly.py's month_source_slices).
+        # It passed this argument from 13 Aug but the parameter didn't exist,
+        # so the quarterly builder raised TypeError here; when the caller
+        # doesn't supply it we derive it from the manifest instead.
+        "source_slices": source_slices if source_slices is not None else ([
+            {"store": store, "period": p, "sha256": sha}
+            for store, p, sha in _slices_read(period, requested_period_model)
+        ] or None),
+        "settled_at": _settled_at_for(period),
         "built_at": datetime.now(timezone.utc).isoformat(),
+        "pipeline_sha": _git_commit(),
         "commit": _git_commit(),
     }
 

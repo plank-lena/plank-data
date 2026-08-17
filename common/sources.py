@@ -336,6 +336,28 @@ def assert_orders_coverage(period, stores=("uk", "us")):
     trading/. Raises AssertionError naming the exact missing/partial
     store(s), never returns a soft False a caller could accidentally OR past.
     """
+    # 2026-08-14: a cold clone has no trading/source/ at all (it's gitignored),
+    # so this used to fire the partial-store message below and send the reader
+    # off to inspect a manifest that doesn't exist. "Nothing staged" and "one
+    # store is short" are different problems with different fixes; say which.
+    if not os.path.exists(ORDERS_MANIFEST_PATH):
+        raise FileNotFoundError(
+            f"NO ORDER DATA STAGED: {ORDERS_MANIFEST_PATH} does not exist, so no period "
+            f"can be built yet.\n"
+            f"\n"
+            f"trading/source/ is gitignored (it holds raw order exports -- see "
+            f"docs/2026-08-12_pii_remediation.md), so a fresh clone always starts empty. "
+            f"Fetch the feeds from Drive first:\n"
+            f"  1. orders_manifest.csv  -- Drive file 1gB7QmexvcQgKghXWgMRD2czN-C1UYPZD\n"
+            f"  2. read it to find which month slices {period} needs (that month, the prior\n"
+            f"     month, and the same month last year), then pull only those from Drive\n"
+            f"     folder 11RudAVLppGyg5nvlzAIbtwHKjmS49kUz\n"
+            f"  3. the Line Detail master, normalized via "
+            f"common.sources.normalize_line_detail_xlsx()\n"
+            f"\n"
+            f"Local landing paths are matrixify_orders_snapshot(store, period) and "
+            f"LINE_DETAIL_SNAPSHOT. See claude/generate_a_dashboard.md for the full sequence."
+        )
     manifest = load_orders_manifest()
     missing = [s for s in stores if not matrixify_orders_snapshot_covers(s, period, manifest=manifest)]
     assert not missing, (

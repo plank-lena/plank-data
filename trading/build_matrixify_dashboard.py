@@ -105,37 +105,45 @@ def _period_fully_covered(period, manifest=None, stores=("uk", "us")):
     return all(matrixify_orders_snapshot_covers(s, period, manifest=manifest) for s in stores)
 
 
-def _resolve_ly_month_contract(period):
-    """Path to `period`'s prior-year same-month committed contract, or None
-    if this period has no mapping or the file isn't present. Reads the
-    existing _LY_MONTH_CONTRACTS table below rather than deriving the key, so
-    the mapping stays declared in exactly one place.
+def _prior_period(period):
+    """'2026-06' -> '2026-05'; '2026-01' -> '2025-12'. Derived, not tabulated.
+
+    2026-08-14: this replaced a two-entry _PRIOR_PERIOD dict ({"2026-05":
+    "2026-04", "2026-06": "2026-05"}) and a three-entry _LY_MONTH_CONTRACTS
+    dict. Any month outside those tables silently got prior_month_contract=
+    None / ly_month_contract=None, so its companion's LM-1 and LY LM blocks
+    came out empty even when the prior contracts existed on disk -- Jan, Feb,
+    Mar and Jul 2026 were all outside them. Calendar arithmetic can't go
+    stale the way a hand-maintained table does.
     """
-    fixture = _LY_MONTH_CONTRACTS.get(period)
-    if not fixture:
-        return None
-    candidate = os.path.join(CONTRACTS_DIR, fixture)
+    year, month = (int(x) for x in period.split("-"))
+    return f"{year - 1}-12" if month == 1 else f"{year}-{month - 1:02d}"
+
+
+def _ly_period(period):
+    """'2026-06' -> '2025-06' -- prior-year same month."""
+    year, month = (int(x) for x in period.split("-"))
+    return f"{year - 1}-{month:02d}"
+
+
+def _resolve_committed_contract(period):
+    """Path to `period`'s committed monthly contract, or None if absent."""
+    candidate = os.path.join(CONTRACTS_DIR, f"{period}-matrixify.json")
     return candidate if os.path.exists(candidate) else None
 
 
-_PRIOR_PERIOD = {
-    "2026-05": "2026-04",
-    "2026-06": "2026-05",
-}
-
-# B3 (round-2 review): real prior-year same-month Matrixify contracts,
-# committed once the 2025 UK/US exports were pulled (see contract.py's
-# ly_month_contract docstring for what this does and doesn't fix -- it
-# backfills prod_types' vs_ly only, disclosed via ly_dept_unclassified_share).
-_LY_MONTH_CONTRACTS = {
-    "2026-04": "2025-04-matrixify.json",
-    "2026-05": "2025-05-matrixify.json",
-    "2026-06": "2025-06-matrixify.json",
-}
+def _resolve_ly_month_contract(period):
+    """Path to `period`'s prior-year same-month committed contract, or None
+    if it isn't present. Feeds contract.py's ly_month_contract (prod_types'
+    vs_ly backfill, disclosed via ly_dept_unclassified_share) and the
+    companion's LY LM block.
+    """
+    return _resolve_committed_contract(_ly_period(period))
 
 
 def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify",
-          force_oracle_bootstrap=False, as_of=None, force=False, contract_out_path=None,
+          force_oracle_bootstrap=False, as_of=None, force=False, force_settled=False,
+          contract_out_path=None,
           html_out_path=None):
     # emit_contract_from_matrixify only chains when BOTH are given -- passing
     # just one silently falls through to its zero/"none_available" branch
@@ -195,19 +203,8 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
                       f"{lm_key}/{ly_key} Matrixify exports aren't both landed -- LM/LY will be zero.",
                       file=sys.stderr)
 
-    prior_month_contract = None
-    prior_period = _PRIOR_PERIOD.get(period)
-    if prior_period:
-        candidate = os.path.join(CONTRACTS_DIR, f"{prior_period}-matrixify.json")
-        if os.path.exists(candidate):
-            prior_month_contract = candidate
-
-    ly_month_contract = None
-    ly_fixture = _LY_MONTH_CONTRACTS.get(period)
-    if ly_fixture:
-        candidate = os.path.join(CONTRACTS_DIR, ly_fixture)
-        if os.path.exists(candidate):
-            ly_month_contract = candidate
+    prior_month_contract = _resolve_committed_contract(_prior_period(period))
+    ly_month_contract = _resolve_ly_month_contract(period)
 
     contract = emit_contract_from_matrixify(
         period=period, uk_csv=uk_csv, us_csv=us_csv,
@@ -221,7 +218,7 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
     contract_path = contract_out_path or os.path.join(CONTRACTS_DIR, f"{period}-matrixify.json")
     os.makedirs(os.path.dirname(contract_path), exist_ok=True)
     write_committed_file(json.dumps(contract, indent=2, default=str), contract_path,
-                          force=force, label="contract")
+                          force=force, force_settled=force_settled, label="contract")
 
     with open(TEMPLATE, encoding="utf-8") as f:
         template_html = f.read()
@@ -230,7 +227,8 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
     label = contract["period_model"]["cm"]["label"].replace(" ", "_")
     out_path = html_out_path or os.path.join(OUTPUT_DIR, f"{label}_dashboard{out_suffix}.html")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    write_committed_file(html, out_path, force=force, label="dashboard output")
+    write_committed_file(html, out_path, force=force, force_settled=force_settled,
+                          label="dashboard output")
 
     # Values-only Excel companion, automatic alongside the HTML (2026-08-13) --
     # not a separate manual step. Monthly = a single-constituent call (see
@@ -238,10 +236,12 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
     # in the tab-building code, just constituent_contracts of length 1).
     period_label = contract["period_model"]["cm"]["label"]
     companion_path = os.path.join(os.path.dirname(out_path), f"{label}_companion{out_suffix}.xlsx")
-    if os.path.exists(companion_path) and not force:
+    if os.path.exists(companion_path) and not (force and force_settled):
         raise FileExistsError(
             f"refusing to overwrite existing committed companion Excel at {companion_path} -- "
-            f"pass force=True (CLI: --force) to intentionally overwrite."
+            f"an .xlsx carries no readable settled_at, so it counts as settled (same rule as "
+            f"contract.write_committed_file): pass BOTH force=True and force_settled=True "
+            f"(CLI: --force --force-settled) to intentionally overwrite."
         )
     from trading.excel_companion import build_companion
     # The By-SKU tab's LM-1 / LY LM blocks read the prior periods' own
@@ -272,7 +272,8 @@ def build(period_arg, lm_contract=None, ly_contract=None, out_suffix="_matrixify
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python trading/build_matrixify_dashboard.py <period> "
-              "[--lm-contract path] [--ly-contract path] [--oracle-bootstrap] [--force]\n"
+              "[--lm-contract path] [--ly-contract path] [--oracle-bootstrap] [--force] "
+              "[--force-settled]\n"
               "  <period>: \"June 2026\", \"2026-06\"\n"
               "  --force: allow overwriting an existing committed contract/output "
               "(refused by default -- see contract.py's write_committed_file)",
@@ -294,6 +295,9 @@ if __name__ == "__main__":
             i += 1
         elif args[i] == "--force":
             kwargs["force"] = True
+            i += 1
+        elif args[i] == "--force-settled":
+            kwargs["force_settled"] = True
             i += 1
         else:
             print(f"Unknown argument: {args[i]}", file=sys.stderr)
