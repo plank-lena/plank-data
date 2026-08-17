@@ -23,10 +23,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pandas as pd
 from openpyxl import Workbook
 from returns import build
+from openpyxl.utils import get_column_letter
 from common.excel_styling import (
     title_row, subtitle_row, section_header, table_header, data_row, total_row,
-    kpi_block, note_row, FMT_CURRENCY, FMT_PERCENT, FMT_INT,
+    kpi_block, note_row, block_label, FMT_CURRENCY, FMT_PERCENT, FMT_PERCENT_SIGNED,
+    FMT_INT,
 )
+from returns import sku_grain
 
 
 def _sku_aggregate(s, ret, shopv):
@@ -215,28 +218,178 @@ def _build_detail(wb, reason_mix_df, by_status, by_finish, period_label):
         r += 1
 
 
-def _build_by_sku(wb, sku_agg, period_label):
+# ── By SKU: segment x market grain ───────────────────────────────────────
+# Built 2026-08-13 to give the returns companion the same depth the trading
+# companion's By-SKU tab got, adapted for three things that make returns
+# different (all three explained at length in returns/sku_grain.py):
+#
+#   * Retail leads and Trade sits beside it, un-blended (build.py §5.3 is a
+#     LOCKED decision). The combined figure is the last block and is labelled
+#     as transparency-only, matching how run() treats by_month_blended.
+#   * The ROW block's returns columns are OMITTED when the source can't record
+#     ROW returns -- not written as zero, which would read as "ROW never
+#     returns anything". ROW sales columns are real and always shown.
+#   * Return rate is withheld below the 20-order floor; the order counts that
+#     make up the rate are always shown, so nothing is hidden, only unrounded
+#     noise is.
+#
+# Ranking is by ALL returns cash (Retail + Trade), not Retail alone: the
+# question this tab answers is "what is coming back", and a Trade-heavy SKU
+# ranked to the bottom of a 700-row sheet is a miss. The lock is about not
+# blending a headline metric, not about sort order -- and every headline
+# metric on the row is still segment-separated.
+
+# (metric_key, header, format) for each cut block. One list, so header count,
+# format count and value count cannot drift apart.
+_CUT_METRICS = [
+    ("value_returned",  "Returns Cash \u00a3", FMT_CURRENCY),
+    ("units_returned",  "Units Returned",       FMT_INT),
+    ("returned_orders", "Returned Orders",      FMT_INT),
+    ("orders",          "Orders",               FMT_INT),
+    ("return_rate",     "Return Rate",          FMT_PERCENT),
+    ("value_rate",      "Returns % of Sales",   FMT_PERCENT),
+]
+# The ROW block keeps only the sales-side facts when returns aren't recordable.
+_CUT_METRICS_SALES_ONLY = [
+    ("orders",     "Orders",     FMT_INT),
+    ("units_sold", "Units Sold", FMT_INT),
+]
+_ATTRS = [
+    ("rank",        "Rank",                None),
+    ("sku",         "SKU",                 None),
+    ("description", "Product Description", None),
+    ("category",    "Product Category",    None),
+    ("department",  "Product Type",        None),
+    ("subcategory", "Sub Category",        None),
+    ("finish",      "Finish",              None),
+    ("family",      "Family/Collection",   None),
+    ("status",      "Status",              None),
+]
+
+
+def _by_sku_layout(meta, has_prior):
+    """[(block_label, [(cut_key_or_None, metric_key, header, fmt), ...]), ...]
+
+    Computed rather than hardcoded because the column set genuinely varies:
+    the ROW block narrows when ROW returns aren't recordable, and the movement
+    block disappears when no prior period was loaded. Everything downstream
+    (headers, formats, block bands, values) is derived from this one structure.
+    """
+    blocks = [("", [(None, k, h, f) for k, h, f in _ATTRS])]
+    for key in sku_grain.CUT_KEYS:
+        label = sku_grain.CUT_LABELS[key]
+        if key in sku_grain.ROW_DEPENDENT_CUTS and not meta["row_returns_recordable"]:
+            metrics = _CUT_METRICS_SALES_ONLY
+            label = f"{label} (sales only)"
+        else:
+            metrics = _CUT_METRICS
+        if key == "blended":
+            label = f"{label} - transparency only, not the headline"
+        blocks.append((label, [(key, mk, h, f) for mk, h, f in metrics]))
+    if has_prior:
+        blocks.append(("vs PRIOR PERIOD (Retail)", [
+            ("retail", "_vs_value", "Returns Cash vs prior", FMT_PERCENT_SIGNED),
+            ("retail", "_vs_units", "Units Returned vs prior", FMT_PERCENT_SIGNED),
+            ("retail", "_prior_value", "Prior Returns Cash \u00a3", FMT_CURRENCY),
+            ("retail", "_prior_rate", "Prior Return Rate", FMT_PERCENT),
+        ]))
+    return blocks
+
+
+def _build_by_sku(wb, sku_agg, period_label, cuts=None, meta=None, prior_cuts=None,
+                   attrs_by_sku=None):
+    """The By-SKU tab. Falls back to the original 8-column view when no cut
+    data is passed, so an existing caller that hasn't been updated still
+    produces a working sheet rather than an error.
+    """
     ws = wb.create_sheet("By SKU")
     ws.sheet_view.showGridLines = False
-    for col, w in zip("ABCDEFGH", [8, 20, 15, 18, 15, 14, 14, 12]):
-        ws.column_dimensions[col].width = w
 
-    title_row(ws, 1, f"{period_label} - Returns by SKU (full)", 8)
-    subtitle_row(ws, 2, "ranked by returns cash  |  ex-VAT  |  filterable", 8)
-    table_header(ws, 3, ["Rank", "SKU", "Type", "Collection", "Finish",
-                          "Returns cash", "Units returned", "Return rate"])
-    fmts = [FMT_INT, None, None, None, None, FMT_CURRENCY, FMT_INT, FMT_PERCENT]
+    if not cuts:
+        for col, w in zip("ABCDEFGH", [8, 20, 15, 18, 15, 14, 14, 12]):
+            ws.column_dimensions[col].width = w
+        title_row(ws, 1, f"{period_label} - Returns by SKU (full)", 8)
+        subtitle_row(ws, 2, "ranked by returns cash  |  ex-VAT  |  filterable", 8)
+        table_header(ws, 3, ["Rank", "SKU", "Type", "Collection", "Finish",
+                              "Returns cash", "Units returned", "Return rate"])
+        fmts = [FMT_INT, None, None, None, None, FMT_CURRENCY, FMT_INT, FMT_PERCENT]
+        ranked = sku_agg.sort_values("value_returned", ascending=False)
+        r = 4
+        for i, (_, row_data) in enumerate(ranked.iterrows(), start=1):
+            data_row(ws, r, [i, row_data["sku"], row_data["department"], row_data["family"],
+                              row_data["finish"], row_data["value_returned"],
+                              row_data["units_returned"], row_data["return_rate"]], fmts)
+            r += 1
+        ws.freeze_panes = "A4"
+        return ws
 
-    ranked = sku_agg.sort_values("value_returned", ascending=False)
-    r = 4
-    for i, (_, row_data) in enumerate(ranked.iterrows(), start=1):
-        data_row(ws, r, [i, row_data["sku"], row_data["department"], row_data["family"], row_data["finish"],
-                          row_data["value_returned"], row_data["units_returned"], row_data["return_rate"]], fmts)
+    blocks = _by_sku_layout(meta, bool(prior_cuts))
+    flat = [(blk, spec) for blk, specs in blocks for spec in specs]
+    headers = [spec[2] for _, spec in flat]
+    fmts = [spec[3] for _, spec in flat]
+    ncols = len(headers)
+
+    for i, w in enumerate([8, 22, 34, 16, 15, 16, 14, 16, 12], start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    for i in range(len(_ATTRS) + 1, ncols + 1):
+        ws.column_dimensions[get_column_letter(i)].width = 15
+
+    title_row(ws, 1, f"{period_label} - Returns by SKU", ncols)
+    subtitle_row(ws, 2, "ranked by all returns cash (Retail + Trade)  |  ex-VAT  |  "
+                        "order-month cohort  |  Retail and Trade never blended into a headline  |  "
+                        "filterable", ncols)
+    col = 1
+    for label, specs in blocks:
+        if label:
+            block_label(ws, 3, label, col, col + len(specs) - 1)
+        col += len(specs)
+    table_header(ws, 4, headers)
+
+    def rank_key(sku):
+        b = cuts.get(sku, {}).get("blended", {})
+        return -(b.get("value_returned") or 0)
+
+    r = 5
+    for i, sku in enumerate(sorted(cuts, key=rank_key), start=1):
+        by_cut = cuts[sku]
+        attrs = (attrs_by_sku or {}).get(sku, {})
+        prior_retail = (prior_cuts or {}).get(sku, {}).get("retail")
+        values = []
+        for _, (cut_key, metric_key, _, _) in flat:
+            if cut_key is None:
+                values.append(i if metric_key == "rank" else
+                              (sku if metric_key == "sku" else attrs.get(metric_key)))
+                continue
+            m = by_cut.get(cut_key)
+            if metric_key == "_vs_value":
+                values.append(sku_grain.uplift(m, prior_retail, "value_returned"))
+            elif metric_key == "_vs_units":
+                values.append(sku_grain.uplift(m, prior_retail, "units_returned"))
+            elif metric_key == "_prior_value":
+                values.append((prior_retail or {}).get("value_returned"))
+            elif metric_key == "_prior_rate":
+                values.append((prior_retail or {}).get("return_rate"))
+            else:
+                values.append((m or {}).get(metric_key))
+        data_row(ws, r, values, fmts)
         r += 1
-    ws.freeze_panes = "A4"
+
+    ws.freeze_panes = "C5"
+    ws.auto_filter.ref = f"A4:{get_column_letter(ncols)}{r - 1}"
+
+    note = (f"{len(cuts)} SKUs. Return rate is returned orders / orders and is withheld where a "
+            f"cut has fewer than {meta['floor']} orders -- the order counts are shown either side "
+            f"of it, so the rate is the only thing suppressed. Order and unit figures include "
+            f"exchanges; cash figures exclude exchange-attributable value. Retail is the headline "
+            f"basis; the Retail + Trade block is shown for transparency and is not a headline "
+            f"figure. {meta['row_note']}")
+    if prior_cuts is None:
+        note += (" Movement columns are omitted: no prior period was loaded to compare against.")
+    note_row(ws, r + 1, note, ncols)
+    return ws
 
 
-def _build_reconciliation(wb, headline, by_market, period_label):
+def _build_reconciliation(wb, headline, by_market, period_label, headline_blended=None):
     ws = wb.create_sheet("Reconciliation & Data Quality")
     ws.sheet_view.showGridLines = False
     ws.column_dimensions["A"].width = 26
@@ -264,16 +417,46 @@ def _build_reconciliation(wb, headline, by_market, period_label):
 
     section_header(ws, r, "Headline consistency", 3); r += 1
     table_header(ws, r, ["Source", "Returns cash", "Note"]); r += 1
-    data_row(ws, r, ["Pipeline headline (this companion)", headline["value_returned"],
+    data_row(ws, r, [f"Pipeline headline (this companion, {headline.get('basis', 'Retail')})",
+                      headline["value_returned"],
                       "single source (ReturnZap sheet, deduped) -- no cross-view drift possible, "
                       "unlike the old multi-workbook source"], [None, FMT_CURRENCY, None])
-    r += 2
+    r += 1
+    if headline_blended:
+        # Both figures on the page, on purpose. Until 2026-08-13 this companion
+        # headlined the blended figure while the HTML dashboard headlined
+        # Retail, so the two deliverables disagreed for the same period. The
+        # companion now follows the dashboard and §5.3; showing what the
+        # blended view says makes the size of that correction visible instead
+        # of leaving readers of an earlier file to wonder why the number moved.
+        data_row(ws, r, ["Retail + Trade blended (NOT the headline)",
+                          headline_blended["value_returned"],
+                          "shown for transparency only. Locked decision (build.py §5.3): the "
+                          "headline is Retail; Retail and Trade are never combined into one rate "
+                          "or value. Companions issued before 2026-08-13 headlined this blended "
+                          "figure in error -- corrected, not restated silently."],
+                  [None, FMT_CURRENCY, None])
+        r += 1
+        data_row(ws, r, ["Headline order rate (Retail)", headline["order_rate"],
+                          f"{int(headline['returned_orders'])} returned orders of "
+                          f"{int(headline['orders'])} Retail orders"], [None, FMT_PERCENT, None])
+        r += 1
+        data_row(ws, r, ["Blended order rate (NOT the headline)", headline_blended["order_rate"],
+                          f"{int(headline_blended['returned_orders'])} of "
+                          f"{int(headline_blended['orders'])} orders, Retail and Trade combined"],
+                  [None, FMT_PERCENT, None])
+        r += 1
+    r += 1
 
     section_header(ws, r, "Notes", 3); r += 1
     notes = [
         "Source: the same ReturnZap Drive sheet + rolling Matrixify snapshot the HTML dashboard "
         "itself uses (returns/build.py's prep()) -- not a separate re-derivation.",
         "Single-count and orders-based headline rate, per the locked returns methodology.",
+        "Headline basis is RETAIL, matching the HTML dashboard and build.py \u00a75.3. Trade is "
+        "computed and reported, never blended into the headline.",
+        "Order-month cohort throughout: a return is counted in the month the ORDER was placed, "
+        "not the month it came back.",
         "Returns reported separately, never netted into revenue.",
         "Values-only (no formulas).",
     ]
@@ -282,7 +465,18 @@ def _build_reconciliation(wb, headline, by_market, period_label):
         r += 1
 
 
-def build_returns_companion(out_path, period_label, sales_df, ld_std, returns_df, month_nums, year, source_note=""):
+def build_returns_companion(out_path, period_label, sales_df, ld_std, returns_df, month_nums, year,
+                             source_note="", prior_month_nums=None, prior_year=None):
+    """Build the companion.
+
+    prior_month_nums / prior_year (2026-08-13): the window to compare the
+    By-SKU tab's movement columns against. Optional -- there is no committed
+    returns contract to chain to, so a comparative means re-running prep() on
+    the prior window, which only works if that period's orders are present in
+    `sales_df`. Omitted or absent -> the movement columns are left out and the
+    tab says so, rather than showing a -100% drop off a period that was never
+    loaded.
+    """
     s, ret, zap, shopv, months = build.prep(sales_df, ld_std, returns_df, month_nums, year)
 
     by_market = build.by_group(s, ret, "mkt", ["UK", "US", "ROW"])
@@ -299,22 +493,83 @@ def build_returns_companion(out_path, period_label, sales_df, ld_std, returns_df
         vmap = sku_agg.groupby(col)["value_returned"].sum()
         block["value_returned"] = block.index.map(vmap).fillna(0)
 
-    tot = by_market.loc["Total"]
+    # ── Headline basis, corrected 2026-08-13 ────────────────────────────────
+    # This block used to read by_market.loc["Total"], i.e. Retail AND Trade
+    # blended, while run() -- which feeds the HTML dashboard -- headlines
+    # by_month(s_retail, ret_retail). Same period, two deliverables, two
+    # different headline return rates, and the Excel one was the side
+    # contradicting build.py §5.3 ("headline defaults to RETAIL; trade is
+    # computed and reported separately; the two are never combined into one
+    # blended rate/value"), which is a LOCKED decision.
+    #
+    # The companion now headlines Retail, matching the dashboard and the lock.
+    # Trade and blended are still computed and still reported -- on the
+    # Reconciliation tab, labelled -- so nothing is lost, and the difference
+    # between this month's figure and previously-issued companions is a
+    # correction with a stated cause, not a silent restatement.
+    s_retail, ret_retail = s[s.seg == "Retail"], ret[ret.seg == "Retail"]
+    retail_orders = s_retail["order"].nunique()
+    retail_returned = ret_retail["order"].nunique()
+    retail_units_sold = s_retail["units"].sum()
+    retail_units_returned = ret_retail["qty"].sum()
+    vsplit_retail = build.value_split(shopv, "Retail")
+
     headline = {
+        "orders": retail_orders, "returned_orders": retail_returned,
+        "order_rate": (retail_returned / retail_orders) if retail_orders else 0,
+        "units_sold": retail_units_sold, "units_returned": retail_units_returned,
+        "unit_rate": (retail_units_returned / retail_units_sold) if retail_units_sold else 0,
+        "value_returned": vsplit_retail["stock_value"],
+        "basis": "Retail",
+    }
+    # Kept for the Reconciliation tab: what the blended view would say, so the
+    # two are visibly different numbers rather than one quietly replacing the
+    # other.
+    tot = by_market.loc["Total"]
+    headline_blended = {
         "orders": tot["orders"], "returned_orders": tot["returned_orders"],
-        "order_rate": tot["return_rate"], "units_sold": tot["units_sold"],
-        "units_returned": tot["units_returned"],
-        "unit_rate": tot["units_returned"] / tot["units_sold"] if tot["units_sold"] else 0,
+        "order_rate": tot["return_rate"],
         "value_returned": vsplit["stock_value"],
     }
+
+    # ── SKU grain (2026-08-13) ──────────────────────────────────────────────
+    cuts, cuts_meta = sku_grain.aggregate(s, ret, shopv)
+    prior_cuts, prior_reason = (None, "no prior period requested")
+    if prior_month_nums:
+        prior_cuts, prior_reason = sku_grain.prior_period_aggregate(
+            sales_df, ld_std, returns_df, prior_month_nums, prior_year or year)
+    if prior_reason and prior_month_nums:
+        print(f"returns companion: {prior_reason}", file=sys.stderr)
+
+    descriptions = {}
+    try:
+        descriptions = build.load_line_detail_names()
+    except Exception as e:
+        print(f"returns companion: product descriptions unavailable ({type(e).__name__}: {e}) -- "
+              f"the By-SKU tab's description column will be empty", file=sys.stderr)
+    ld_idx = ld_std.drop_duplicates("sku").set_index("sku")
+    tax = s.drop_duplicates("sku").set_index("sku")
+    attrs_by_sku = {}
+    for sku in cuts:
+        attrs_by_sku[sku] = {
+            "description": descriptions.get(sku),
+            "category": ld_idx["category"].get(sku) if "category" in ld_idx.columns else None,
+            "subcategory": ld_idx["subcategory"].get(sku) if "subcategory" in ld_idx.columns else None,
+            "department": tax["department"].get(sku) if "department" in tax.columns else None,
+            "finish": tax["finish"].get(sku) if "finish" in tax.columns else None,
+            "family": tax["family"].get(sku) if "family" in tax.columns else None,
+            "status": tax["status"].get(sku) if "status" in tax.columns else None,
+        }
 
     wb = Workbook()
     _build_overview(wb, headline, by_market, period_label,
                      source_note or f"Source: {period_label} committed returns build. Values-only.")
     _build_drill_down(wb, sku_agg, headline, period_label)
     _build_detail(wb, reason, by_status, by_finish, period_label)
-    _build_by_sku(wb, sku_agg, period_label)
-    _build_reconciliation(wb, headline, by_market, period_label)
+    _build_by_sku(wb, sku_agg, period_label, cuts=cuts, meta=cuts_meta,
+                   prior_cuts=prior_cuts, attrs_by_sku=attrs_by_sku)
+    _build_reconciliation(wb, headline, by_market, period_label,
+                           headline_blended=headline_blended)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     wb.save(out_path)

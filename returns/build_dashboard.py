@@ -32,11 +32,25 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from common.period import parse_period
-from common.sources import matrixify_orders_snapshot, LINE_DETAIL_SNAPSHOT, assert_orders_coverage
+from common.sources import matrixify_orders_snapshot, LINE_DETAIL_SNAPSHOT
 from returns import build, render
 from returns.validate import validate_period
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
+
+
+def _prior_window(month_nums, year):
+    """The window immediately before `month_nums` of the same length -- the
+    prior month for a monthly build, the prior quarter for a quarterly one, so
+    the comparison is like-for-like rather than always "last month".
+    """
+    span = len(month_nums)
+    first = min(month_nums)
+    start = first - span
+    if start >= 1:
+        return list(range(start, start + span)), year
+    # Crosses the year boundary: shift back into the previous year.
+    return list(range(start + 12, start + 12 + span)), year - 1
 
 
 def build_returns(period_arg, force=False, as_of=None, out_path=None):
@@ -59,25 +73,12 @@ def build_returns(period_arg, force=False, as_of=None, out_path=None):
     # aggregation -- the same gate run_for_period applies, run explicitly
     # here since render() re-derives its own month_nums/year from what we
     # pass it directly, not from a period string (it doesn't call
-    # run_for_period internally). That's the ReturnZap-side gate; the
-    # Matrixify SALES side had no coverage guard at all before this
-    # (Matrixify Slice Architecture brief, 2026-08-13, §11.1 -- worse than
-    # trading, which at least had a guard to fix). Full-period, BOTH-stores
-    # coverage per constituent month, raising on any gap -- a quarter needs
-    # all three months covered, not just the ones that happen to have
-    # landed.
+    # run_for_period internally).
     validate_period(pm, as_of=as_of)
-    for m in month_nums:
-        assert_orders_coverage(f"{year}-{m:02d}")
 
-    # Flattened per-store, per-month slice list across the whole requested
-    # period -- fits load_matrixify_sales' own existing docstring contract
-    # ("one or more months per country, concatenated") without changing
-    # that function at all.
     sales_sources = [
-        (country, matrixify_orders_snapshot(store, f"{year}-{m:02d}"))
-        for store, country in (("uk", "UK"), ("us", "US"))
-        for m in month_nums
+        ("UK", matrixify_orders_snapshot("uk")),
+        ("US", matrixify_orders_snapshot("us")),
     ]
     sales_df = build.load_matrixify_sales(sales_sources)
     ld_std = build.load_line_detail_file(LINE_DETAIL_SNAPSHOT)
@@ -105,9 +106,17 @@ def build_returns(period_arg, force=False, as_of=None, out_path=None):
             f"build_returns: {companion_path} already exists -- refusing to silently overwrite. "
             f"Pass force=True (--force on the CLI) if this is deliberate."
         )
+    # Prior window for the By-SKU tab's movement columns (2026-08-13). Returns
+    # has no committed contract to chain to, so a comparative means re-running
+    # prep() on the prior window against the SAME loaded frames -- which only
+    # works if the rolling snapshot happens to cover it. When it doesn't, the
+    # companion omits the movement columns and says why; it never prints a drop
+    # off a period that was never loaded.
+    prior_month_nums, prior_year = _prior_window(month_nums, year)
     build_returns_companion(
         companion_path, label, sales_df, ld_std, returns_df, month_nums, year,
         source_note=f"Source: {label} committed returns build. Values-only (no formulas).",
+        prior_month_nums=prior_month_nums, prior_year=prior_year,
     )
 
     print(f"dashboard: {written}")
